@@ -5,60 +5,32 @@ Everything not listed here has been built. Update/remove entries as they are res
 
 ## Open
 
-### 1. `ANTHROPIC_API_KEY` — required for any model call
+### 1. `scripts/demo.sh` has not been run against a real model
 
-- Needed for: the agent loop (`/chat`), the eval harness, the LLM judge.
-- Without it: everything builds and all 169 tests pass (the agent tests use a scripted model through
-  the real MCP transport). `/chat` returns 503 `MODEL_UNAVAILABLE`, and `scripts/demo.sh` — written
-  and exercised against the scripted model — has not yet been run against Sonnet. That run is the
-  open M4 acceptance item.
-- Action: put it in `.env` locally, and add it as a GitHub Actions secret + a Render env var on `westline-app`.
+- `ANTHROPIC_API_KEY` is in `.env` and set on `westline-app`; deployed `/health` reports
+  `models.available: true` with `claude-sonnet-5` / `claude-opus-5`. So the key is no longer the
+  blocker — the open item is the M4 acceptance run itself: `scripts/demo.sh` was written and
+  exercised against the scripted model only, never against Sonnet. Expect prompt tuning.
+- Action: `scripts/demo.sh https://westline-hr-agent.onrender.com` (or locally), then record the
+  result in `ai-tooling.md`.
 
-### 2. Voyage — key present; payment method optional
-- Key is in `.env` (2026-09-04) and works. Without a payment method Voyage caps the key at 3 requests
-  per minute and 10K tokens per minute; the index build is paced under that with
-  `VOYAGE_BATCH_SIZE=20 VOYAGE_MIN_INTERVAL_MS=21000` (~7 minutes). Adding a card at
-  https://dashboard.voyageai.com lifts the cap (the free token grant still applies) and lets those two
-  vars be dropped on Render.
-- `ANTHROPIC_API_KEY` is also in `.env` (found in `~/strategy-navigator/.env.local`); both model ids verified.
+### 2. GitHub: grader access and Actions write permission
 
-### 3. Render services — created and configured; first green deploy still pending
+- `micajobe/westline-hr-agent` exists, is private, and `main` is pushed (2026-09-04).
+- Remaining: `quantic-grader` is **not** a collaborator (only `micajobe`), and Actions
+  `default_workflow_permissions` is **read**, which `eval.yml` needs as read+write to commit results.
+- Action: `gh api -X PUT repos/micajobe/westline-hr-agent/collaborators/quantic-grader` and set
+  workflow permissions to read+write in repo settings.
 
-- Both services now exist in workspace `tea-d7v0op9j2pic73cb80eg`, created via the Render REST API
-  (2026-09-04). No Blueprint is connected — the API has no create/apply-Blueprint endpoint, only
-  validate/retrieve/update/disconnect — so `render.yaml` is currently documentation, not the
-  source of truth for these two services. Adopt it from the dashboard if that link is wanted.
+### 3. Deploy secrets for `deploy.yml`
 
-  | Service | ID | URL |
-  |---|---|---|
-  | `westline-app` | `srv-dadi2etg1s2s73bldagg` | <https://westline-hr-agent.onrender.com> |
-  | `westline-mcp` | `srv-dadi5eqd0e5s73d375tg` | <https://westline-mcp.onrender.com> |
+- Not yet set: `RENDER_DEPLOY_HOOK_APP`, `RENDER_DEPLOY_HOOK_MCP`, `DEPLOYED_APP_URL`, plus
+  `ANTHROPIC_API_KEY`, `VOYAGE_API_KEY`, `AGENT_MODEL`, `JUDGE_MODEL` for `eval.yml`.
+- Deploy hook URLs are dashboard-only (the API does not expose them). Alternative: repoint
+  `deploy.yml` at `scripts/render-deploy.sh` with a single `RENDER_API_KEY` secret, which also lets
+  the workflow poll real deploy status instead of curling `/health`.
 
-  **Note the app's hostname.** It was created by hand as `westline-hr-agent` and renamed to
-  `westline-app`; Render keeps the original `onrender.com` subdomain, so the service name matches
-  `render.yaml` but the hostname does not. `deployed.md` and the README must use the URL above.
-
-- Done: build/start commands per `render.yaml`, `healthCheckPath: /health`, plan free, region
-  oregon, Node 22, auto-deploy **off** on both, one fresh 64-hex `MCP_SHARED_SECRET` shared by both,
-  all 12 app env vars incl. `MCP_MODE=http` and `MCP_BASE_URL`, all 5 MCP env vars.
-- Verified: the Node 22 build succeeds on Render (`Build successful`, web bundle + all workspaces).
-- Remaining:
-  1. Resolve item 2 — both deploys fail on Voyage rate limits, not on configuration.
-  2. Redeploy both and confirm `/health` is `ok`.
-  3. Copy both **Deploy Hook** URLs (dashboard → service → Settings → Deploy Hook; the API does not
-     expose them) and `gh secret set RENDER_DEPLOY_HOOK_MCP`, `RENDER_DEPLOY_HOOK_APP`,
-     `DEPLOYED_APP_URL`. Alternative worth considering: point `deploy.yml` at the API's
-     `POST /v1/services/{id}/deploys` with a `RENDER_API_KEY` secret instead — one secret rather
-     than two, and the workflow could poll real deploy status instead of curling `/health`.
-  4. Also `gh secret set ANTHROPIC_API_KEY`, `VOYAGE_API_KEY`, `AGENT_MODEL`, `JUDGE_MODEL` for `eval.yml`.
-  5. Fill the URLs in `deployed.md` and the README; run `scripts/demo.sh <app-url>`.
-
-### 4. GitHub repo + grader access
-
-- Action: create `westline-hr-agent`, push, add `quantic-grader` as collaborator,
-  set Actions workflow permissions to read+write (needed by `eval.yml` to commit results).
-
-### 5. Design system — decided, no action needed
+### 4. Design system — decided, no action needed
 
 - Micah (2026-09-04): follow the Nimble editorial design system from `~/strategy-navigator`
   (ADR 0012). Fraunces / Inter Tight / JetBrains Mono via Google Fonts; B&W only. The earlier PP
@@ -67,4 +39,28 @@ Everything not listed here has been built. Update/remove entries as they are res
 
 ## Resolved
 
-_(none yet)_
+### `VOYAGE_API_KEY` — resolved 2026-09-04
+
+Key was valid but the account had no payment method, so Voyage capped it at 3 RPM / 10K TPM and the
+414-chunk index build died on 429s (three failed deploys). A card was added; standard limits took a
+few minutes to propagate. Diagnostic note: during propagation a *single* request returns 200 while
+bursts still 429 — that is the 3 RPM allowance, not a lifted cap. Test with five spaced requests.
+
+### Render services — resolved 2026-09-04
+
+Both live, created through the REST API (no Blueprint attached; the API has no create/apply-Blueprint
+endpoint, so `render.yaml` documents the shape rather than driving it).
+
+| Service | ID | URL |
+|---|---|---|
+| `westline-app` | `srv-dadi2etg1s2s73bldagg` | <https://westline-hr-agent.onrender.com> |
+| `westline-mcp` | `srv-dadi5eqd0e5s73d375tg` | <https://westline-mcp.onrender.com> |
+
+The app's hostname keeps its creation-time subdomain despite the rename to `westline-app`.
+`/health` reports `ok`, both MCP servers `connected`, corpus hash `190aa9a6e9b2` on both sides.
+`scripts/render-deploy.sh trigger|status|logs <service-id>` drives deploys through the API.
+
+Still open on the deploy path: deploy hooks are not exposed by the API, so either copy both hook
+URLs from the dashboard into GitHub secrets, or repoint `deploy.yml` at the trigger-deploy endpoint
+with one `RENDER_API_KEY` secret.
+

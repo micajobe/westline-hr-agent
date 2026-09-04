@@ -1,18 +1,18 @@
 # Deployed
 
-> **Status:** the Render services have not been created yet (BLOCKERS.md item 3). Everything below
-> is ready to be true the moment they exist; the placeholders are marked `TBD`.
+> **Status:** both services are live as of 2026-09-04. `/health` on the app reports `ok` with both
+> MCP servers `connected` and an identical corpus hash on both sides.
 
 ## URLs
 
 | What | URL |
 |---|---|
-| App (chat UI, `/chat`, `/health`) | `TBD` — `https://westline-app.onrender.com` once created |
-| App health | `TBD/health` |
-| MCP service health | `TBD` — `https://westline-mcp.onrender.com/health` |
+| App (chat UI, `/chat`, `/health`) | <https://westline-hr-agent.onrender.com> |
+| App health | <https://westline-hr-agent.onrender.com/health> |
+| MCP service health | <https://westline-mcp.onrender.com/health> |
 | MCP endpoints | `…/mcp/policy`, `…/mcp/hr` (Streamable HTTP, require `x-westline-mcp-secret`) |
-| Desk (mock tickets and drafts) | `TBD/desk` |
-| Eval results | `TBD/eval` |
+| Desk (mock tickets and drafts) | <https://westline-hr-agent.onrender.com/desk> |
+| Eval results | <https://westline-hr-agent.onrender.com/eval> |
 
 ## Topology
 
@@ -22,6 +22,13 @@ Two free Render web services from this repository (PRD §10, ADR 0009):
 |---|---|---|---|
 | `westline-mcp` | `npm ci && npm run build` | `npm run start:mcp` | `/mcp/policy`, `/mcp/hr`, `/health`, `/desk` (secret-protected). Builds the RAG index at first start if absent; owns `desk.sqlite`. |
 | `westline-app` | `npm ci && npm run build && npm run index:build` | `npm run start:app` | The React app, `/chat`, `/chat/stream`, `/confirm`, `/health`, `/personas`, `/demo/tasks`, `/desk`, `/eval/latest`. Talks to `westline-mcp` over HTTPS with `MCP_MODE=http`. |
+
+**Service names and hostnames differ for the app.** It was created by hand as `westline-hr-agent`
+and later renamed to `westline-app`; Render keeps the subdomain assigned at creation, so the service
+name matches `render.yaml` while the URL stays `westline-hr-agent.onrender.com`. Service IDs:
+`srv-dadi2etg1s2s73bldagg` (app), `srv-dadi5eqd0e5s73d375tg` (mcp). Neither is attached to a
+Blueprint — they were created through the REST API, which has no create/apply-Blueprint endpoint —
+so `render.yaml` currently documents the intended shape rather than driving it.
 
 `render.yaml` at the repo root is a Blueprint that creates both services with these commands and
 env var names. Auto-deploy is **off** on both; `.github/workflows/deploy.yml` POSTs the deploy hooks
@@ -57,7 +64,15 @@ to wake. Two services means a cascade: the first request to a sleeping app wakes
 
 - A cold `GET /health` on the app may report `degraded` with `mcp.policy.status: "down"` for the
   first request; the second request a few seconds later is normally `ok`.
-- **Voyage rate limits.** A Voyage key with no payment method is capped at 3 requests/min and 10K tokens/min; the index build then needs `VOYAGE_BATCH_SIZE=20` and `VOYAGE_MIN_INTERVAL_MS=21000` on both services (~7 min build) or Render's build step times out on 429s. Adding a card on the Voyage billing page lifts the cap; the env vars can then be removed.
+- **Voyage rate limits.** A Voyage key with no payment method is capped at 3 requests/min and 10K
+  tokens/min, which is far too slow for the 414-chunk index: three deploys failed with
+  `voyage: HTTP 429 … you have not yet added your payment method`, one of them before it embedded a
+  single batch. A payment method was added on 2026-09-04 and the standard limits took a few minutes
+  to propagate — during that window single requests succeed while bursts still 429, so a lone 200 is
+  not evidence the cap has lifted; five spaced requests all returning 200 is. If a key ever runs
+  uncapped-but-throttled again, set `VOYAGE_BATCH_SIZE=20` and `VOYAGE_MIN_INTERVAL_MS=21000`
+  (~7 min build) rather than waiting — but note `westline-mcp` indexes in its *start* command, so a
+  build that slow needs `index:build` moved into its build command or Render's port scan times out.
 - `westline-mcp` opens `data/index.sqlite` on start. Render has no persistent disk, so on a
   **redeploy** the index is rebuilt from the committed corpus (~400 chunks through Voyage, typically
   under a minute). A plain **wake from sleep** does not rebuild — the filesystem survives sleep.

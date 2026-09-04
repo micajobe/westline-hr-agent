@@ -13,7 +13,7 @@ with CI green and 179 tests passing without API keys.
 | M3 MCP servers | done | 9 tools over real Streamable HTTP; scope, audience, gate token tests; `start:mcp` smoke-tested with raw JSON-RPC |
 | M4 Agent + API | done (model unverified) | `server.start.test.ts` runs demo task 2 end to end with a scripted model: identity injection, gate hold, `/confirm`, replay refusal, verify stripping a fabricated citation; `MCP_MODE=http` verified with two processes |
 | M5 Web UI | done | Both demo buttons complete against the scripted server; re-skinned to the Nimble editorial system (ADR 0012) at Micah's direction |
-| M6 Deploy | repo side done; Render blocked | `render.yaml`, `deploy.yml` (CI-gated, health-polled), `deployed.md`, ADRs 0009–0011 |
+| M6 Deploy | done — both services live | `render.yaml`, `deploy.yml` (CI-gated, health-polled), `deployed.md`, ADRs 0009–0011 |
 | M7 Eval harness | built; real run blocked | 28-item set, all metrics, 4 ablations, judge, cold-start probe, `eval.yml`; plumbing run: 28/28 items, 0 errors |
 | M8 Documentation | done | README, design-and-evaluation.md (results section awaits a run), deployed.md, 12 ADRs, ai-tooling.md through M7 |
 
@@ -26,7 +26,7 @@ with CI green and 179 tests passing without API keys.
 ## Remaining for Micah (BLOCKERS.md has the exact steps)
 
 1. Put `ANTHROPIC_API_KEY` and `VOYAGE_API_KEY` in `.env`; run `npm run index:build`, `npm run start:app`, `scripts/demo.sh`. Expect prompt tuning.
-2. Create the two Render services from `render.yaml`; set the secrets; copy the deploy hooks into GitHub secrets; fill the `TBD` URLs in `deployed.md` and `README.md`.
+2. Deploy hooks into GitHub secrets (`RENDER_DEPLOY_HOOK_APP/_MCP`, `DEPLOYED_APP_URL`) — or switch `deploy.yml` to the API's trigger-deploy endpoint via `scripts/render-deploy.sh` and a single `RENDER_API_KEY` secret. Services are live and the URLs are filled in.
 3. Run the eval (locally or via `eval.yml`), then `cold_start.ts` against the deployed URL; paste the results into design-and-evaluation.md §8.4.
 4. Score the 10 calibration items in `evaluation/human_scores.json`; re-run `npm run eval` to compute agreement.
 5. Add `quantic-grader` as a collaborator; write the closing reflection in `ai-tooling.md`; record the video (PRD §14.1).

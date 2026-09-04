@@ -11,8 +11,9 @@ whole thing in a trace rail that reads like a flight recorder.
 
 Quantic MSAIE · AI Engineering Techniques and Architectures · individual submission · Micah Slavens.
 
-**Deployed:** `TBD` — see [`deployed.md`](deployed.md) (Render services not yet created; everything
-on the repo side is ready, see [`BLOCKERS.md`](BLOCKERS.md)).
+**Deployed:** <https://westline-hr-agent.onrender.com> — chat UI, `/health`, `/desk`, `/eval`. The MCP service it calls lives at
+<https://westline-mcp.onrender.com>. Both are free Render instances and sleep after 15 minutes idle; the first request takes
+30–60s to wake. See [`deployed.md`](deployed.md).
 
 ## Documents
 
