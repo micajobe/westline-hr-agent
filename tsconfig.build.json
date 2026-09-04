@@ -1,0 +1,12 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./packages/shared" },
+    { "path": "./packages/rag" },
+    { "path": "./mcp/policy-mcp" },
+    { "path": "./mcp/hr-data-mcp" },
+    { "path": "./mcp/host" },
+    { "path": "./apps/server" },
+    { "path": "./evaluation" }
+  ]
+}

@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.env
+.env.local
+*.tsbuildinfo
+data/
+.DS_Store
+apps/web/dist/
+evaluation/results/runs/
+.vitest/
