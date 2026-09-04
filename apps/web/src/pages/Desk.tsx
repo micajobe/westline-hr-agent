@@ -9,7 +9,7 @@ export function DeskPage() {
   const [err, setErr] = useState<string | null>(null);
   useEffect(() => { api.desk().then(setDesk).catch((e: Error) => setErr(e.message)); }, []);
   return (
-    <main className="mx-auto w-full max-w-[var(--max-content)] flex-1 overflow-y-auto px-6 py-8">
+    <main className="w-full max-w-[var(--max-content)] flex-1 overflow-y-auto px-6 py-8">
       <h1 className="headline text-[length:var(--t-h1)]">The desk</h1>
       <p className="lede mt-4 max-w-[640px] text-[var(--muted)]">Mock tickets and drafts written by the two gated tools. Nothing here was sent anywhere. The store lives in <span className="mono">desk.sqlite</span> on the MCP service and resets on every redeploy.</p>
       {err && <p className="mt-6 font-medium">Desk unavailable: {err}</p>}

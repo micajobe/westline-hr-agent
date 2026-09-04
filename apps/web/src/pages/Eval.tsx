@@ -24,7 +24,7 @@ export function EvalPage() {
     );
   }, []);
   return (
-    <main className="mx-auto w-full max-w-[var(--max-content)] flex-1 overflow-y-auto px-6 py-8">
+    <main className="w-full max-w-[var(--max-content)] flex-1 overflow-y-auto px-6 py-8">
       <div className="flex items-end gap-4">
         <h1 className="headline text-[length:var(--t-h1)]">Evaluation</h1>
         {source === 'sample' && <Badge tone="dashed">sample data — no eval run yet</Badge>}

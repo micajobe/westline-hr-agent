@@ -18,7 +18,8 @@ async function postJson<T>(url: string, body: unknown, timeoutMs: number): Promi
 
 /** One item, one run: POST /chat (timed), optionally POST /confirm, deterministic scores. Judge scores are added later. */
 export async function runItem(item: EvalItem, opts: RunOptions): Promise<ItemRun> {
-  const timeout = opts.timeoutMs ?? 180_000;
+  // Generous: a multi-area compliance turn under a rate-limited Voyage key can run several minutes.
+  const timeout = opts.timeoutMs ?? Number(process.env.EVAL_ITEM_TIMEOUT_MS ?? 900_000);
   const started = Date.now();
   const started_at = new Date(started).toISOString();
   try {

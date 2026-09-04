@@ -8,7 +8,7 @@ import { runItem } from './runner.js';
 import { EVAL_DIR, loadEvalSet } from './set.js';
 import type { EvalItem, ItemRun } from './types.js';
 
-interface Args { target: 'local' | 'deployed'; url?: string; runs: number; judge: boolean; ablations: boolean; items?: Set<string>; out: string; confirmGates: boolean }
+interface Args { target: 'local' | 'deployed'; url?: string; runs: number; judge: boolean; ablations: boolean; items?: Set<string>; out: string; confirmGates: boolean; timeoutMs?: number }
 
 function parseArgs(argv: string[]): Args {
   const a: Args = { target: 'local', runs: 1, judge: true, ablations: false, out: join(EVAL_DIR, 'results'), confirmGates: true };
@@ -23,6 +23,7 @@ function parseArgs(argv: string[]): Args {
     else if (k === '--items') { a.items = new Set(v!.split(',')); i++; }
     else if (k === '--out') { a.out = v!; i++; }
     else if (k === '--no-confirm') a.confirmGates = false;
+    else if (k === '--timeout') { a.timeoutMs = Number(v); i++; }
     else if (k === '--help') { console.log('npm run eval -- [--target local|deployed] [--url URL] [--runs N] [--no-judge] [--ablations] [--items id,id] [--no-confirm] [--out DIR]'); process.exit(0); }
   }
   if (a.target !== 'local' && a.target !== 'deployed') throw new Error(`--target must be local or deployed`);
@@ -54,6 +55,7 @@ async function main(): Promise<number> {
 
   const runs: ItemRun[] = [];
   let agentModel = process.env.AGENT_MODEL ?? 'claude-sonnet-5';
+  try {
   for (const config of configs) {
     const selected = items.filter(config.selects);
     let baseUrl: string;
@@ -72,8 +74,8 @@ async function main(): Promise<number> {
     try {
       for (let run = 1; run <= args.runs; run++) {
         for (const item of selected) {
-          const r = await runItem(item, { baseUrl, config: config.name, run, confirmGates: args.confirmGates });
-          if (judge && !r.error) await judgeRun(judge, chunks, item, r);
+          const r = await runItem(item, { baseUrl, config: config.name, run, confirmGates: args.confirmGates, timeoutMs: args.timeoutMs });
+          if (judge && !r.error) await judgeWithRetry(judge, chunks, item, r, log);
           runs.push(r);
           log(`${config.name} r${run} ${item.id.padEnd(6)} ${r.error ? 'ERROR ' + r.error.slice(0, 80) : `${String(r.latency_ms).padStart(6)}ms · ${r.scores.behaviour_observed.join('/')} · tools ${r.scores.tool_selection_subset ? 'ok' : 'MISS'} · facts ${r.scores.facts}${r.scores.groundedness ? ` · grounded ${(r.scores.groundedness.fully_supported_pct! * 100).toFixed(0)}%` : ''}${r.scores.answer_match != null ? ` · match ${r.scores.answer_match}` : ''}`}`);
         }
@@ -81,6 +83,9 @@ async function main(): Promise<number> {
     } finally {
       await server?.close();
     }
+  }
+  } catch (err) {
+    log(`run aborted: ${err instanceof Error ? err.message : String(err)} — writing the ${runs.length} completed run(s)`);
   }
   chunks.close();
 
@@ -93,6 +98,21 @@ async function main(): Promise<number> {
   log(`wrote ${out.latestJson}, ${out.latestMd}, ${runs.length} run files in ${out.runsDir}`);
   console.log(JSON.stringify({ ...results.headline, latency_p50_ms: results.latency.warm_p50_ms, latency_p95_ms: results.latency.warm_p95_ms, runs: runs.length, errors: runs.filter((r) => r.error).length }, null, 2));
   return runs.some((r) => r.error) ? 2 : 0;
+}
+
+/** A judge failure (network blip, 529) must never abort the run: retry once, then record the error on the item. */
+async function judgeWithRetry(judge: Judge, chunks: ChunkResolver, item: EvalItem, r: ItemRun, log: (m: string) => void): Promise<void> {
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      await judgeRun(judge, chunks, item, r);
+      return;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      log(`judge ${item.id} attempt ${attempt} failed: ${msg.slice(0, 120)}`);
+      if (attempt === 2) (r as ItemRun & { judge_error?: string }).judge_error = msg;
+      else await new Promise((res) => setTimeout(res, 5_000));
+    }
+  }
 }
 
 async function judgeRun(judge: Judge, chunks: ChunkResolver, item: EvalItem, r: ItemRun): Promise<void> {
