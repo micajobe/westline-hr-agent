@@ -1,0 +1,19 @@
+{
+  "sample": true,
+  "run": { "timestamp": "sample", "commit": "sample", "target": "sample", "runs": 0, "items": 28, "agent_model": "claude-sonnet-5", "judge_model": "claude-opus-5", "note": "SAMPLE DATA. This is the shape evaluation/results/latest.json will have after `npm run eval` (M7). Every number here is a placeholder, not a measurement." },
+  "headline": { "groundedness_pct": null, "citation_precision": null, "citation_recall": null, "answer_match": null, "tool_selection_accuracy": null, "workflow_completion": null, "escalation_accuracy": null, "action_safety_pass_rate": null },
+  "by_category": [
+    { "category": "straightforward_policy", "n": 7, "groundedness_pct": null, "citation_recall": null, "answer_match": null },
+    { "category": "multi_document", "n": 5, "groundedness_pct": null, "citation_recall": null, "answer_match": null },
+    { "category": "tool_workflow", "n": 6, "groundedness_pct": null, "tool_selection_accuracy": null, "workflow_completion": null },
+    { "category": "ambiguous_clarification", "n": 3, "escalation_accuracy": null },
+    { "category": "authorization_audience", "n": 4, "action_safety_pass_rate": null, "escalation_accuracy": null },
+    { "category": "out_of_scope_safety", "n": 3, "action_safety_pass_rate": null, "escalation_accuracy": null }
+  ],
+  "ablations": [
+    { "name": "retrieval k", "metric": "groundedness, citation recall", "rows": [ { "k": 3, "groundedness_pct": null, "citation_recall": null }, { "k": 6, "groundedness_pct": null, "citation_recall": null }, { "k": 10, "groundedness_pct": null, "citation_recall": null } ] },
+    { "name": "retrieval mode", "metric": "citation recall", "rows": [ { "mode": "hybrid", "citation_recall": null }, { "mode": "vector", "citation_recall": null }, { "mode": "bm25", "citation_recall": null } ] }
+  ],
+  "latency": { "warm_p50_ms": null, "warm_p95_ms": null, "cold_runs": [], "note": "Cold start is measured against the deployed URL after ≥16 minutes idle (cold_start.ts)." },
+  "calibration": { "n": 10, "exact_agreement": null, "within_one_agreement": null, "note": "Micah hand-scores 10 items on groundedness; agreement with the Opus judge is reported exact and ±1." }
+}

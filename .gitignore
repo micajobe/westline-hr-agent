@@ -8,3 +8,6 @@ data/
 apps/web/dist/
 evaluation/results/runs/
 .vitest/
+
+# Licensed webfonts (PP Editorial Old, PP Neue Montreal): converted locally, never committed
+apps/web/public/fonts/*.woff2

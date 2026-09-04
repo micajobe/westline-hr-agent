@@ -284,3 +284,45 @@ the scripted model through the same routes, but PRD §15 M4's "with a real key" 
 on `ANTHROPIC_API_KEY` (BLOCKERS.md item 1). Prompt quality against Sonnet is the M4 risk still open.
 
 ---
+## M5 — Web UI (2026-09-04)
+
+**Asked for:** every screen in PRD §9 with the fixed §9.2 tokens — chat with persona switcher and
+health dot, the trace rail, the confirmation card, citation cards, `/desk`, `/eval` (sample data until
+M7) — and both demo buttons completing end to end locally.
+
+**Produced:** `apps/web` on React 18 + Vite 6 + Tailwind 4 with four local primitives (Badge, Chip,
+Rule, Details) and no component library; `tokens.css` carries the §9.2 palette, scale and widths
+verbatim, and the Micah-chosen pairing (PP Editorial Old display, PP Neue Montreal UI) self-hosted
+as `.woff2`. The fonts were converted from the licensed OTFs with a pure-JS encoder run in a
+scratch directory — nothing installed on the machine — and are gitignored. SSE streaming for
+`/chat` and `/confirm` so trace rows appear as the tools run. `scripts/dev-scripted-server.ts`
+boots the real app with the test suite's scripted model so the UI can be exercised without a key.
+
+**What went wrong, in the order it was caught in the browser.**
+
+1. *`/desk` showed raw JSON.* PRD §8 makes `GET /desk` an API route and §9 makes it a page, so the
+   route shadowed the SPA. Fixed with content negotiation: `Accept: text/html` gets the page,
+   everything else the JSON. Caught by navigating to it.
+2. *Button text invisible.* `text-[var(--paper)]` is ambiguous to Tailwind 4 (colour or size?) and it
+   guessed wrong; `text-[color:var(--paper)]` is explicit. The muted-text variants happened to work,
+   which is why the mistake only showed on the ink-filled Confirm and Send buttons.
+3. *Blank page after a rebuild.* `@fastify/static` with `wildcard: false` snapshots the directory at
+   startup and registers one route per file, so a freshly built hashed bundle 404s until restart.
+   Switched to wildcard serving; the SPA fallback still handles unmatched HTML requests. Caught by
+   the network log, not the console: the 404s were on the new asset hashes.
+4. *Trace rail readability.* "intent · intent · workflow" repeated the label; "retrieval" overflowed a
+   56-pixel label column into the tool name; the turn header ran into the turn id. All layout, all
+   visible in the first screenshot, all fixed by widening the label column and dropping the redundant
+   name for non-tool rows.
+5. *Raw markdown in citation snippets.* Snippets are the normalised markdown the index stores, so
+   `**14 calendar days'**` showed its asterisks in the card. Stripped for display only.
+
+**Verified in the browser against the scripted model:** persona switched by the demo button, trace
+rows streamed in, the gate card held with the accent bar, Confirm resumed the loop, the verified
+answer rendered two facts with chips, the guidance block, the applicability line with its
+`HANDBOOK §2` chip and the "Done · not sent" draft line; clicking `PTO §3.2` opened the card with the
+tool's real snippet. The verify row read "1 unsupported claim removed" for the fabricated fact the
+script plants. The acceptance item that remains open is the same as M4's: running the two demo
+buttons against Sonnet needs `ANTHROPIC_API_KEY`.
+
+---

@@ -52,6 +52,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   const startedAt = Date.now();
   const app = Fastify({ logger: config.logLevel !== 'silent' && { level: config.logLevel } });
 
+  const webDist = resolve(repoRoot, config.webDistDir);
   const modelGuard = () => {
     if (!deps.modelAvailable) throw Object.assign(new Error('ANTHROPIC_API_KEY is not set; the agent cannot run. Health, personas and desk still work.'), { statusCode: 503, code: 'MODEL_UNAVAILABLE' });
   };
@@ -124,7 +125,11 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
 
   app.get('/demo/tasks', async () => DEMO_TASKS);
 
-  app.get('/desk', async (_req, reply) => {
+  // PRD §8 GET /desk is JSON for API clients; a browser navigating to /desk wants the page.
+  app.get('/desk', async (req, reply) => {
+    if ((req.headers.accept ?? '').includes('text/html') && existsSync(resolve(webDist, 'index.html'))) {
+      return reply.type('text/html').send(readFileSync(resolve(webDist, 'index.html')));
+    }
     try {
       return await mcp.hostGet('/desk');
     } catch (err) {
@@ -139,9 +144,9 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
     return readFileSync(path, 'utf8');
   });
 
-  const webDist = resolve(repoRoot, config.webDistDir);
   if (existsSync(resolve(webDist, 'index.html'))) {
-    await app.register(fastifyStatic, { root: webDist, wildcard: false, index: ['index.html'] });
+    // wildcard: true so assets built after startup are served (wildcard: false snapshots the directory).
+    await app.register(fastifyStatic, { root: webDist, wildcard: true, index: ['index.html'] });
     app.setNotFoundHandler(async (req, reply) => {
       if (req.method === 'GET' && !req.url.startsWith('/api') && (req.headers.accept ?? '').includes('text/html')) {
         return reply.type('text/html').send(readFileSync(resolve(webDist, 'index.html')));

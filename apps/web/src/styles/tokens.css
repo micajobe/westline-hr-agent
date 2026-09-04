@@ -1,0 +1,66 @@
+/*
+ * Westline design tokens — PRD §9.2. Fixed. No motion, no shadows, no gradients.
+ * Fonts: PP Editorial Old (display) and PP Neue Montreal (UI), self-hosted from /fonts.
+ * If the woff2 files are absent the stacks fall back to system serif / sans.
+ */
+@font-face { font-family: 'PP Editorial Old'; src: url('/fonts/editorial-old-regular.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'PP Editorial Old'; src: url('/fonts/editorial-old-italic.woff2') format('woff2'); font-weight: 400; font-style: italic; font-display: swap; }
+@font-face { font-family: 'PP Editorial Old'; src: url('/fonts/editorial-old-ultralight.woff2') format('woff2'); font-weight: 200; font-style: normal; font-display: swap; }
+@font-face { font-family: 'PP Neue Montreal'; src: url('/fonts/neue-montreal-regular.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'PP Neue Montreal'; src: url('/fonts/neue-montreal-italic.woff2') format('woff2'); font-weight: 400; font-style: italic; font-display: swap; }
+@font-face { font-family: 'PP Neue Montreal'; src: url('/fonts/neue-montreal-medium.woff2') format('woff2'); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: 'PP Neue Montreal'; src: url('/fonts/neue-montreal-bold.woff2') format('woff2'); font-weight: 700; font-style: normal; font-display: swap; }
+
+:root {
+  --font-display: 'PP Editorial Old', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+  --font-ui: 'PP Neue Montreal', 'Helvetica Neue', Helvetica, Arial, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --ink: #111111;
+  --paper: #FAFAF7;
+  --rule: #E4E2DB;
+  --muted: #6B6B66;
+  --accent: #C8401F;
+  --ok: #2F7A4F;
+  --warn: #B7791F;
+
+  --text-12: 12px; --text-14: 14px; --text-16: 16px; --text-20: 20px; --text-28: 28px; --text-40: 40px;
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-6: 24px; --space-8: 32px; --space-12: 48px;
+
+  --max-content: 1280px; --chat-col: 720px; --trace-rail: 440px;
+}
+
+@theme {
+  --font-display: 'PP Editorial Old', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+  --font-ui: 'PP Neue Montreal', 'Helvetica Neue', Helvetica, Arial, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --color-ink: #111111;
+  --color-paper: #FAFAF7;
+  --color-rule: #E4E2DB;
+  --color-muted: #6B6B66;
+  --color-accent: #C8401F;
+  --color-ok: #2F7A4F;
+  --color-warn: #B7791F;
+}
+
+html { background: var(--paper); color: var(--ink); font-family: var(--font-ui); font-size: var(--text-14); line-height: 1.5; -webkit-font-smoothing: antialiased; }
+body { margin: 0; }
+* { box-sizing: border-box; transition: none !important; animation: none !important; }
+a { color: inherit; }
+button, input, textarea, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+::selection { background: var(--rule); }
+
+.display { font-family: var(--font-display); font-weight: 400; letter-spacing: -0.01em; }
+.mono { font-family: var(--font-mono); font-size: var(--text-12); }
+.rule { border-top: 1px solid var(--rule); }
+.hairline { border: 1px solid var(--rule); }
+
+.prose p { margin: 0 0 var(--space-2); }
+.prose p:last-child { margin-bottom: 0; }
+.prose ul, .prose ol { margin: 0 0 var(--space-2); padding-left: 1.25em; }
+.prose code { font-family: var(--font-mono); font-size: 0.92em; }
+.prose strong { font-weight: 500; }
+
+details > summary { cursor: pointer; list-style: none; }
+details > summary::-webkit-details-marker { display: none; }
