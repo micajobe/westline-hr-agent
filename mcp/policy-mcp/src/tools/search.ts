@@ -39,8 +39,8 @@ export async function searchPolicyDocuments(
   const response = await ctx.retriever.search({
     viewer,
     query: args.query,
-    k: args.k,
-    mode: args.mode,
+    k: ctx.overrides.k ?? args.k,
+    mode: ctx.overrides.mode ?? args.mode,
     doc_ids: args.doc_ids,
     section_prefix: args.section_prefix,
     prior_queries: args.prior_queries,
@@ -48,7 +48,7 @@ export async function searchPolicyDocuments(
   });
   return {
     ...response,
-    retrieval: { ...response.retrieval, rerank: ctx.rerank },
+    retrieval: { ...response.retrieval, rerank: ctx.rerank, ...(Object.keys(ctx.overrides).length ? { overrides: ctx.overrides } : {}) },
     viewer,
   };
 }

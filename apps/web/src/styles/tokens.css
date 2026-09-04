@@ -1,66 +1,107 @@
 /*
- * Westline design tokens — PRD §9.2. Fixed. No motion, no shadows, no gradients.
- * Fonts: PP Editorial Old (display) and PP Neue Montreal (UI), self-hosted from /fonts.
- * If the woff2 files are absent the stacks fall back to system serif / sans.
+ * Westline design tokens — following the Nimble editorial design system (~/strategy-navigator,
+ * overview-design-system/DESIGN-SYSTEM.md), adopted 2026-09-04 in place of PRD §9.2 (ADR 0012).
+ * B&W only: one ink, one paper, one rule. State is shown with type, glyphs (● ◌ △) and border
+ * treatment, never colour. Sharp corners, no shadows, no gradients, no motion.
  */
-@font-face { font-family: 'PP Editorial Old'; src: url('/fonts/editorial-old-regular.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }
-@font-face { font-family: 'PP Editorial Old'; src: url('/fonts/editorial-old-italic.woff2') format('woff2'); font-weight: 400; font-style: italic; font-display: swap; }
-@font-face { font-family: 'PP Editorial Old'; src: url('/fonts/editorial-old-ultralight.woff2') format('woff2'); font-weight: 200; font-style: normal; font-display: swap; }
-@font-face { font-family: 'PP Neue Montreal'; src: url('/fonts/neue-montreal-regular.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }
-@font-face { font-family: 'PP Neue Montreal'; src: url('/fonts/neue-montreal-italic.woff2') format('woff2'); font-weight: 400; font-style: italic; font-display: swap; }
-@font-face { font-family: 'PP Neue Montreal'; src: url('/fonts/neue-montreal-medium.woff2') format('woff2'); font-weight: 500; font-style: normal; font-display: swap; }
-@font-face { font-family: 'PP Neue Montreal'; src: url('/fonts/neue-montreal-bold.woff2') format('woff2'); font-weight: 700; font-style: normal; font-display: swap; }
-
 :root {
-  --font-display: 'PP Editorial Old', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
-  --font-ui: 'PP Neue Montreal', 'Helvetica Neue', Helvetica, Arial, system-ui, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --ink: #0a0a0a;
+  --ink-2: #1a1a1a;
+  --paper: #fafaf7;
+  --paper-2: #f0f0ec;
+  --muted: #6b6b66;
+  --rule: var(--ink);
+  /* Legacy PRD names kept so nothing breaks; all resolve to the B&W set. */
+  --accent: var(--ink);
+  --ok: var(--ink);
+  --warn: var(--muted);
 
-  --ink: #111111;
-  --paper: #FAFAF7;
-  --rule: #E4E2DB;
-  --muted: #6B6B66;
-  --accent: #C8401F;
-  --ok: #2F7A4F;
-  --warn: #B7791F;
+  --serif: 'Fraunces', 'Times New Roman', Georgia, serif;
+  --sans: 'Inter Tight', -apple-system, BlinkMacSystemFont, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --sans-features: 'ss01', 'cv11';
+  --font-display: var(--serif);
+  --font-ui: var(--sans);
+  --font-mono: var(--mono);
 
-  --text-12: 12px; --text-14: 14px; --text-16: 16px; --text-20: 20px; --text-28: 28px; --text-40: 40px;
+  --t-h1: clamp(32px, 5vw, 56px);
+  --t-h2: clamp(24px, 3.4vw, 38px);
+  --t-lede: clamp(17px, 1.7vw, 20px);
+  --t-body: 15px;
+  --t-body-sm: 13.5px;
+  --t-mono-sm: 11px;
+  --t-mono-xs: 10.5px;
+  --tracking-tight: -0.025em;
+  --tracking-mono: 0.14em;
+  --tracking-mono-sm: 0.08em;
+
   --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-6: 24px; --space-8: 32px; --space-12: 48px;
-
   --max-content: 1280px; --chat-col: 720px; --trace-rail: 440px;
+
+  --border-rule: 1px solid var(--rule);
+  --border-soft: 1px solid var(--paper-2);
+  --border-dashed: 1px dashed var(--ink);
 }
 
 @theme {
-  --font-display: 'PP Editorial Old', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
-  --font-ui: 'PP Neue Montreal', 'Helvetica Neue', Helvetica, Arial, system-ui, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  --color-ink: #111111;
-  --color-paper: #FAFAF7;
-  --color-rule: #E4E2DB;
-  --color-muted: #6B6B66;
-  --color-accent: #C8401F;
-  --color-ok: #2F7A4F;
-  --color-warn: #B7791F;
+  --font-serif: 'Fraunces', 'Times New Roman', Georgia, serif;
+  --font-sans: 'Inter Tight', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --color-ink: #0a0a0a;
+  --color-ink-2: #1a1a1a;
+  --color-paper: #fafaf7;
+  --color-paper-2: #f0f0ec;
+  --color-muted: #6b6b66;
+  --color-rule: #0a0a0a;
 }
 
-html { background: var(--paper); color: var(--ink); font-family: var(--font-ui); font-size: var(--text-14); line-height: 1.5; -webkit-font-smoothing: antialiased; }
+html { background: var(--paper); color: var(--ink); font-family: var(--sans); font-feature-settings: var(--sans-features); font-size: var(--t-body); line-height: 1.5; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
 body { margin: 0; }
-* { box-sizing: border-box; transition: none !important; animation: none !important; }
+* { box-sizing: border-box; transition: none !important; animation: none !important; border-radius: 0 !important; }
 a { color: inherit; }
-button, input, textarea, select { font: inherit; color: inherit; }
-:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
-::selection { background: var(--rule); }
+button, input, textarea, select { font: inherit; color: inherit; font-feature-settings: var(--sans-features); }
+:focus-visible { outline: 1px solid var(--ink); outline-offset: 2px; }
+::selection { background: var(--paper-2); }
+em, i { font-family: var(--serif); font-style: italic; }
 
-.display { font-family: var(--font-display); font-weight: 400; letter-spacing: -0.01em; }
-.mono { font-family: var(--font-mono); font-size: var(--text-12); }
-.rule { border-top: 1px solid var(--rule); }
-.hairline { border: 1px solid var(--rule); }
+/* The four type roles + body. Do not invent a fifth. */
+.eyebrow { font-family: var(--mono); font-size: var(--t-mono-sm); text-transform: uppercase; letter-spacing: var(--tracking-mono); color: var(--muted); }
+.headline { font-family: var(--serif); font-weight: 400; letter-spacing: var(--tracking-tight); line-height: 1.1; }
+.lede { font-family: var(--serif); font-weight: 300; font-size: var(--t-lede); line-height: 1.45; letter-spacing: -0.01em; }
+.pull { font-family: var(--serif); font-style: italic; font-weight: 400; }
+.mono { font-family: var(--mono); font-size: 12.5px; letter-spacing: var(--tracking-mono-sm); font-variant-numeric: tabular-nums; }
+.mono-xs { font-family: var(--mono); font-size: var(--t-mono-xs); letter-spacing: var(--tracking-mono-sm); font-variant-numeric: tabular-nums; }
+.display { font-family: var(--serif); font-weight: 400; letter-spacing: var(--tracking-tight); }
 
-.prose p { margin: 0 0 var(--space-2); }
+/* Rules: hairline (ink) between sections, soft (paper-2) between rows, dashed for exceptions. */
+.rule { border-top: var(--border-rule); }
+.rule-soft { border-top: var(--border-soft); }
+.strip-dashed { border: var(--border-dashed); }
+
+/* Buttons: mono uppercase; solid = ink fill, outline = ink border. */
+.btn { font-family: var(--mono); font-size: var(--t-mono-sm); text-transform: uppercase; letter-spacing: var(--tracking-mono); padding: 10px 18px; border: 1px solid var(--ink); background: var(--ink); color: var(--paper); cursor: pointer; }
+.btn:hover:not(:disabled) { opacity: 0.82; }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn-outline { background: transparent; color: var(--ink); }
+.btn-sm { padding: 6px 10px; font-size: var(--t-mono-xs); }
+.link { font-family: var(--mono); font-size: var(--t-mono-sm); text-transform: uppercase; letter-spacing: var(--tracking-mono-sm); color: var(--ink); border-bottom: 1px solid var(--ink); background: none; padding: 0; cursor: pointer; }
+.link:hover { color: var(--muted); border-color: var(--muted); }
+.link-muted { color: var(--muted); border-color: var(--muted); }
+.link-muted:hover { color: var(--ink); border-color: var(--ink); }
+
+/* Tags: mono uppercase, outline; the border treatment carries the class. */
+.tag { font-family: var(--mono); font-size: var(--t-mono-xs); text-transform: uppercase; letter-spacing: var(--tracking-mono-sm); padding: 2px 6px; border: 1px solid var(--ink); color: var(--ink); line-height: 1.4; white-space: nowrap; }
+.tag-dashed { border-style: dashed; }
+.tag-fill { background: var(--ink); color: var(--paper); }
+.tag-muted { border-color: var(--muted); color: var(--muted); }
+
+.prose p { margin: 0 0 0.6em; }
 .prose p:last-child { margin-bottom: 0; }
-.prose ul, .prose ol { margin: 0 0 var(--space-2); padding-left: 1.25em; }
-.prose code { font-family: var(--font-mono); font-size: 0.92em; }
+.prose ul, .prose ol { margin: 0 0 0.6em; padding-left: 1.25em; }
+.prose code { font-family: var(--mono); font-size: 0.85em; letter-spacing: 0; }
 .prose strong { font-weight: 500; }
+.prose em { font-family: inherit; }
 
 details > summary { cursor: pointer; list-style: none; }
 details > summary::-webkit-details-marker { display: none; }
+input::placeholder { color: var(--muted); }

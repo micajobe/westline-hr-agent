@@ -43,12 +43,11 @@ Everything not listed here has been built. Update/remove entries as they are res
 - Action: create `westline-hr-agent`, push, add `quantic-grader` as collaborator,
   set Actions workflow permissions to read+write (needed by `eval.yml` to commit results).
 
-### 5. Typeface pairing — decided, no action needed
-- Chosen (Micah, 2026-09-04): **PP Editorial Old** display / **PP Neue Montreal** body + UI.
-  Installed at `~/Library/Fonts` as `.otf`/`.ttf`; the build converts them to `.woff2` and
-  self-hosts them from `apps/web/public/fonts/` (gitignored, not committed).
-- Micah holds a general licence for the Pangram Pangram pack and has confirmed it covers this use.
-- Fallback stack is commented in `apps/web/src/styles/tokens.css` if the files are ever absent.
+### 5. Design system — decided, no action needed
+- Micah (2026-09-04): follow the Nimble editorial design system from `~/strategy-navigator`
+  (ADR 0012). Fraunces / Inter Tight / JetBrains Mono via Google Fonts; B&W only. The earlier PP
+  Editorial Old / PP Neue Montreal choice is superseded; the converted `.woff2` files in
+  `apps/web/public/fonts/` are unused and gitignored — delete them at will.
 
 ## Resolved
 

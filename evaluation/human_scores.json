@@ -1,0 +1,62 @@
+{
+  "description": "Human groundedness calibration (PRD \u00a712.2). For each item, after an eval run, read the item's policy_facts against the retrieved chunks in evaluation/results/runs/<date>/<item>.json and score groundedness 0 (unsupported), 1 (partially supported) or 2 (fully supported), matching the judge's scale. Leave null until scored.",
+  "scale": {
+    "0": "unsupported",
+    "1": "partial",
+    "2": "fully supported"
+  },
+  "scorer": "Micah",
+  "scored_at": null,
+  "items": [
+    {
+      "id": "sp-01",
+      "human_groundedness": null,
+      "note": ""
+    },
+    {
+      "id": "sp-02",
+      "human_groundedness": null,
+      "note": ""
+    },
+    {
+      "id": "sp-04",
+      "human_groundedness": null,
+      "note": ""
+    },
+    {
+      "id": "md-01",
+      "human_groundedness": null,
+      "note": ""
+    },
+    {
+      "id": "md-02",
+      "human_groundedness": null,
+      "note": ""
+    },
+    {
+      "id": "md-03",
+      "human_groundedness": null,
+      "note": ""
+    },
+    {
+      "id": "md-04",
+      "human_groundedness": null,
+      "note": ""
+    },
+    {
+      "id": "tw-02",
+      "human_groundedness": null,
+      "note": ""
+    },
+    {
+      "id": "tw-03",
+      "human_groundedness": null,
+      "note": ""
+    },
+    {
+      "id": "au-03",
+      "human_groundedness": null,
+      "note": ""
+    }
+  ]
+}

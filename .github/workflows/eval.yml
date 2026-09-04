@@ -1,0 +1,64 @@
+name: eval
+
+# PRD §11: manual. Runs the harness and commits the results to main with [skip ci].
+on:
+  workflow_dispatch:
+    inputs:
+      runs:
+        description: Runs per configuration
+        default: "3"
+        required: true
+      target:
+        description: local (boots the app in the runner) or deployed (DEPLOYED_APP_URL)
+        default: local
+        type: choice
+        options: [local, deployed]
+      ablations:
+        description: Also run the PRD §12.3 ablations (local only)
+        default: true
+        type: boolean
+
+concurrency:
+  group: eval
+  cancel-in-progress: false
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    permissions:
+      contents: write
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      VOYAGE_API_KEY: ${{ secrets.VOYAGE_API_KEY }}
+      AGENT_MODEL: ${{ secrets.AGENT_MODEL || 'claude-sonnet-5' }}
+      JUDGE_MODEL: ${{ secrets.JUDGE_MODEL || 'claude-opus-5' }}
+      DEPLOYED_APP_URL: ${{ secrets.DEPLOYED_APP_URL }}
+      EMBEDDING_PROVIDER: voyage
+      MCP_SHARED_SECRET: eval-runner-secret
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Build the retrieval index (heading-aware)
+        if: inputs.target == 'local'
+        run: npm run index:build
+      - name: Build the fixed-window index for ablation 2
+        if: inputs.target == 'local' && inputs.ablations
+        run: CHUNK_STRATEGY=fixed INDEX_PATH=data/index-fixed.sqlite npm run index:build
+      - name: Run the harness
+        run: npm run eval -- --target ${{ inputs.target }} --runs ${{ inputs.runs }} ${{ inputs.ablations && inputs.target == 'local' && '--ablations' || '' }}
+      - name: Commit results
+        run: |
+          git config user.name "westline-eval[bot]"
+          git config user.email "eval@westline.invalid"
+          git add evaluation/results
+          git diff --cached --quiet && echo "no changes" && exit 0
+          git commit -m "eval: results $(date -u +%Y-%m-%dT%H:%MZ) (${{ inputs.target }}, ${{ inputs.runs }} runs) [skip ci]"
+          git push

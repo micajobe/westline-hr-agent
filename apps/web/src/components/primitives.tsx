@@ -1,40 +1,40 @@
 import type { ReactNode } from 'react';
 
-/** PRD §9.2: class badges — staff = ink outline, contractor = muted outline, creator_partner = accent outline. */
+/** Workforce class by border treatment, never colour: staff solid, contractor dashed, creator partner filled. */
 export function ClassBadge({ workforce_class, className = '' }: { workforce_class: string; className?: string }) {
-  const color = workforce_class === 'creator_partner' ? 'var(--accent)' : workforce_class === 'contractor' ? 'var(--muted)' : 'var(--ink)';
-  return (
-    <span className={`inline-block rounded-none border px-1.5 py-px text-[11px] uppercase tracking-[0.08em] leading-4 ${className}`} style={{ borderColor: color, color }}>
-      {workforce_class.replace('_', ' ')}
-    </span>
-  );
+  const variant = workforce_class === 'creator_partner' ? 'tag-fill' : workforce_class === 'contractor' ? 'tag-dashed' : '';
+  return <span className={`tag ${variant} ${className}`}>{workforce_class.replace('_', ' ')}</span>;
 }
 
-export function Badge({ children, tone = 'ink', className = '' }: { children: ReactNode; tone?: 'ink' | 'muted' | 'accent' | 'ok' | 'warn'; className?: string }) {
-  const color = { ink: 'var(--ink)', muted: 'var(--muted)', accent: 'var(--accent)', ok: 'var(--ok)', warn: 'var(--warn)' }[tone];
-  return <span className={`inline-block border px-1.5 py-px text-[11px] uppercase tracking-[0.08em] leading-4 ${className}`} style={{ borderColor: color, color }}>{children}</span>;
+/** State glyphs (the system's ● ◌ △): solid = on/done, hollow = pending/off, triangle = attention. */
+export const GLYPH = { on: '●', off: '◌', warn: '△' } as const;
+
+export function Badge({ children, tone = 'ink', className = '' }: { children: ReactNode; tone?: 'ink' | 'muted' | 'fill' | 'dashed'; className?: string }) {
+  const v = tone === 'fill' ? 'tag-fill' : tone === 'dashed' ? 'tag-dashed' : tone === 'muted' ? 'tag-muted' : '';
+  return <span className={`tag ${v} ${className}`}>{children}</span>;
 }
 
 export function Chip({ children, onClick, active = false, title }: { children: ReactNode; onClick?: () => void; active?: boolean; title?: string }) {
   return (
-    <button type="button" onClick={onClick} title={title} className="mono inline-flex items-center gap-1 border px-1.5 py-px leading-4 hover:bg-[var(--rule)]" style={{ borderColor: active ? 'var(--ink)' : 'var(--rule)', background: active ? 'var(--rule)' : 'transparent' }}>
+    <button type="button" onClick={onClick} title={title} className={`mono-xs inline-flex items-center gap-1 border px-1.5 py-px uppercase ${active ? 'bg-[var(--ink)] text-[color:var(--paper)]' : 'border-[var(--ink)] hover:bg-[var(--paper-2)]'}`} style={{ borderColor: 'var(--ink)' }}>
       {children}
     </button>
   );
 }
 
-export function Rule({ className = '' }: { className?: string }) {
-  return <hr className={`rule m-0 border-0 ${className}`} />;
+export function Rule({ className = '', soft = false }: { className?: string; soft?: boolean }) {
+  return <hr className={`${soft ? 'rule-soft' : 'rule'} m-0 border-0 ${className}`} />;
 }
 
+/** Eyebrow: mono, 11px, uppercase, 0.14em. */
 export function Label({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <div className={`text-[11px] uppercase tracking-[0.1em] text-[var(--muted)] ${className}`}>{children}</div>;
+  return <div className={`eyebrow ${className}`}>{children}</div>;
 }
 
 export function Details({ summary, children, open }: { summary: ReactNode; children: ReactNode; open?: boolean }) {
   return (
     <details className="group" open={open}>
-      <summary className="flex items-center gap-2 text-[var(--muted)] hover:text-[var(--ink)]">
+      <summary className="mono-xs flex items-center gap-2 uppercase text-[var(--muted)] hover:text-[var(--ink)]">
         <span className="inline-block w-3 text-center group-open:hidden">+</span>
         <span className="hidden w-3 text-center group-open:inline-block">−</span>
         {summary}
@@ -45,5 +45,5 @@ export function Details({ summary, children, open }: { summary: ReactNode; child
 }
 
 export function Json({ value }: { value: unknown }) {
-  return <pre className="mono max-h-80 overflow-auto whitespace-pre-wrap break-words border border-[var(--rule)] bg-white p-2 leading-4">{JSON.stringify(value, null, 2)}</pre>;
+  return <pre className="mono max-h-80 overflow-auto whitespace-pre-wrap break-words border border-[var(--paper-2)] bg-[var(--paper)] p-2 text-[11.5px] leading-[1.5] tracking-normal">{JSON.stringify(value, null, 2)}</pre>;
 }

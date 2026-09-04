@@ -43,8 +43,8 @@ export async function checkPolicyCompliance(ctx: PolicyContext, args: Compliance
     // SAFETY §5); the scenario-anchored query finds the rule as it applies to this case. Fused in
     // that order so a long scenario cannot drown a short area name.
     const [byArea, byScenario] = await Promise.all([
-      ctx.retriever.search({ viewer, query: area, k: RULES_PER_AREA, rerank: ctx.rerank }),
-      ctx.retriever.search({ viewer, query: `${area}: ${args.scenario}`, k: RULES_PER_AREA, rerank: ctx.rerank }),
+      ctx.retriever.search({ viewer, query: area, k: RULES_PER_AREA, mode: ctx.overrides.mode, rerank: ctx.rerank }),
+      ctx.retriever.search({ viewer, query: `${area}: ${args.scenario}`, k: RULES_PER_AREA, mode: ctx.overrides.mode, rerank: ctx.rerank }),
     ]);
     for (const d of [...byArea.withheld_doc_ids, ...byScenario.withheld_doc_ids]) withheld.add(d);
     const seen = new Set<string>();

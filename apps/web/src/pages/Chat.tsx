@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnswerView } from '../components/AnswerView';
 import { CitationCard } from '../components/CitationCard';
 import { ConfirmationCard } from '../components/ConfirmationCard';
-import { ClassBadge, Label } from '../components/primitives';
+import { ClassBadge, GLYPH, Label } from '../components/primitives';
 import { TraceRail, type TraceTurn } from '../components/TraceRail';
 import { api, chatStream, confirmStream } from '../lib/api';
 import type { ChatEnvelope, Citation, DemoTask, Persona, TraceEvent } from '../lib/types';
@@ -84,21 +84,22 @@ export function ChatPage({ persona, personas, onPersona }: { persona: Persona | 
         <div className="mx-auto w-full max-w-[var(--chat-col)] flex-1 px-6 py-8">
           {turns.length === 0 && (
             <div className="mt-12">
-              <h1 className="display text-[var(--text-40)] leading-[1.05]">Ask about Westline policy as the person you picked.</h1>
-              <p className="mt-4 max-w-[560px] text-[var(--text-16)] text-[var(--muted)]">Answers come only from the policy corpus and the HR data this persona is allowed to see. Anything that would create or draft something pauses for your confirmation first. The trace on the right shows every tool call as it happens.</p>
+              <Label className="mb-4">Westline · policy assistant · HANDBOOK §2</Label>
+              <h1 className="headline text-[length:var(--t-h1)]">Ask about Westline policy<br />as the person <em>you picked</em>.</h1>
+              <p className="lede mt-6 max-w-[560px] text-[var(--muted)]">Answers come only from the policy corpus and the HR data this persona is allowed to see. Anything that would create or draft something pauses for your confirmation first. The trace on the right shows every tool call as it happens.</p>
             </div>
           )}
           <ol className="space-y-10">
             {turns.map((t) => (
               <li key={t.turn_id}>
-                <div className="flex items-baseline gap-3">
+                <div className="flex items-center gap-3">
                   <Label>{t.persona?.name ?? 'Anonymous'}</Label>
                   {t.persona && <ClassBadge workforce_class={t.persona.workforce_class} />}
                 </div>
-                <p className="display mt-1 text-[var(--text-20)] leading-snug">{t.message}</p>
-                <div className="mt-4 border-t border-[var(--rule)] pt-4">
-                  {t.busy && !t.envelope && <p className="text-[var(--muted)]">{describeProgress(t.events)}</p>}
-                  {t.error && <p className="text-[var(--accent)]">{t.error}</p>}
+                <p className="headline mt-2 text-[length:var(--t-h2)]">{t.message}</p>
+                <div className="rule mt-5 pt-5">
+                  {t.busy && !t.envelope && <p className="mono text-[var(--muted)]">{GLYPH.off} {describeProgress(t.events)}</p>}
+                  {t.error && <p className="mono">{GLYPH.warn} {t.error}</p>}
                   {t.envelope && (
                     <div className="space-y-4">
                       <AnswerView answer={t.envelope.answer} onCite={setCitation} />
@@ -112,18 +113,18 @@ export function ChatPage({ persona, personas, onPersona }: { persona: Persona | 
           <div ref={bottomRef} />
         </div>
 
-        <div className="sticky bottom-0 border-t border-[var(--rule)] bg-[var(--paper)]">
+        <div className="sticky bottom-0 border-t border-[var(--ink)] bg-[var(--paper)]">
           <div className="mx-auto w-full max-w-[var(--chat-col)] px-6 py-4">
             {citation && <div className="mb-4"><CitationCard citation={citation} onClose={() => setCitation(null)} /></div>}
             <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); void send(input, persona); }}>
-              <input className="flex-1 border border-[var(--rule)] bg-white px-3 py-2 text-[var(--text-16)] placeholder:text-[var(--muted)]" placeholder={persona ? `Ask as ${persona.name}…` : 'Ask a policy question (no persona selected)…'} value={input} onChange={(e) => setInput(e.target.value)} disabled={busy} />
-              <button type="submit" disabled={busy || !input.trim()} className="border border-[var(--ink)] bg-[var(--ink)] px-4 py-2 text-[color:var(--paper)] disabled:opacity-40">Send</button>
+              <input className="flex-1 border border-[var(--ink)] bg-[var(--paper)] px-3 py-2 text-[length:var(--t-body)]" placeholder={persona ? `Ask as ${persona.name}…` : 'Ask a policy question (no persona selected)…'} value={input} onChange={(e) => setInput(e.target.value)} disabled={busy} />
+              <button type="submit" disabled={busy || !input.trim()} className="btn">Send</button>
             </form>
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-[var(--text-12)]">
+            <div className="mt-3 flex flex-wrap items-center gap-3">
               {tasks.map((task, i) => (
-                <button key={task.id} type="button" disabled={busy} onClick={() => runDemo(task)} className="border border-[var(--rule)] px-2 py-1 text-[var(--muted)] hover:border-[var(--ink)] hover:text-[var(--ink)] disabled:opacity-40" title={task.message}>Run demo task {i + 1}</button>
+                <button key={task.id} type="button" disabled={busy} onClick={() => runDemo(task)} className="btn btn-outline btn-sm" title={task.message}>Run demo task {String(i + 1).padStart(2, '0')}</button>
               ))}
-              {conversationId && <button type="button" className="ml-auto text-[var(--muted)] hover:text-[var(--ink)]" onClick={() => { setTurns([]); setConversationId(undefined); setCitation(null); }}>New conversation</button>}
+              {conversationId && <button type="button" className="link link-muted ml-auto" onClick={() => { setTurns([]); setConversationId(undefined); setCitation(null); }}>New conversation</button>}
             </div>
           </div>
         </div>

@@ -17,7 +17,7 @@ export default defineConfig({
         // Workspace packages resolve to their built `dist/` through symlinks, so vite-node would
         // inline and re-transform them. Its bundled Vite predates `node:sqlite` and fails to
         // resolve it; letting Node load the built packages natively sidesteps that.
-        external: [/\/(packages|mcp|apps)\/[^/]+\/dist\//],
+        external: [/\/(packages|mcp|apps)\/[^/]+\/dist\//, /\/evaluation\/dist\//],
       },
     },
   },

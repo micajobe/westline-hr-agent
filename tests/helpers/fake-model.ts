@@ -23,7 +23,10 @@ export class FakeModel implements ModelClient {
   async create(params: Params): Promise<Message> {
     this.calls.push(params);
     const forced = params.tool_choice && params.tool_choice.type === 'tool' ? params.tool_choice.name : undefined;
-    if (forced === 'emit_plan') return message([toolUse('emit_plan', this.script.plan)], 'tool_use');
+    if (forced === 'emit_plan') {
+      this.actIndex = 0; // every turn starts with a plan; replay the ACT script from the top
+      return message([toolUse('emit_plan', this.script.plan)], 'tool_use');
+    }
     if (forced === 'emit_answer') return message([toolUse('emit_answer', this.script.answer?.(params) ?? {})], 'tool_use');
     const turn = this.script.act?.[this.actIndex++];
     if (!turn || !turn.tools?.length) return message([{ type: 'text', text: turn?.text ?? 'Done.', citations: null }], 'end_turn');

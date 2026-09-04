@@ -25,8 +25,9 @@ Vitest at root. ESLint + Prettier defaults.
   Redact `confirmation_token` in traces.
 - Secrets only from env. `.env` is gitignored. `.env.example` is kept current.
 - Chunking must be deterministic; `tests/ingest.test.ts` snapshots chunk hashes.
-- Design tokens in `apps/web/src/styles/tokens.css` are fixed. No motion, no shadows, no gradients,
-  no component libraries.
+- Design tokens in `apps/web/src/styles/tokens.css` are fixed and follow the Nimble editorial system
+  (ADR 0012): B&W only, Fraunces / Inter Tight / JetBrains Mono, hairlines, glyphs for state. No
+  colour, no motion, no shadows, no gradients, no icon packs, no component libraries.
 
 ## Workflow
 - Work milestone by milestone (PRD §15). Each milestone: implement → tests green →

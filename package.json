@@ -9,7 +9,8 @@
   "workspaces": [
     "packages/*",
     "mcp/*",
-    "apps/*"
+    "apps/*",
+    "evaluation"
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",

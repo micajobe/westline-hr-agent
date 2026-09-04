@@ -2,6 +2,7 @@ import { resolve } from 'node:path';
 import { createEmbeddingProvider } from '../embed/index.js';
 import { loadCorpus } from '../ingest/load.js';
 import { buildIndex } from '../store/build.js';
+import { chunkStrategyFromEnv } from '../ingest/chunk.js';
 
 /**
  * `npm run index:build [-- --force]`
@@ -26,6 +27,7 @@ async function main(): Promise<number> {
     dbPath,
     force,
     allowStub: process.env.ALLOW_STUB_INDEX === '1',
+    strategy: chunkStrategyFromEnv(process.env),
     log,
   });
   result.store.close();

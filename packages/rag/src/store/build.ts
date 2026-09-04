@@ -1,7 +1,7 @@
 import { mkdirSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import type { EmbeddingProvider } from '../embed/provider.js';
-import { CHUNKER_VERSION, chunkCorpus, corpusHash } from '../ingest/chunk.js';
+import { chunkCorpus, chunkerVersion, corpusHash, type ChunkStrategy } from '../ingest/chunk.js';
 import type { IndexMeta, LoadedDocument } from '../types.js';
 import { Bm25Index } from './bm25.js';
 import { IndexStore } from './sqlite.js';
@@ -20,6 +20,8 @@ export interface BuildIndexOptions {
   allowStub?: boolean;
   /** Embedding batch size; the provider may batch again internally. */
   batchSize?: number;
+  /** `heading` (default) or `fixed` (eval ablation 2). Recorded in the index metadata as `chunker`. */
+  strategy?: ChunkStrategy;
   log?: (msg: string) => void;
   now?: () => Date;
 }
@@ -56,7 +58,9 @@ export async function buildIndex(opts: BuildIndexOptions): Promise<BuildIndexRes
   }
 
   const hash = corpusHash(docs);
-  const chunks = chunkCorpus(docs);
+  const strategy = opts.strategy ?? 'heading';
+  const chunks = chunkCorpus(docs, { strategy });
+  const chunker = chunkerVersion(strategy);
 
   let reason: BuildIndexResult['reason'] = 'fresh';
   if (dbPath !== ':memory:' && IndexStore.exists(dbPath)) {
@@ -65,7 +69,7 @@ export async function buildIndex(opts: BuildIndexOptions): Promise<BuildIndexRes
     if (opts.force) reason = 'forced';
     else if (meta.corpus_hash !== hash) reason = 'corpus_changed';
     else if (meta.embedding_model !== provider.model) reason = 'embedding_model_changed';
-    else if (meta.chunker !== CHUNKER_VERSION) reason = 'chunker_changed';
+    else if (meta.chunker !== chunker) reason = 'chunker_changed';
     else {
       log(`index up to date (${meta.chunk_count} chunks, corpus ${hash.slice(0, 12)})`);
       return { built: false, reason: 'up_to_date', meta, store: existing };
@@ -92,7 +96,7 @@ export async function buildIndex(opts: BuildIndexOptions): Promise<BuildIndexRes
     chunk_count: chunks.length,
     embedding_model: provider.model,
     embedding_dimensions: dimensions,
-    chunker: CHUNKER_VERSION,
+    chunker,
     built_at: now().toISOString(),
   };
   const bm25 = Bm25Index.build(chunks);

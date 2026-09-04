@@ -26,9 +26,9 @@ export function EvalPage() {
   return (
     <main className="mx-auto max-w-[var(--max-content)] px-6 py-8">
       <div className="flex items-end gap-4">
-        <h1 className="display text-[var(--text-40)] leading-none">Evaluation</h1>
-        {source === 'sample' && <Badge tone="warn">sample data — no eval run yet</Badge>}
-        {source === 'latest' && <Badge tone="ok">latest.json</Badge>}
+        <h1 className="headline text-[length:var(--t-h1)]">Evaluation</h1>
+        {source === 'sample' && <Badge tone="dashed">sample data — no eval run yet</Badge>}
+        {source === 'latest' && <Badge tone="fill">latest.json</Badge>}
       </div>
       {data?.run && (
         <p className="mono mt-3 text-[var(--muted)]">
@@ -41,11 +41,11 @@ export function EvalPage() {
       {data?.headline && (
         <section className="mt-8">
           <Label className="mb-3">Headline</Label>
-          <div className="grid grid-cols-2 gap-px bg-[var(--rule)] md:grid-cols-4">
+          <div className="grid grid-cols-2 gap-px bg-[var(--ink)] md:grid-cols-4">
             {Object.entries(data.headline).map(([k, v]) => (
               <div key={k} className="bg-[var(--paper)] p-4">
-                <div className="text-[var(--text-12)] uppercase tracking-[0.08em] text-[var(--muted)]">{k.replace(/_/g, ' ')}</div>
-                <div className="display mt-1 text-[var(--text-28)] leading-none">{fmt(k, v)}</div>
+                <div className="eyebrow">{k.replace(/_/g, ' ')}</div>
+                <div className="mono mt-2 text-[28px] tracking-normal">{fmt(k, v)}</div>
               </div>
             ))}
           </div>
@@ -60,7 +60,7 @@ export function EvalPage() {
           {data.latency && (
             <div>
               <Label className="mb-2">Latency</Label>
-              <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-[var(--text-14)]">
+              <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-[length:var(--t-body)]">
                 <dt className="text-[var(--muted)]">warm p50</dt><dd className="mono">{ms(data.latency.warm_p50_ms)}</dd>
                 <dt className="text-[var(--muted)]">warm p95</dt><dd className="mono">{ms(data.latency.warm_p95_ms)}</dd>
                 <dt className="text-[var(--muted)]">cold start</dt><dd className="mono">{data.latency.cold_runs?.length ? data.latency.cold_runs.map(ms).join(' · ') : ms(data.latency.cold_p50_ms)}</dd>
@@ -71,7 +71,7 @@ export function EvalPage() {
           {data.calibration && (
             <div>
               <Label className="mb-2">Judge vs human · {data.calibration.n ?? '—'} items</Label>
-              <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-[var(--text-14)]">
+              <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-[length:var(--t-body)]">
                 <dt className="text-[var(--muted)]">exact agreement</dt><dd className="mono">{pct(data.calibration.exact_agreement)}</dd>
                 <dt className="text-[var(--muted)]">within ±1</dt><dd className="mono">{pct(data.calibration.within_one_agreement)}</dd>
               </dl>
@@ -92,9 +92,9 @@ function Table({ title, rows }: { title: string; rows: Row[] }) {
     <section className="mt-10">
       <Label className="mb-2">{title}</Label>
       <div className="overflow-x-auto">
-        <table className="w-full border-t border-[var(--rule)] text-left text-[var(--text-14)]">
-          <thead><tr className="text-[var(--text-12)] uppercase tracking-[0.08em] text-[var(--muted)]">{cols.map((c) => <th key={c} className="py-2 pr-4 font-normal">{c.replace(/_/g, ' ')}</th>)}</tr></thead>
-          <tbody>{rows.map((r, i) => <tr key={i} className="border-t border-[var(--rule)]">{cols.map((c) => <td key={c} className={`py-2 pr-4 ${typeof r[c] === 'number' ? 'mono' : ''}`}>{fmt(c, r[c] as number | string | null | undefined)}</td>)}</tr>)}</tbody>
+        <table className="w-full border-t border-[var(--ink)] text-left text-[length:var(--t-body)]">
+          <thead><tr className="eyebrow">{cols.map((c) => <th key={c} className="py-2 pr-4 font-normal">{c.replace(/_/g, ' ')}</th>)}</tr></thead>
+          <tbody>{rows.map((r, i) => <tr key={i} className="border-t border-[var(--ink)]">{cols.map((c) => <td key={c} className={`py-2 pr-4 ${typeof r[c] === 'number' ? 'mono' : ''}`}>{fmt(c, r[c] as number | string | null | undefined)}</td>)}</tr>)}</tbody>
         </table>
       </div>
     </section>

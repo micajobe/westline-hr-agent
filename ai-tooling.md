@@ -354,3 +354,56 @@ passed because it never ran" that is worth writing down.
 `scripts/demo.sh <app-url>` against Render (BLOCKERS.md items 1–3).
 
 ---
+## M5 addendum — design system pivot (2026-09-04)
+
+After seeing the PP Editorial Old / PP Neue Montreal build, Micah's first note was that the type
+was far too small (14px base with a small-x-height sans), and his second was to drop the PRD §9.2
+tokens altogether and follow the Nimble editorial design system in `~/strategy-navigator`. Read its
+`DESIGN-SYSTEM.md`, `tokens.css`, `LAYOUT-VOCABULARY.md` and the admin `globals.css`, then re-skinned
+every component: B&W only, Fraunces / Inter Tight (`ss01`, `cv11`) / JetBrains Mono from Google
+Fonts, four type roles, hairlines as the only device, state by glyph (● ◌ △) and border treatment.
+ADR 0012 records the supersession; `CLAUDE.md` now points at it.
+
+**What went wrong, twice, the same way.** Tailwind 4 cannot tell whether `text-[var(--x)]` is a
+colour or a size. It bit the Confirm button first (paper text rendered as a size → invisible) and then
+the whole headline scale (`--t-h1` rendered as a colour → 15px headlines). Both fixed with the explicit
+forms `text-[color:…]` / `text-[length:…]`, and a grep now confirms no bare `var(--t-…)` remains.
+
+**And a shell mistake worth recording.** Two heredoc writes were silently skipped because the shell's
+working directory had persisted in `apps/web` from the previous command, so `cd apps/web && cat > …`
+failed and the rest of the script ran anyway. The build succeeded with the *old* header and trace rail.
+Caught by the screenshot, not by any tool. All later writes use absolute paths.
+
+## M7 — Eval harness (2026-09-04) — built and plumbing-verified; real run blocked on the key
+
+**Asked for:** PRD §12 — 28 items, the nine metrics, four ablations, `cold_start.ts`, `eval.yml`,
+results writers, `/eval` on real `latest.json`, `human_scores.json` with the ten calibration items.
+
+**Produced:** `evaluation/eval_set.json` (28 items, six categories, gold answers and `(doc_id,
+section)` citations authored against the actual corpus, 18 latency items, 10 calibration ids);
+`evaluation/src/` — set loader with validation, deterministic metrics (behaviour set, tool
+subset/subsequence, plan-vs-actual Jaccard, section-prefix citation P/R, action safety, authorization
+and audience checks, workflow completion, nearest-rank percentiles), the Opus judge (groundedness 0–2
+per fact against the *cited chunk text*, answer match 0/0.5/1, both tool-forced at temperature 0), a
+`ChunkResolver` that rebuilds a stub-embedded in-memory index so the judge reads the exact text the
+agent saw without trusting the server, the runner (times `/chat`, confirms gates, scores), local
+ablation configs, the aggregator and JSON/markdown writers, the CLI, and `cold_start.ts`. Two server
+knobs for the ablations: `CHUNK_STRATEGY=fixed` (a 400-token sliding window that labels each window
+with the section its first character falls in — deliberately the wrong label for many rules, which is
+the point) and `RETRIEVAL_K_OVERRIDE` / `RETRIEVAL_MODE_OVERRIDE`. `eval.yml` builds both indexes and
+commits results with `[skip ci]`. Ten metric tests; 179 tests total.
+
+**Verified without a key.** The harness ran against the scripted-model server: 28 items, 28 run files,
+`latest.json` + `latest.md` + dated copies, zero errors, action safety 100%. The other headline numbers
+were low and *should* be — the scripted model plays one story regardless of the question — so this
+proves the plumbing, not the agent. Groundedness and answer match are null with `--no-judge`.
+
+**Two design choices to defend.** Behaviour accuracy is "expected ∈ observed set", not "observed ==
+expected", because a sensitive complaint legitimately produces both an escalation and a ticket gate
+(PRD §7.2 asks for exactly that). And the `RERANK=true` ablation row is not implemented: PRD §16 puts
+it second in the cut order and the retriever reports `rerank: false` honestly rather than pretending.
+
+**Open:** `npm run eval -- --target local --runs 3 --ablations` needs `ANTHROPIC_API_KEY` and
+`VOYAGE_API_KEY`; the cold-start probe needs the deployed URL; the ten human scores are Micah's.
+
+---

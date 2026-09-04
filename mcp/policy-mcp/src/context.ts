@@ -3,6 +3,7 @@ import {
   IndexStore,
   Retriever,
   buildIndex,
+  chunkStrategyFromEnv,
   createEmbeddingProvider,
   loadCorpus,
   parseApplicabilityMatrix,
@@ -21,6 +22,8 @@ export interface PolicyContext {
   applicability: ApplicabilityMatrix;
   /** `RERANK=true` -- the LLM reranker ablation. Reported in every search result. */
   rerank: boolean;
+  /** Eval ablations (PRD §12.3): force `k` and/or retrieval mode for every search, whatever the model asked for. */
+  overrides: { k?: number; mode?: 'hybrid' | 'vector' | 'bm25' };
 }
 
 export interface PolicyContextInit {
@@ -28,6 +31,7 @@ export interface PolicyContextInit {
   provider: EmbeddingProvider;
   people: PeopleDirectory;
   rerank?: boolean;
+  overrides?: PolicyContext['overrides'];
 }
 
 /** From already-open pieces (tests pass an in-memory index). */
@@ -41,6 +45,7 @@ export function createPolicyContext(init: PolicyContextInit): PolicyContext {
     retriever: new Retriever(init.store, init.provider),
     applicability: parseApplicabilityMatrix(handbook),
     rerank: init.rerank ?? false,
+    overrides: init.overrides ?? {},
   };
 }
 
@@ -53,6 +58,9 @@ export interface PolicyContextEnv {
   MOCK_DATA_DIR?: string;
   RERANK?: string;
   ALLOW_STUB_INDEX?: string;
+  CHUNK_STRATEGY?: string;
+  RETRIEVAL_K_OVERRIDE?: string;
+  RETRIEVAL_MODE_OVERRIDE?: string;
 }
 
 /**
@@ -72,6 +80,7 @@ export async function createPolicyContextFromEnv(
     provider,
     dbPath: resolve(repoRoot, env.INDEX_PATH ?? 'data/index.sqlite'),
     allowStub: env.ALLOW_STUB_INDEX === '1',
+    strategy: chunkStrategyFromEnv(env),
     log,
   });
   const people = PeopleDirectory.load(
@@ -82,5 +91,14 @@ export async function createPolicyContextFromEnv(
     provider,
     people,
     rerank: env.RERANK === 'true',
+    overrides: {
+      ...(env.RETRIEVAL_K_OVERRIDE ? { k: Number(env.RETRIEVAL_K_OVERRIDE) } : {}),
+      ...(env.RETRIEVAL_MODE_OVERRIDE ? { mode: parseMode(env.RETRIEVAL_MODE_OVERRIDE) } : {}),
+    },
   });
+}
+
+function parseMode(v: string): 'hybrid' | 'vector' | 'bm25' {
+  if (v === 'hybrid' || v === 'vector' || v === 'bm25') return v;
+  throw new Error(`RETRIEVAL_MODE_OVERRIDE must be hybrid, vector or bm25, got "${v}"`);
 }
