@@ -122,3 +122,14 @@ the document is whitespace.
 **Judgment call:** parent-section preambles longer than 80 characters become their own chunk
 (`PTO#§3#0`) rather than being folded into the first child. The alternative would either lose the
 notice table or attach it to §3.1, where a citation to "§3.1" for the 14-day rule would be wrong.
+
+**Continued — embedding interface (same day).** Asked to keep going on the embedding interface and
+stub provider. Produced `packages/rag/src/embed/`: one `EmbeddingProvider` interface (normalised
+`Float32Array`s, separate document/query paths because Voyage is asymmetric), the `stub`
+feature-hashing embedder for tests and CI, a dependency-free Voyage HTTP client with batching,
+`input_type`, index re-sorting and 429/5xx backoff, and a factory driven by `EMBEDDING_PROVIDER`
+that fails loudly on an unknown name or missing key instead of falling back. Nine tests, the Voyage
+ones against a mocked `fetch` that returns vectors out of order to prove the client re-sorts.
+`local` (transformers.js) is deliberately left as an explicit "not implemented" error: it is item 1
+in the PRD §16 cut order and nothing depends on it before the eval ablation. Nothing went wrong in
+this stretch; all checks passed on the first run.

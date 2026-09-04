@@ -12,3 +12,4 @@ export {
   OVERLAP_CHARS,
   SNIPPET_CHARS,
 } from './ingest/chunk.js';
+export * from './embed/index.js';
