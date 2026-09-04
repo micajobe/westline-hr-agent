@@ -551,3 +551,48 @@ graceful path, but a self-inflicted one. Timeout is now 120 s by default (`MCP_T
 real fix is a payment method on the Voyage account; until then every turn is slow by design.
 
 ---
+
+## M6 completion — Render deploy via the REST API (2026-09-04, evening)
+
+Both services are live: `westline-app` at <https://westline-hr-agent.onrender.com> and
+`westline-mcp` at <https://westline-mcp.onrender.com>. The app's `/health` reports `ok` with both
+MCP servers `connected` (4 + 5 tools, `mode.mcp: "http"`) and the same corpus hash `190aa9a6e9b2` on
+both sides, which is the check that actually proves the two-service split is wired rather than
+merely configured.
+
+Asked what could be created through the Render API, the answer shaped the approach: services, env
+vars, deploys, logs — but **no create-or-apply-Blueprint endpoint** (only validate / retrieve /
+update / disconnect) and **no way to read a deploy hook URL**. So the services were created through
+the API and are not attached to a Blueprint; `render.yaml` documents the intended shape rather than
+driving it. The missing hook endpoint turned out to be a good thing: `deploy.yml` was repointed at
+`POST /services/{id}/deploys` through `scripts/render-deploy.sh`, which needs one secret instead of
+two hook URLs and reports the deploy's real outcome instead of a fire-and-forget POST.
+
+**What went wrong.**
+
+1. **A green `deploy` badge that had deployed nothing.** The old workflow gated every step on
+   secrets being present, so with none set it skipped all of them and reported success — four
+   consecutive "successful" deploy runs that never contacted Render. Caught by noticing a 7-second
+   runtime for a job that should poll `/health` for up to ten minutes. The guard now emits a warning
+   annotation.
+2. **Read a single `200` as proof the Voyage cap had lifted.** After a payment method was added, one
+   request succeeded and I called the limit lifted and triggered a deploy. It failed in 8 seconds,
+   before embedding a single batch. A lone 200 is just the 3 RPM allowance; the burst pattern is the
+   signal — 1-of-5 spaced requests passing means still capped, 5-of-5 means lifted. Three deploys
+   were spent on this before testing it properly. The propagation delay is real (Voyage says
+   "several minutes") but that was not what the evidence had shown at the time.
+3. **The first CI-driven deploy hung for twelve minutes and only passed because it was poked by
+   hand.** Render sat in `update_in_progress` with no log output past `Running 'npm run start:mcp'`
+   — not even npm's banner — and went `live` seconds after a manual request to the service URL. A
+   free instance hibernates, and a hibernating service does not start its replacement until traffic
+   arrives, so the deploy waits on an instance that is waiting on a request. Unattended it would
+   have burned the 900s timeout and failed. `wait` now pokes `/health` on every poll. Nearly
+   recorded as a passing verification before noticing the pass depended on manual intervention.
+4. **Renaming the service did not rename its hostname.** `westline-hr-agent` was renamed to
+   `westline-app` to match `render.yaml`; Render keeps the subdomain assigned at creation, so the
+   service name matches the blueprint and the URL does not. Documented in `deployed.md` rather than
+   papered over.
+5. **`BLOCKERS.md` had drifted.** Two entries described state that was no longer true and the
+   numbering had a hole. Rewritten against reality — including checking the GitHub item with `gh`
+   instead of trusting the file, which surfaced that `quantic-grader` is still not a collaborator
+   and Actions is still read-only.
