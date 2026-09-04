@@ -5,13 +5,21 @@
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "exports": { ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" } },
-  "scripts": { "build": "tsc -b" },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b"
+  },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.13.0",
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "@westline/hr-data-mcp": "*",
     "@westline/policy-mcp": "*",
     "@westline/shared": "*",
-    "fastify": "^5.2.0"
+    "fastify": "^5.2.0",
+    "zod": "^3.25.76"
   }
 }

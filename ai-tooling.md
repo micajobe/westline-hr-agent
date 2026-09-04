@@ -189,3 +189,24 @@ reports 14 documents, 489 sections, 414 chunks, 75.0 page equivalents. ADR 0004 
 M2 decisions the PRD left open. M2 is complete apart from the `local` embedding provider, which is
 PRD §16 cut-order item 1 and is deferred until the eval ablation needs it. Nothing went wrong in
 this stretch.
+
+---
+
+## M3 (in progress) — MCP servers (2026-09-04)
+
+**Asked for:** start M3 in the remaining mobile time, then stop and open a PR when Micah is ready
+to set up the cloud services on his laptop.
+
+**Produced so far:** `packages/shared/src/gate.ts` (HMAC confirmation tokens bound to the args
+hash, ten-minute TTL, single-use registry) and `packages/shared/src/people.ts` (the people
+directory with scope derivation and the `self`/`manager`/`hr_partner` authorization rule), plus
+the whole of `mcp/hr-data-mcp`: mock data loader, `desk.sqlite` store, all five tools
+(`lookup_person_profile`, `check_pto_balance`, `lookup_benefits_status`, and the two gated
+actions), and the `McpServer` registration with zod schemas. Compiles, typechecks and lints; **no
+tests yet** — `mcp.call.test.ts`, `gate.test.ts` and `mcp.discovery.test.ts` are the next thing to
+write, followed by `policy-mcp` and the HTTP host.
+
+**Decisions taken while writing, to confirm on review:** name lookups return AMBIGUOUS with
+in-scope candidates only, and FORBIDDEN when every match is out of scope; `check_pto_balance`
+treats `pto_config.as_of` as "today" so `notice_met` is deterministic; a consumed token is refused
+on replay with reason ALREADY_USED even though its signature is still valid.
