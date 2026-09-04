@@ -1,7 +1,12 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": { "rootDir": "src", "outDir": "dist", "types": ["node"] },
-  "references": [{ "path": "../../packages/shared" }],
+  "references": [
+    { "path": "../../packages/shared" },
+    { "path": "../../packages/rag" },
+    { "path": "../policy-mcp" },
+    { "path": "../hr-data-mcp" }
+  ],
   "include": ["src/**/*.ts"],
   "exclude": ["src/**/*.test.ts"]
 }

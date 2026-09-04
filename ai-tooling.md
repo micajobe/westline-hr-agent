@@ -192,21 +192,50 @@ this stretch.
 
 ---
 
-## M3 (in progress) — MCP servers (2026-09-04)
+## M3 — MCP servers (2026-09-04)
 
-**Asked for:** start M3 in the remaining mobile time, then stop and open a PR when Micah is ready
-to set up the cloud services on his laptop.
+**Asked for:** both MCP servers per PRD §6 — nine tools, JSON schemas, scope and audience
+enforcement, gate-token verification, Streamable HTTP behind a shared-secret header, `/health` on
+the MCP service — with `mcp.discovery.test.ts`, `mcp.call.test.ts` and `gate.test.ts` green. Started
+in a short mobile session (gate tokens, people directory, all of `hr-data-mcp`, no tests), finished
+on the laptop.
 
-**Produced so far:** `packages/shared/src/gate.ts` (HMAC confirmation tokens bound to the args
-hash, ten-minute TTL, single-use registry) and `packages/shared/src/people.ts` (the people
-directory with scope derivation and the `self`/`manager`/`hr_partner` authorization rule), plus
-the whole of `mcp/hr-data-mcp`: mock data loader, `desk.sqlite` store, all five tools
-(`lookup_person_profile`, `check_pto_balance`, `lookup_benefits_status`, and the two gated
-actions), and the `McpServer` registration with zod schemas. Compiles, typechecks and lints; **no
-tests yet** — `mcp.call.test.ts`, `gate.test.ts` and `mcp.discovery.test.ts` are the next thing to
-write, followed by `policy-mcp` and the HTTP host.
+**Produced:** `packages/shared/src/gate.ts` (HMAC tokens bound to the args hash, ten-minute TTL,
+single-use registry), `packages/shared/src/people.ts` (scope derivation and the one `authorize`
+rule), `mcp/hr-data-mcp` (five tools, `desk.sqlite`, env factory), `mcp/policy-mcp` (four tools
+over the `Retriever`, the HANDBOOK §2 matrix parser, evidence-only compliance), `mcp/host` (one
+Fastify process serving both servers at `/mcp/policy` and `/mcp/hr` as stateless Streamable HTTP,
+401 without `x-westline-mcp-secret`, 503 for a chaos-disabled server, `/health` with the index
+metadata) and 31 new tests that run the real HTTP transport against an in-memory stub index. 159
+tests total.
 
-**Decisions taken while writing, to confirm on review:** name lookups return AMBIGUOUS with
-in-scope candidates only, and FORBIDDEN when every match is out of scope; `check_pto_balance`
-treats `pto_config.as_of` as "today" so `notice_met` is deterministic; a consumed token is refused
-on replay with reason ALREADY_USED even though its signature is still valid.
+**Decisions taken on mobile, confirmed on review.** Name lookups return `AMBIGUOUS` with in-scope
+candidates only and `FORBIDDEN` when every match is out of scope, so a contractor cannot enumerate
+staff by probing common names. `check_pto_balance` treats `pto_config.as_of` as "today" so
+`notice_met` is deterministic in tests and demos. A consumed token is refused on replay with
+`ALREADY_USED` even though its signature is still valid. One addition: authorization runs *before*
+the gate, so a forged-but-authorized-looking request from someone out of scope is `FORBIDDEN`, never
+`CONFIRMATION_REQUIRED` — the card should never be shown for an action the server would refuse anyway.
+
+**What went wrong — the compliance tool's query shape.** The first cut of `check_policy_compliance`
+searched `"${area}: ${scenario}"` once per area. For the demo-task-1 scenario, the drone area
+returned `CREATOR §7.4`, `EXPENSE §7.2`, `CREATOR §7.1` — all correct, all pointing at SAFETY §5,
+and none of them SAFETY §5 itself, because "bought", "expense" and "sponsored" in the scenario
+out-weighed "drone approval and certification". Caught by the test that asserts SAFETY appears in
+the evidence for a drone question. Fix: two passes per area (the area phrase alone, then the
+scenario-anchored version) fused in that order, so a short area name is never drowned by a long
+scenario. That is a retrieval-design fix, not a test loosening.
+
+**A test I did loosen, deliberately.** "All six results for the notice query are PTO chunks" was my
+assertion, not the PRD's; the sixth hit under the stub embedder is `REMOTE §1.2` (home market /
+in-office days), which is a plausible neighbour. The PRD check is "PTO §3.2 in the top 3", asserted
+against the Voyage index by hand; the stub assertion is top-3-PTO and §3.2 within the top 5.
+
+**Transport choice worth recording.** Each request gets a fresh `McpServer` + stateless transport
+(`sessionIdGenerator: undefined`, JSON responses) bound to the long-lived context. Render free
+services restart on idle; a stateful session table would be lost on every cold start and the client
+would have to re-negotiate. Stateless costs one tool registration per request (microseconds) and
+buys a server the client can hit cold at any time. Verified with raw `curl` JSON-RPC against the
+real `start:mcp` process: `initialize`, `tools/list`, 401 without the header.
+
+---
