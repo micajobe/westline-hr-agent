@@ -67,6 +67,13 @@ export async function startMcpHost(opts: McpHostOptions): Promise<McpHost> {
     });
   }
 
+  // Read-only view of the desk for the app's /desk page. Secret-protected like the MCP routes,
+  // and served from here because desk.sqlite lives with hr-data-mcp, not with the app.
+  app.get('/desk', async (request, reply) => {
+    if (!secretMatches(request, opts.secret)) return reply.code(401).send({ error: 'UNAUTHORIZED' });
+    return { tickets: opts.hr.desk.listTickets(), drafts: opts.hr.desk.listDrafts(), resets_on_redeploy: true };
+  });
+
   app.get('/health', async () => ({
     status: 'ok',
     service: 'westline-mcp',
@@ -112,4 +119,41 @@ async function serveMcp(server: McpServer, request: FastifyRequest, reply: Fasti
   await server.connect(transport);
   const body = typeof request.body === 'string' && request.body ? JSON.parse(request.body) : request.body;
   await transport.handleRequest(request.raw as IncomingMessage, res, body);
+}
+
+// ---------- bootstrap from env ----------
+
+export interface McpHostEnvOptions {
+  env?: NodeJS.ProcessEnv;
+  repoRoot?: string;
+  port?: number;
+  host?: string;
+  logger?: boolean;
+  log?: (msg: string) => void;
+  disabled?: Partial<Record<McpServerName, boolean>>;
+}
+
+/**
+ * Build both contexts from the environment and start the host. This is the only entry point the
+ * app server uses for `MCP_MODE=inprocess` (CLAUDE.md: apps/server never imports a tool
+ * implementation -- only this bootstrap), and it is what `main.ts` calls for the deployed service.
+ */
+export async function startMcpHostFromEnv(opts: McpHostEnvOptions = {}): Promise<McpHost> {
+  const env = opts.env ?? process.env;
+  const repoRoot = opts.repoRoot ?? process.cwd();
+  const secret = env.MCP_SHARED_SECRET;
+  if (!secret) throw new Error('MCP_SHARED_SECRET is required');
+  const { createPolicyContextFromEnv } = await import('@westline/policy-mcp');
+  const { createHrContextFromEnv } = await import('@westline/hr-data-mcp');
+  const policy = await createPolicyContextFromEnv(env, repoRoot, opts.log);
+  const hr = createHrContextFromEnv(env, repoRoot);
+  return startMcpHost({
+    policy,
+    hr,
+    secret,
+    port: opts.port,
+    host: opts.host,
+    logger: opts.logger,
+    disabled: opts.disabled,
+  });
 }

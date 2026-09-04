@@ -239,3 +239,48 @@ buys a server the client can hit cold at any time. Verified with raw `curl` JSON
 real `start:mcp` process: `initialize`, `tools/list`, 401 without the header.
 
 ---
+## M4 — Agent and API (2026-09-04)
+
+**Asked for:** PRD §7 and §8 — the MCP client with discovery and namespacing, the plan-then-act
+loop with gate suspend/resume, the verify step, the §7.3 answer schema, trace events, every route
+with Fastify schemas, the conversation store with TTL, `CHAOS_DISABLE_HR_MCP`, and
+`server.start.test.ts` + `agent.plan.test.ts` green.
+
+**Produced:** `apps/server/src/mcp/client.ts` (one Streamable HTTP session per server, `list_tools`
+at startup, Anthropic `tools[]` namespaced `policy__*`/`hr__*`, routing by prefix, 3-second health
+probe, `TOOL_UNAVAILABLE` as a structured result), `mcp/inprocess.ts` (starts the real host on a
+loopback port via the `@westline/mcp-host` bootstrap — ADR 0011), `agent/` (plan, act loop,
+citation registry, synthesize, verify, conversation store, orchestrator), `app.ts` with all eight
+routes plus SSE variants of `/chat` and `/confirm`, `bootstrap.ts` so the test boots the same object
+the deploy does, `scripts/demo.sh`, and 10 tests. 169 tests total; all green on the first run of the
+new suites.
+
+**Two boundary decisions the PRD implies but does not spell out.** `acting_person_id` and
+`confirmation_token` are *removed from the model-facing tool schemas* and injected by the MCP client.
+The test proves the point: the scripted model passes `acting_person_id: "W-1001"` (the HR partner)
+inside a tool call while the request persona is Jordan, and the trace shows every call went out as
+Jordan. The model cannot claim an identity, and it cannot mint a confirmation because it never sees
+the field. The args hash the gate binds to is computed over the args *with* the injected identity, so
+it matches what `hr-data-mcp` hashes.
+
+**How the gate suspends.** The ACT loop can be interrupted mid-assistant-turn: an assistant message
+may contain several `tool_use` blocks, one of them gated. Already-executed results are kept with the
+suspended state and the pending block gets its `tool_result` on resume — either the real result (after
+`/confirm` mints a token) or a structured `CANCELLED_BY_USER`, so a cancel still ends in a normal,
+synthesized answer instead of a dead end. The suspended state lives in the conversation store under
+the 30-minute TTL; a new message on the same conversation abandons the pending card.
+
+**Server-authoritative overlays.** After synthesis, `actions_taken` is replaced with what the server
+actually executed and `withheld_by_audience` is filled from the retrieval trace if the model left it
+null. The test feeds the model a claim that it "sent an email" and a fabricated `PTO §99` fact with a
+matching recommendation; the envelope shows one real draft (`DFT-…`, "not sent"), one fact with the
+tool's real title and snippet in place of the model's, and the verify event reporting one unsupported
+claim and one ungrounded recommendation removed.
+
+**What went wrong: nothing failed in this stretch, which is worth being honest about.** The suites
+passed on the first run because the M3 tests had already pinned every tool result shape the agent
+consumes. The unverified part is the real model: `scripts/demo.sh` is written and exercised against
+the scripted model through the same routes, but PRD §15 M4's "with a real key" acceptance is blocked
+on `ANTHROPIC_API_KEY` (BLOCKERS.md item 1). Prompt quality against Sonnet is the M4 risk still open.
+
+---

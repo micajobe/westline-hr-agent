@@ -7,8 +7,10 @@ Everything not listed here has been built. Update/remove entries as they are res
 
 ### 1. `ANTHROPIC_API_KEY` — required for any model call
 - Needed for: the agent loop (`/chat`), the eval harness, the LLM judge.
-- Without it: everything builds and all non-model tests pass. Model-calling tests are skipped
-  (`describe.skipIf(!process.env.ANTHROPIC_API_KEY)`), and `scripts/demo.sh` cannot run.
+- Without it: everything builds and all 169 tests pass (the agent tests use a scripted model through
+  the real MCP transport). `/chat` returns 503 `MODEL_UNAVAILABLE`, and `scripts/demo.sh` — written
+  and exercised against the scripted model — has not yet been run against Sonnet. That run is the
+  open M4 acceptance item.
 - Action: put it in `.env` locally, and add it as a GitHub Actions secret + a Render env var on `westline-app`.
 
 ### 2. `VOYAGE_API_KEY` — required for production-quality embeddings

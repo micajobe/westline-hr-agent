@@ -1,2 +1,13 @@
-// Placeholder until this workspace is implemented (PRD §15).
-export {};
+export * from './bootstrap.js';
+export * from './app.js';
+export * from './config.js';
+export * from './demo.js';
+export * from './mcp/client.js';
+export * from './agent/orchestrator.js';
+export * from './agent/conversation.js';
+export * from './agent/model.js';
+export * from './agent/schemas.js';
+export * from './agent/citations.js';
+export * from './agent/verify.js';
+export { PLAN_INSTRUCTIONS } from './agent/prompts/plan.js';
+export { systemPrompt } from './agent/prompts/system.js';

@@ -1,23 +1,14 @@
-import { createHrContextFromEnv } from '@westline/hr-data-mcp';
-import { createPolicyContextFromEnv } from '@westline/policy-mcp';
-import { startMcpHost } from './index.js';
+import { startMcpHostFromEnv } from './index.js';
 
 /** `npm run start:mcp` -- the `westline-mcp` Render service. */
 async function main(): Promise<void> {
   const log = (msg: string) => console.error(`[westline-mcp] ${msg}`);
-  const secret = process.env.MCP_SHARED_SECRET;
-  if (!secret) throw new Error('MCP_SHARED_SECRET is required');
-
   log('preparing policy index…');
-  const policy = await createPolicyContextFromEnv(process.env, process.cwd(), log);
-  const hr = createHrContextFromEnv(process.env);
-  const host = await startMcpHost({
-    policy,
-    hr,
-    secret,
+  const host = await startMcpHostFromEnv({
     port: Number(process.env.PORT ?? 3100),
     host: '0.0.0.0',
     logger: (process.env.LOG_LEVEL ?? 'info') !== 'silent',
+    log,
   });
   log(`listening on ${host.url}  (${host.urls.policy}, ${host.urls.hr})`);
 

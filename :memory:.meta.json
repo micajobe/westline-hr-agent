@@ -1,0 +1,9 @@
+{
+  "corpus_hash": "190aa9a6e9b253c3b23e07b6619d3f872558f2284eedf85878bee23f6044d3b2",
+  "doc_count": 14,
+  "chunk_count": 414,
+  "embedding_model": "stub-feature-hash-v1",
+  "embedding_dimensions": 256,
+  "chunker": "heading-aware/1",
+  "built_at": "2026-09-04T18:54:53.110Z"
+}
