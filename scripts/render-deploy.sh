@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # Trigger and poll Render deploys through the REST API.
 #
-#   scripts/render-deploy.sh trigger <service-id>   # start a deploy, print its id and status
-#   scripts/render-deploy.sh status  <service-id>   # print the latest deploy's status
+#   scripts/render-deploy.sh trigger <service-id>          # start a deploy, print its id and status
+#   scripts/render-deploy.sh status  <service-id>          # print the latest deploy's status
+#   scripts/render-deploy.sh wait    <service-id> [secs]   # poll until terminal; exit 1 unless live
+#   scripts/render-deploy.sh deploy  <service-id> [secs]   # trigger, then wait
 #   scripts/render-deploy.sh logs    <service-id> [n]
 #
 # RENDER_API_KEY comes from the environment or .env. Deploy hook URLs are not exposed by the
@@ -43,6 +45,30 @@ if not d:
     raise SystemExit
 x = d[0].get("deploy", d[0])
 print(x.get("id"), x.get("status"), "created", x.get("createdAt"), "finished", x.get("finishedAt"))'
+  ;;
+wait)
+  deadline=$(($(date +%s) + ${3:-900}))
+  while :; do
+    line=$("$0" status "$svc")
+    state=$(echo "$line" | awk '{print $2}')
+    echo "$(date -u +%H:%M:%S) $state"
+    case "$state" in
+    live) exit 0 ;;
+    build_failed | update_failed | canceled | deactivated)
+      echo "deploy did not reach 'live' (last state: $state)" >&2
+      exit 1
+      ;;
+    esac
+    if [ "$(date +%s)" -ge "$deadline" ]; then
+      echo "timed out waiting for deploy (last state: $state)" >&2
+      exit 1
+    fi
+    sleep 10
+  done
+  ;;
+deploy)
+  "$0" trigger "$svc"
+  exec "$0" wait "$svc" "${3:-900}"
   ;;
 logs)
   n=${3:-40}
