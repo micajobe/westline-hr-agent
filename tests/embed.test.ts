@@ -48,7 +48,7 @@ describe('stub embedding provider', () => {
       'policy',
       '14',
       'calendar',
-      'days',
+      'day',
       'notice',
     ]);
   });

@@ -17,10 +17,7 @@ const REQUIRED = ['doc_id', 'title', 'version', 'effective_date', 'owner', 'audi
  * Parse and validate front matter. Fails loudly: a document without an `audience` would be
  * indexed as visible to nobody or everybody depending on a default, and both are wrong.
  */
-export function parseFrontMatter(
-  file: string,
-  yamlBlock: string,
-): DocumentFrontMatter {
+export function parseFrontMatter(file: string, yamlBlock: string): DocumentFrontMatter {
   const parsed = matter(`---\n${yamlBlock}\n---\n`).data as Record<string, unknown>;
 
   for (const key of REQUIRED) {
@@ -47,7 +44,10 @@ export function parseFrontMatter(
         throw new FrontMatterError(file, `override key "${section}" must look like §7 or §7.2`);
       }
       if (!isAudience(audience)) {
-        throw new FrontMatterError(file, `override for ${section} has invalid audience "${String(audience)}"`);
+        throw new FrontMatterError(
+          file,
+          `override for ${section} has invalid audience "${String(audience)}"`,
+        );
       }
       section_audience_overrides[section] = audience;
     }

@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { bm25ProcessTerm, bm25Tokenize } from '../store/bm25.js';
 import { l2Normalize, type EmbeddingProvider } from './provider.js';
 
 export const STUB_DIMENSIONS = 256;
@@ -47,18 +48,15 @@ export class StubEmbeddingProvider implements EmbeddingProvider {
   }
 }
 
-const STOPWORDS = new Set(
-  'a an and are as at be by for from has have if in is it its of on or that the this to was were will with you your'.split(
-    ' ',
-  ),
-);
-
+/**
+ * Shares the BM25 term normaliser (lower-case, stopwords, plural folding) so the two rankers agree
+ * on what a word is; a stub that disagreed with BM25 about "days" vs "day" would make hybrid tests
+ * flaky for reasons that have nothing to do with the code under test.
+ */
 export function tokenize(text: string): string[] {
-  return text
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}]+/gu, ' ')
-    .split(' ')
-    .filter((t) => t.length > 1 && !STOPWORDS.has(t));
+  return bm25Tokenize(text)
+    .map((t) => bm25ProcessTerm(t))
+    .filter((t): t is string => t !== null && t.length > 1);
 }
 
 function bump(map: Map<string, number>, key: string): void {

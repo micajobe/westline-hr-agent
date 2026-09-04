@@ -99,7 +99,7 @@ export async function buildIndex(opts: BuildIndexOptions): Promise<BuildIndexRes
 
   if (dbPath === ':memory:') {
     const store = IndexStore.create(dbPath, dimensions);
-    store.write(chunks, vectors, bm25, meta);
+    store.write(docs, chunks, vectors, bm25, meta);
     return { built: true, reason, meta, store };
   }
 
@@ -108,7 +108,7 @@ export async function buildIndex(opts: BuildIndexOptions): Promise<BuildIndexRes
   rmSync(tmp, { force: true });
   const fresh = IndexStore.create(tmp, dimensions);
   try {
-    fresh.write(chunks, vectors, bm25, meta);
+    fresh.write(docs, chunks, vectors, bm25, meta);
   } finally {
     fresh.close();
   }

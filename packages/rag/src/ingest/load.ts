@@ -17,7 +17,10 @@ const FORMAT_BY_EXT: Record<string, SourceFormat> = { '.md': 'md', '.html': 'htm
  * each to markdown. Subdirectories (e.g. `_pdf_src/`, the authored sources the PDFs are built
  * from) are ignored on purpose: indexing both the PDF and its source would double every citation.
  */
-export async function loadCorpus(corpusDir: string, repoRoot = process.cwd()): Promise<LoadedDocument[]> {
+export async function loadCorpus(
+  corpusDir: string,
+  repoRoot = process.cwd(),
+): Promise<LoadedDocument[]> {
   const entries = (await readdir(corpusDir, { withFileTypes: true }))
     .filter((e) => e.isFile() && FORMAT_BY_EXT[extname(e.name)])
     .map((e) => e.name)

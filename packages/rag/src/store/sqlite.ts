@@ -1,6 +1,8 @@
 import { DatabaseSync, type SQLInputValue } from 'node:sqlite';
 import * as sqliteVec from 'sqlite-vec';
-import type { Chunk, IndexMeta, SourceFormat } from '../types.js';
+import type { Chunk, IndexMeta, LoadedDocument, SourceFormat } from '../types.js';
+import { effectiveAudience, parseSections } from '../ingest/headings.js';
+import type { PolicySection } from '../retrieve/section.js';
 import type { Audience } from '@westline/shared';
 import { Bm25Index } from './bm25.js';
 
@@ -60,6 +62,18 @@ export class IndexStore {
     const db = connect(path);
     db.exec(`
       CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+      CREATE TABLE documents (
+        doc_id         TEXT PRIMARY KEY,
+        title          TEXT NOT NULL,
+        source_format  TEXT NOT NULL,
+        path           TEXT NOT NULL,
+        audience       TEXT NOT NULL,
+        effective_date TEXT NOT NULL,
+        version        TEXT NOT NULL,
+        owner          TEXT NOT NULL,
+        overrides_json TEXT NOT NULL,
+        markdown       TEXT NOT NULL
+      );
       CREATE TABLE chunks (
         chunk_id      TEXT PRIMARY KEY,
         doc_id        TEXT NOT NULL,
@@ -100,11 +114,21 @@ export class IndexStore {
 
   // ---------- writing ----------
 
-  /** Insert every chunk with its vector, then the BM25 index and metadata, in one transaction. */
-  write(chunks: Chunk[], vectors: Float32Array[], bm25: Bm25Index, meta: IndexMeta): void {
+  /** Insert documents, every chunk with its vector, then the BM25 index and metadata, in one transaction. */
+  write(
+    docs: LoadedDocument[],
+    chunks: Chunk[],
+    vectors: Float32Array[],
+    bm25: Bm25Index,
+    meta: IndexMeta,
+  ): void {
     if (chunks.length !== vectors.length) {
       throw new Error(`chunk/vector count mismatch: ${chunks.length} vs ${vectors.length}`);
     }
+    const insDoc = this.db.prepare(`
+      INSERT INTO documents (doc_id, title, source_format, path, audience, effective_date, version,
+        owner, overrides_json, markdown)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
     const insChunk = this.db.prepare(`
       INSERT INTO chunks (chunk_id, doc_id, title, section_path, section_title, chunk_index,
         source_format, audience, char_start, char_end, snippet, content_hash, text)
@@ -116,6 +140,21 @@ export class IndexStore {
 
     this.db.exec('BEGIN');
     try {
+      for (const d of docs) {
+        const fm = d.front_matter;
+        insDoc.run(
+          d.doc_id,
+          d.title,
+          d.source_format,
+          d.path,
+          fm.audience,
+          fm.effective_date,
+          fm.version,
+          fm.owner,
+          JSON.stringify(fm.section_audience_overrides ?? {}),
+          d.markdown,
+        );
+      }
       chunks.forEach((c, i) => {
         insChunk.run(
           c.chunk_id,
@@ -195,6 +234,59 @@ export class IndexStore {
       .all(...chunk_ids) as Record<string, SQLInputValue>[];
     const byId = new Map(rows.map((r) => [String(r.chunk_id), rowToChunk(r)]));
     return chunk_ids.map((id) => byId.get(id)).filter((c): c is Chunk => Boolean(c));
+  }
+
+  getDocument(doc_id: string): LoadedDocument | undefined {
+    const r = this.db.prepare('SELECT * FROM documents WHERE doc_id = ?').get(doc_id) as
+      Record<string, SQLInputValue> | undefined;
+    if (!r) return undefined;
+    const overrides = JSON.parse(String(r.overrides_json)) as Record<string, Audience>;
+    return {
+      doc_id: String(r.doc_id),
+      title: String(r.title),
+      source_format: String(r.source_format) as SourceFormat,
+      path: String(r.path),
+      markdown: String(r.markdown),
+      front_matter: {
+        doc_id: String(r.doc_id),
+        title: String(r.title),
+        version: String(r.version),
+        effective_date: String(r.effective_date),
+        owner: String(r.owner),
+        audience: String(r.audience) as Audience,
+        ...(Object.keys(overrides).length ? { section_audience_overrides: overrides } : {}),
+      },
+    };
+  }
+
+  documentIds(): string[] {
+    return (
+      this.db.prepare('SELECT doc_id FROM documents ORDER BY doc_id').all() as { doc_id: string }[]
+    ).map((r) => r.doc_id);
+  }
+
+  /**
+   * A section's full text straight from the stored document (a `##` section includes its `###`
+   * children, as a reader would expect), with the effective audience after overrides.
+   */
+  getSection(doc_id: string, section_path: string): PolicySection | undefined {
+    const doc = this.getDocument(doc_id);
+    if (!doc) return undefined;
+    const section = parseSections(doc.markdown).find((s) => s.section_path === section_path);
+    if (!section) return undefined;
+    return {
+      doc_id,
+      title: doc.title,
+      section_path,
+      section_title: section.section_title,
+      text: section.text,
+      audience: effectiveAudience(
+        section_path,
+        doc.front_matter.audience,
+        doc.front_matter.section_audience_overrides,
+      ),
+      effective_date: doc.front_matter.effective_date,
+    };
   }
 
   allChunks(): Chunk[] {
