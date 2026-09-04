@@ -62,10 +62,10 @@ export const ANSWER_JSON_SCHEMA = {
   additionalProperties: false,
   required: ['answer_markdown', 'policy_facts', 'recommendations', 'applicability', 'actions_proposed', 'actions_taken', 'escalation', 'clarification', 'withheld_by_audience'],
   properties: {
-    answer_markdown: { type: 'string', description: 'Short conversational answer in markdown. State what the policy says (cited below) separately from what you recommend. Never invent policy.' },
+    answer_markdown: { type: 'string', maxLength: 1200, description: 'SHORT conversational summary, 2–5 sentences, at most 1200 characters. The rules themselves go in policy_facts, not here. Never invent policy.' },
     policy_facts: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['id', 'statement', 'citations'], properties: {
       id: { type: 'string', description: 'f1, f2, …' },
-      statement: { type: 'string', description: 'One factual statement of what a policy says, with the figure or rule.' },
+      statement: { type: 'string', description: 'One factual statement of what a policy says, with the figure or rule. Required: at least one fact for every rule mentioned in answer_markdown.' },
       citations: { type: 'array', minItems: 1, items: citation },
     } } },
     recommendations: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['text', 'basis_fact_ids'], properties: {

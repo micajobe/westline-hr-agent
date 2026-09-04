@@ -1,7 +1,7 @@
 {
   "version": 1,
   "seed": 42,
-  "description": "Westline HR Agent evaluation set (PRD §12.1). 28 items across six categories. gold_citations are (doc_id, section_path); a section-prefix match counts. expected_tools are namespaced; order_required marks items where sequence matters.",
+  "description": "Westline HR Agent evaluation set (PRD §12.1). 28 items across six categories. gold_citations are (doc_id, section_path); a section-prefix match counts. expected_tools are namespaced (`a|b` = either satisfies); order_required marks items where sequence matters.",
   "calibration_items": [
     "sp-01",
     "sp-02",
@@ -329,7 +329,8 @@
       "expected_tools": [
         "hr__lookup_person_profile",
         "policy__get_policy_applicability",
-        "policy__search_policy_documents"
+        "policy__search_policy_documents",
+        "policy__get_policy_section|policy__check_policy_compliance"
       ],
       "order_required": false,
       "expected_behaviour": "answer",
@@ -380,7 +381,7 @@
       "expected_tools": [
         "hr__lookup_person_profile",
         "hr__check_pto_balance",
-        "policy__search_policy_documents",
+        "policy__search_policy_documents|policy__get_policy_section",
         "hr__draft_hr_email"
       ],
       "order_required": true,

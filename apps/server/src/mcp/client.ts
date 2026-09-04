@@ -1,6 +1,12 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import type { Tool as McpTool } from '@modelcontextprotocol/sdk/types.js';
+import AjvModule from 'ajv';
+
+// ajv is CJS with both default and module.exports forms; resolve whichever the loader hands us.
+const AjvCtor = ((AjvModule as unknown as { default?: unknown }).default ?? AjvModule) as new (opts: Record<string, unknown>) => AjvInstance;
+interface AjvInstance { compile(schema: object): Validator }
+type Validator = ((data: unknown) => boolean) & { errors?: { instancePath: string; message?: string; params?: Record<string, unknown> }[] | null };
 
 export type ServerName = 'policy' | 'hr';
 export const SERVER_NAMES: ServerName[] = ['policy', 'hr'];
@@ -57,6 +63,8 @@ export interface McpClientOptions {
 export class McpToolClient {
   private readonly clients = new Map<ServerName, Client>();
   private tools: DiscoveredTool[] = [];
+  private readonly validators = new Map<string, Validator>();
+  private readonly ajv = new AjvCtor({ allErrors: true, strict: false });
   private readonly timeoutMs: number;
 
   constructor(private readonly opts: McpClientOptions) {
@@ -113,6 +121,34 @@ export class McpToolClient {
 
   resolve(namespaced: string): DiscoveredTool | undefined {
     return this.tools.find((t) => t.namespaced === namespaced);
+  }
+
+  /**
+   * Validate model-supplied arguments against the tool's discovered schema (minus the server-owned
+   * fields). Lets the orchestrator bounce a malformed call back to the model *before* it reaches a
+   * confirmation card -- a user should never confirm arguments the tool would reject.
+   */
+  validateArgs(namespaced: string, args: unknown): { ok: true; args: Record<string, unknown> } | { ok: false; message: string } {
+    const tool = this.resolve(namespaced);
+    if (!tool) return { ok: false, message: `unknown tool ${namespaced}` };
+    if (!args || typeof args !== 'object' || Array.isArray(args)) return { ok: false, message: 'arguments must be a JSON object with the tool\'s named fields' };
+    let validate: Validator | undefined = this.validators.get(namespaced);
+    if (!validate) {
+      const schema = structuredClone(tool.inputSchema) as Record<string, any>;
+      const props = { ...(schema.properties ?? {}) };
+      for (const k of SERVER_OWNED_ARGS) delete props[k];
+      schema.properties = props;
+      schema.required = ((schema.required as string[] | undefined) ?? []).filter((r) => !SERVER_OWNED_ARGS.includes(r));
+      delete schema.$schema;
+      validate = this.ajv.compile(schema);
+      this.validators.set(namespaced, validate);
+    }
+    const v: Validator = validate;
+    const clean = { ...(args as Record<string, unknown>) };
+    for (const k of SERVER_OWNED_ARGS) delete clean[k];
+    if (v(clean)) return { ok: true, args: clean };
+    const message = (v.errors ?? []).map((e) => `${e.instancePath || '(root)'} ${e.message ?? ''}${e.params && 'additionalProperty' in e.params ? ` (${String(e.params.additionalProperty)})` : ''}`).join('; ');
+    return { ok: false, message: `invalid arguments for ${namespaced}: ${message}` };
   }
 
   static split(namespaced: string): { server: ServerName; name: string } | undefined {

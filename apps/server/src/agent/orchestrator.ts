@@ -219,8 +219,23 @@ export class Orchestrator {
 
       const results: { tool_use_id: string; content: string }[] = [];
       for (const tu of toolUses) {
-        const args = (tu.input ?? {}) as Record<string, unknown>;
         const discovered = this.d.mcp.resolve(tu.name);
+        const checked = this.d.mcp.validateArgs(tu.name, tu.input ?? {});
+        if (!checked.ok) {
+          // Malformed call: tell the model, never the user. A gate must only ever show valid arguments.
+          state.trace.emit({ type: 'tool_result', server: discovered?.server, tool: tu.name, result_status: 'INVALID_ARGS', result_summary: checked.message.slice(0, 200), detail: { proposed: tu.input } });
+          results.push({ tool_use_id: tu.id, content: JSON.stringify({ status: 'INVALID_ARGS', message: checked.message, hint: 'fix the arguments to match the tool schema exactly and call again' }) });
+          continue;
+        }
+        const args = checked.args;
+        const already = discovered?.gated ? state.actions.find((a) => a.tool === tu.name) : undefined;
+        if (already) {
+          // The confirmed action has run once this turn. Never gate (or execute) it a second time;
+          // hand the model the earlier result so it finishes the answer.
+          results.push({ tool_use_id: tu.id, content: JSON.stringify({ status: 'ALREADY_EXECUTED', ref_id: already.ref_id, result_summary: already.result_summary, note: 'this action already ran after the user confirmed it; do not call it again, finish the answer' }) });
+          state.trace.emit({ type: 'tool_result', server: 'hr', tool: tu.name, result_status: 'ALREADY_EXECUTED', result_summary: `repeat call suppressed; ${already.result_summary}` });
+          continue;
+        }
         if (discovered?.gated) {
           const args_hash = proposedArgsHash(args, state.acting_person_id);
           const pending: PendingGate = { tool_use_id: tu.id, tool: tu.name, args, args_hash, summary: this.describeAction(tu.name, args, state.acting_person_id) };

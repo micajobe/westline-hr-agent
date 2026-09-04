@@ -16,7 +16,7 @@ export function loadEvalSet(path = join(EVAL_DIR, 'eval_set.json')): EvalSet {
     ids.add(it.id);
     if (!CATEGORIES.has(it.category)) throw new Error(`${it.id}: bad category ${it.category}`);
     if (!BEHAVIOURS.has(it.expected_behaviour)) throw new Error(`${it.id}: bad behaviour ${it.expected_behaviour}`);
-    for (const t of it.expected_tools) if (!/^(policy|hr)__[a-z_]+$/.test(t)) throw new Error(`${it.id}: bad tool ${t}`);
+    for (const t of it.expected_tools) if (!/^(policy|hr)__[a-z_]+(\|(policy|hr)__[a-z_]+)*$/.test(t)) throw new Error(`${it.id}: bad tool ${t}`);
     for (const c of it.gold_citations) if (!/^§\d+(\.\d+)*$/.test(c.section_path)) throw new Error(`${it.id}: bad section ${c.section_path}`);
   }
   for (const id of set.calibration_items) if (!ids.has(id)) throw new Error(`calibration item ${id} not in set`);

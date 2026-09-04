@@ -445,3 +445,51 @@ the agent's behaviour; where Claude Code's first answer was wrong and what caugh
 `better-sqlite3` build, the turndown heading escape, the `wildcard: false` static routes, the two
 Tailwind ambiguities, the shell cwd that skipped two writes; what you would lock in the PRD next time
 and what you would leave open.)*
+## First real model run — prompt and robustness tuning (2026-09-04, evening)
+
+**Asked for:** with Micah's Anthropic key in `.env`, run `scripts/demo.sh` against Sonnet 5 for the
+first time and fix what breaks. Micah also added a Voyage key.
+
+**What broke, in order, and how each was caught.**
+
+1. **`400: temperature is deprecated for this model`.** Every call failed instantly. The model wrapper
+   defaulted `temperature: 0` because PRD §12 says "temperature 0" throughout. Claude 5 models refuse
+   the parameter. Removed from the agent wrapper and the judge; the eval's determinism now rests on
+   tool-forced structured output and fixed prompts, and the results note says so. Caught by the first
+   `/chat` envelope, which carried the error as a structured `model_error` trace event — the graceful
+   path worked, which is the one good thing about the failure.
+2. **`scripts/demo.sh` scored nothing.** It piped the envelope into `python3 -` *and* fed the script by
+   heredoc, so stdin was the script and the JSON was empty. Rewritten to read from the file it already
+   saved. Caught because the Python traceback said "Expecting value at char 0".
+3. **Task 2 drafted twice.** After the confirmed draft executed, Sonnet called `draft_hr_email` again
+   and hit a second gate. Fix: a gated tool that already produced an action this turn gets an
+   `ALREADY_EXECUTED` result instead of a gate, and the system prompt says so. Caught by the trace:
+   `gate → gate_resolved → call → result → gate`.
+4. **Task 2 cited nothing.** The model answered the notice rule from `check_pto_balance`'s
+   `notice_required` string without ever retrieving PTO §3.2, so VERIFY had nothing to keep. Added the
+   "retrieve before you state" rule; it now calls `get_policy_section(PTO, §3.2)` and cites it.
+5. **Task 1 produced good prose and zero facts — twice, for two different reasons.** First an 8,000-
+   character `answer_markdown` with `policy_facts` empty (fixed with a `maxLength` on the summary, a
+   mandatory-facts instruction, and a one-call repair pass). Then, with 13 facts emitted, the model
+   returned `applicability` as a JSON *string*; the strict whole-answer parse failed and the fallback
+   kept only the prose. Caught only after adding a per-turn raw dump (`DEBUG_SYNTH`), because the trace
+   reported `facts: 13` at synthesis and `facts_in: 0` at verify — the discrepancy was the clue. Fix:
+   coerce JSON-string fields and validate list items one by one, with a unit test that feeds a
+   string `applicability`. The first version of the dump overwrote itself per synthesis, so for one
+   round I was reading Task 2's output while debugging Task 1. One file per turn now.
+6. **Task 2 confirmed, then failed.** Sonnet once sent `key_points` as a string. The user confirmed the
+   card, the tool rejected the arguments, and the model retried into a second gate — the worst order of
+   events for a confirmation UI. Fix: validate every tool call against the discovered JSON schema in
+   the MCP client and bounce `INVALID_ARGS` to the model *before* gating. A gate now only ever shows
+   arguments the tool will accept.
+
+**Result.** Both PRD §14 tasks pass `scripts/demo.sh` against Sonnet 5 with stub embeddings: Task 1
+in the expected tool order with 8 verified facts across EXPENSE §7, CREATOR, EDITORIAL §4, SAFETY §5
+and HANDBOOK §2 and the EXPENSE withholding explained; Task 2 with gate → confirm → one draft and facts
+citing PTO §3.2. Expected-tool checks accept `a|b` alternatives (search *or* section fetch) in
+`demo.sh` and the eval set, because both are legitimate ways to retrieve a rule.
+
+**Still open.** Voyage returns HTTP 500 for every request, including with a deliberately invalid key,
+which points at their API rather than the key; the index is still stub-embedded. The eval has not run.
+
+---

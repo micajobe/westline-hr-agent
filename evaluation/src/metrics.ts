@@ -23,11 +23,12 @@ export function calledTools(events: TraceEvent[]): string[] {
 /** `expected_tools ⊆ called`; order match when the item requires it (subsequence, not adjacency). */
 export function toolSelection(item: EvalItem, called: string[]): { subset: boolean; order: boolean | null } {
   const set = new Set(called);
-  const subset = item.expected_tools.every((t) => set.has(t));
+  const alts = item.expected_tools.map((t) => t.split('|'));
+  const subset = alts.every((a) => a.some((t) => set.has(t)));
   if (!item.order_required) return { subset, order: null };
   let i = 0;
-  for (const c of called) if (c === item.expected_tools[i]) i++;
-  return { subset, order: i === item.expected_tools.length };
+  for (const c of called) if (i < alts.length && alts[i]!.includes(c)) i++;
+  return { subset, order: i === alts.length };
 }
 
 /** Plan-vs-actual agreement: Jaccard between the plan step's expected_tools and the tools called. */

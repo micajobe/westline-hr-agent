@@ -14,33 +14,55 @@ Everything not listed here has been built. Update/remove entries as they are res
   open M4 acceptance item.
 - Action: put it in `.env` locally, and add it as a GitHub Actions secret + a Render env var on `westline-app`.
 
-### 2. `VOYAGE_API_KEY` — required for production-quality embeddings
+### 2. `VOYAGE_API_KEY` — key works, but the account has no payment method
 
-- Needed for: `npm run index:build` with `EMBEDDING_PROVIDER=voyage`.
-- Without it: set `EMBEDDING_PROVIDER=local` to build the index with the bundled
-  transformers.js ONNX model (slower, lower recall — this is ablation 5's "local" arm),
-  or `EMBEDDING_PROVIDER=stub` for deterministic hash embeddings used by the test suite.
-- Action: free-tier key from <https://voyageai.com>, then `.env` + GitHub secret + both Render services.
+- The key is valid and embeds successfully, but Voyage caps unbilled accounts at **3 RPM / 10K TPM**
+  ("You have not yet added your payment method in the billing page"). The corpus is 414 chunks in
+  7 batches of 64; `VoyageEmbeddingProvider` retries 429s but its backoff tops out around 15s
+  cumulative (`maxRetries: 4`, `retryBaseMs: 500`), far short of the ~20s spacing 3 RPM demands.
+  `westline-mcp` got to `embedded 64/414` and exited 1; the service crash-looped and the deploy
+  was marked `update_failed` (2026-09-04 19:59Z).
+- `westline-app` will fail the same way — its build command runs `index:build` with the same key.
+- Action, cheapest first:
+  1. Add a payment method at <https://dash.voyageai.com> billing. Unlocks standard rate limits;
+     the free token grant still applies, so this is about limits, not spend. Nothing in the repo changes.
+  2. Or set `EMBEDDING_PROVIDER=local` on both services — the bundled transformers.js ONNX model,
+     no API calls. This is ablation 5's "local" arm: lower recall, and it competes for the free
+     plan's 512 MB.
+  3. Or raise `retryBaseMs`/`maxRetries` to survive 3 RPM. Rejected as the default: ~9 minutes of
+     wall-clock indexing on every redeploy, inside `westline-mcp`'s *start* command, so the health
+     check would fail while it runs.
 
-### 3. Render services not yet created
+### 3. Render services — created and configured; first green deploy still pending
 
-- Needed for: `deployed.md` URLs, `MCP_BASE_URL`, deploy hooks, the live demo, cold-start measurement.
-- Everything on the repo side is done: `render.yaml` (Blueprint for both services, auto-deploy off,
-  Node 22), `.github/workflows/deploy.yml` (fires hooks after green CI, polls `/health`), `deployed.md`
-  (env table, cold-start notes, fallback). `MCP_MODE=http` has been verified locally with the MCP host
-  and the app as separate processes.
-- Steps (≈10 minutes):
-  1. Render → New → **Blueprint** → this repo → apply `render.yaml`. Both services are created with the
-     right build/start commands; confirm plan Free and Auto-Deploy **Off** on each.
-  2. Generate one secret: `openssl rand -hex 32`. Set it as `MCP_SHARED_SECRET` on **both** services.
-  3. On `westline-mcp`: set `VOYAGE_API_KEY`. Deploy once manually; copy its public URL.
-  4. On `westline-app`: set `ANTHROPIC_API_KEY`, `VOYAGE_API_KEY`, and `MCP_BASE_URL` = the
-     `westline-mcp` URL (no trailing slash). Deploy once manually.
-  5. Copy both **Deploy Hook** URLs (service → Settings → Deploy Hook) and run:
-     `gh secret set RENDER_DEPLOY_HOOK_MCP`, `gh secret set RENDER_DEPLOY_HOOK_APP`,
-     `gh secret set DEPLOYED_APP_URL` (the app URL). Also `gh secret set ANTHROPIC_API_KEY`,
-     `VOYAGE_API_KEY`, `AGENT_MODEL`, `JUDGE_MODEL` for `eval.yml`.
-  6. Fill the `TBD` URLs in `deployed.md` and the README; run `scripts/demo.sh <app-url>`.
+- Both services now exist in workspace `tea-d7v0op9j2pic73cb80eg`, created via the Render REST API
+  (2026-09-04). No Blueprint is connected — the API has no create/apply-Blueprint endpoint, only
+  validate/retrieve/update/disconnect — so `render.yaml` is currently documentation, not the
+  source of truth for these two services. Adopt it from the dashboard if that link is wanted.
+
+  | Service | ID | URL |
+  |---|---|---|
+  | `westline-app` | `srv-dadi2etg1s2s73bldagg` | <https://westline-hr-agent.onrender.com> |
+  | `westline-mcp` | `srv-dadi5eqd0e5s73d375tg` | <https://westline-mcp.onrender.com> |
+
+  **Note the app's hostname.** It was created by hand as `westline-hr-agent` and renamed to
+  `westline-app`; Render keeps the original `onrender.com` subdomain, so the service name matches
+  `render.yaml` but the hostname does not. `deployed.md` and the README must use the URL above.
+
+- Done: build/start commands per `render.yaml`, `healthCheckPath: /health`, plan free, region
+  oregon, Node 22, auto-deploy **off** on both, one fresh 64-hex `MCP_SHARED_SECRET` shared by both,
+  all 12 app env vars incl. `MCP_MODE=http` and `MCP_BASE_URL`, all 5 MCP env vars.
+- Verified: the Node 22 build succeeds on Render (`Build successful`, web bundle + all workspaces).
+- Remaining:
+  1. Resolve item 2 — both deploys fail on Voyage rate limits, not on configuration.
+  2. Redeploy both and confirm `/health` is `ok`.
+  3. Copy both **Deploy Hook** URLs (dashboard → service → Settings → Deploy Hook; the API does not
+     expose them) and `gh secret set RENDER_DEPLOY_HOOK_MCP`, `RENDER_DEPLOY_HOOK_APP`,
+     `DEPLOYED_APP_URL`. Alternative worth considering: point `deploy.yml` at the API's
+     `POST /v1/services/{id}/deploys` with a `RENDER_API_KEY` secret instead — one secret rather
+     than two, and the workflow could poll real deploy status instead of curling `/health`.
+  4. Also `gh secret set ANTHROPIC_API_KEY`, `VOYAGE_API_KEY`, `AGENT_MODEL`, `JUDGE_MODEL` for `eval.yml`.
+  5. Fill the URLs in `deployed.md` and the README; run `scripts/demo.sh <app-url>`.
 
 ### 4. GitHub repo + grader access
 

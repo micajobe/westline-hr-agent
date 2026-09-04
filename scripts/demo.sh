@@ -34,9 +34,10 @@ for i in 0 1; do
   fi
 
   echo "$TASK" > /tmp/westline-demo-task.json
-  echo "$ENV" | python3 - <<'PY' || FAIL=1
+  echo "$ENV" > /tmp/westline-demo-env.json
+  python3 - <<'PY' || FAIL=1
 import json,sys
-e=json.load(sys.stdin); t=json.load(open("/tmp/westline-demo-task.json"))
+e=json.load(open("/tmp/westline-demo-env.json")); t=json.load(open("/tmp/westline-demo-task.json"))
 called=[x["tool"] for x in e["trace"] if x["type"]=="tool_call"]
 gates=[x for x in e["trace"] if x["type"]=="gate"]
 print("tools called:", " -> ".join(called))
@@ -44,7 +45,7 @@ print("gate events:", len(gates), "| actions_taken:", [a["tool"] for a in e["ans
 print("facts:", len(e["answer"]["policy_facts"]), "| citations:", sorted({f"{c['doc_id']} {c['section_path']}" for f in e["answer"]["policy_facts"] for c in f["citations"]}))
 print("escalation:", e["answer"]["escalation"]["target"], "| withheld:", e["answer"]["withheld_by_audience"])
 print("answer:", e["answer"]["answer_markdown"][:400].replace("\n"," "))
-missing=[x for x in t["expected_tools"] if x not in called]
+missing=[x for x in t["expected_tools"] if not any(alt in called for alt in x.split("|"))]
 if missing: print("MISSING expected tools:", missing); sys.exit(1)
 errs=[x for x in e["trace"] if x["type"]=="error"]
 if errs: print("ERROR events:", [x["result_summary"] for x in errs]); sys.exit(1)
