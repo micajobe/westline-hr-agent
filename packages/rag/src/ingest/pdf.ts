@@ -19,7 +19,6 @@ export async function extractPdfText(data: Uint8Array | Buffer): Promise<Extract
   const loadingTask = getDocument({
     data: data instanceof Uint8Array ? data : new Uint8Array(data),
     useSystemFonts: true,
-    isEvalSupported: false,
   });
   const doc = await loadingTask.promise;
   const pages = doc.numPages;
