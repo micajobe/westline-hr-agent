@@ -51,7 +51,16 @@ function getTurndown(): TurndownService {
 /** HTML → markdown, tables preserved as GFM pipe tables. */
 export function htmlToMarkdown(html: string): string {
   const body = /<body[^>]*>([\s\S]*?)<\/body>/i.exec(html)?.[1] ?? html;
-  return tidyMarkdown(getTurndown().turndown(body));
+  return tidyMarkdown(unescapeHeadingNumbers(getTurndown().turndown(body)));
+}
+
+/**
+ * Turndown escapes `3. Notice periods` as `3\. Notice periods` so it cannot be mistaken for an
+ * ordered list. Inside a heading that escape defeats the numbered-heading pattern the section
+ * parser depends on, and every `<h2>` body would be dropped from the index. Undo it there only.
+ */
+export function unescapeHeadingNumbers(md: string): string {
+  return md.replace(/^(#{1,6}\s+\d+(?:\.\d+)*)\\\./gm, '$1.');
 }
 
 // ---------- PDF ----------
@@ -90,7 +99,11 @@ export async function pdfToMarkdown(data: Buffer, file: string): Promise<PdfMark
     if (h) {
       sawFirstHeading = true;
       const depth = h[1]!.split('.').length;
-      outLines.push('', `${depth === 1 ? '##' : '###'} ${h[1]}${depth === 1 ? '.' : ''} ${h[2]!.trim()}`, '');
+      outLines.push(
+        '',
+        `${depth === 1 ? '##' : '###'} ${h[1]}${depth === 1 ? '.' : ''} ${h[2]!.trim()}`,
+        '',
+      );
       continue;
     }
     // The document title precedes the first numbered heading; render it as the H1.
@@ -112,7 +125,13 @@ function rejoinWrappedLines(md: string): string {
   return md
     .split(/\n{2,}/)
     .map((block) =>
-      block.startsWith('#') ? block : block.split('\n').map((l) => l.trim()).filter(Boolean).join(' '),
+      block.startsWith('#')
+        ? block
+        : block
+            .split('\n')
+            .map((l) => l.trim())
+            .filter(Boolean)
+            .join(' '),
     )
     .join('\n\n');
 }
@@ -120,9 +139,11 @@ function rejoinWrappedLines(md: string): string {
 // ---------- shared ----------
 
 export function tidyMarkdown(md: string): string {
-  return md
-    .replace(/\r\n/g, '\n')
-    .replace(/[ \t]+\n/g, '\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim() + '\n';
+  return (
+    md
+      .replace(/\r\n/g, '\n')
+      .replace(/[ \t]+\n/g, '\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim() + '\n'
+  );
 }

@@ -29,6 +29,8 @@ export interface Section {
   section_path: string;
   section_title: string;
   level: number;
+  /** Offset of the heading line itself; the body runs from `char_start`. */
+  heading_offset: number;
   text: string;
   char_start: number;
   char_end: number;

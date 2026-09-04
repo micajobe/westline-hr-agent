@@ -87,3 +87,38 @@ override. This exercises the same mechanism three more times and makes `HANDBOOK
 rows true rather than aspirational. Jordan Reyes' ledger is pinned — tier 2, 18 days, 4 carried,
 5 used, balance 11 — because the demo and the eval set depend on that number, and a test asserts it
 rather than trusting the generator.
+
+---
+
+## M2 (in progress) — Chunker and ingest tests (2026-09-04)
+
+**Asked for:** pick the M2 work back up from the `wip(m2)` commit — the heading-aware chunker
+from PRD §4.3 steps 4–5 and 8, and `tests/ingest.test.ts` snapshotting chunk hashes — in a short
+mobile session against the cloud sandbox.
+
+**Produced:** `packages/rag/src/ingest/chunk.ts` (one chunk per leaf section, windowed split with
+60-token overlap only when a section exceeds ~450 tokens, PRD chunk ids, effective audience, exact
+`char_start`/`char_end`), a `corpusHash` for the rebuild gate, the package entry point, and 16 tests
+over loading, front-matter validation, chunking, audience overrides and determinism. The corpus
+yields 414 chunks; the `{chunk_id → content_hash}` map is a committed snapshot.
+
+**What went wrong — two bugs in the committed WIP, both caught by running it against the real
+corpus rather than a fixture.** First, the PDF loader never worked: it checked
+`data instanceof Uint8Array` before wrapping, but a Node `Buffer` *is* a `Uint8Array` subclass, so the
+Buffer went straight to pdfjs, which rejects it by name. Fixed by always passing a plain
+`Uint8Array` view. Second, and worse because it was silent: turndown escapes `3. Notice periods`
+as `3\. Notice periods` inside headings so it cannot be read as an ordered list. That defeats the
+`## N.` heading regex, so every `<h2>` body in the two HTML documents — including the PTO §3 notice
+table, the single most citable passage in the corpus — was dropped from the chunk set with no error.
+The fix is a one-line unescape applied only to heading lines. The test that guards it counts the
+numbered headings in each document's *authored source* (raw HTML, raw markdown, or the PDF's
+markdown source) with an independent regex and asserts the parser recovered exactly that many.
+
+**Smaller correction, own fault:** the first draft of the "never starts mid-word" assertion
+rejected any chunk beginning with a lowercase word, which is a legitimate sentence start after a
+paragraph-boundary split. Replaced with the actual invariant: the character before `char_start` in
+the document is whitespace.
+
+**Judgment call:** parent-section preambles longer than 80 characters become their own chunk
+(`PTO#§3#0`) rather than being folded into the first child. The alternative would either lose the
+notice table or attach it to §3.1, where a citation to "§3.1" for the 14-day rule would be wrong.

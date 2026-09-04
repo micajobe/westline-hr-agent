@@ -16,10 +16,10 @@ export interface ExtractedPdf {
  * section would collapse into a single run-on block and snippets would be unreadable.
  */
 export async function extractPdfText(data: Uint8Array | Buffer): Promise<ExtractedPdf> {
-  const loadingTask = getDocument({
-    data: data instanceof Uint8Array ? data : new Uint8Array(data),
-    useSystemFonts: true,
-  });
+  // pdfjs rejects a Node Buffer even though it is a Uint8Array subclass, so always hand it a
+  // plain Uint8Array view over the same bytes.
+  const bytes = new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
+  const loadingTask = getDocument({ data: bytes, useSystemFonts: true });
   const doc = await loadingTask.promise;
   const pages = doc.numPages;
   const out: string[] = [];

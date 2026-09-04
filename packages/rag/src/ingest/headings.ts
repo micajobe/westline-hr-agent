@@ -10,7 +10,8 @@ const HEADING_RE = /^(#{2,3})\s+(\d+(?:\.\d+)*)\.?\s+(.+?)\s*$/;
  */
 export function parseSections(markdown: string): Section[] {
   const lines = markdown.split('\n');
-  const headings: { idx: number; level: number; number: string; title: string; offset: number }[] = [];
+  const headings: { idx: number; level: number; number: string; title: string; offset: number }[] =
+    [];
 
   let offset = 0;
   for (let i = 0; i < lines.length; i++) {
@@ -30,15 +31,20 @@ export function parseSections(markdown: string): Section[] {
       }
     }
     const bodyLines = lines.slice(cur.idx + 1, end);
-    const text = bodyLines.join('\n').trim();
-    const char_start = cur.offset + lines[cur.idx]!.length + 1;
+    const rawBody = bodyLines.join('\n');
+    const leading = rawBody.length - rawBody.trimStart().length;
+    const text = rawBody.trim();
+    // Offsets are exact: `markdown.slice(char_start, char_end) === text`. The chunker relies on
+    // this so that every chunk can be located in its source document.
+    const char_start = cur.offset + lines[cur.idx]!.length + 1 + leading;
     sections.push({
       section_path: `§${cur.number}`,
       section_title: cur.title,
       level: cur.level,
+      heading_offset: cur.offset,
       text,
       char_start,
-      char_end: char_start + bodyLines.join('\n').length,
+      char_end: char_start + text.length,
     });
   }
   return sections;
@@ -67,13 +73,24 @@ export function leafUnits(sections: Section[], minPreambleChars = 80): ChunkUnit
     const hasChild = Boolean(firstChild) && sections[i + 1]?.level === s.level + 1;
 
     if (!hasChild) {
-      if (s.text) units.push({ section_path: s.section_path, section_title: s.section_title, text: s.text, char_start: s.char_start });
+      if (s.text)
+        units.push({
+          section_path: s.section_path,
+          section_title: s.section_title,
+          text: s.text,
+          char_start: s.char_start,
+        });
       continue;
     }
-    const preambleEnd = sections[i + 1]!.char_start - `### ${sections[i + 1]!.section_path.slice(1)} ${sections[i + 1]!.section_title}\n`.length;
-    const preamble = s.text.slice(0, Math.max(0, preambleEnd - s.char_start)).trim();
+    const preambleEnd = sections[i + 1]!.heading_offset;
+    const preamble = s.text.slice(0, Math.max(0, preambleEnd - s.char_start)).trimEnd();
     if (preamble.length >= minPreambleChars) {
-      units.push({ section_path: s.section_path, section_title: s.section_title, text: preamble, char_start: s.char_start });
+      units.push({
+        section_path: s.section_path,
+        section_title: s.section_title,
+        text: preamble,
+        char_start: s.char_start,
+      });
     }
   }
   return units;
