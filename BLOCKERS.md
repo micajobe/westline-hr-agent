@@ -6,6 +6,7 @@ Everything not listed here has been built. Update/remove entries as they are res
 ## Open
 
 ### 1. `ANTHROPIC_API_KEY` — required for any model call
+
 - Needed for: the agent loop (`/chat`), the eval harness, the LLM judge.
 - Without it: everything builds and all 169 tests pass (the agent tests use a scripted model through
   the real MCP transport). `/chat` returns 503 `MODEL_UNAVAILABLE`, and `scripts/demo.sh` — written
@@ -14,13 +15,15 @@ Everything not listed here has been built. Update/remove entries as they are res
 - Action: put it in `.env` locally, and add it as a GitHub Actions secret + a Render env var on `westline-app`.
 
 ### 2. `VOYAGE_API_KEY` — required for production-quality embeddings
+
 - Needed for: `npm run index:build` with `EMBEDDING_PROVIDER=voyage`.
 - Without it: set `EMBEDDING_PROVIDER=local` to build the index with the bundled
   transformers.js ONNX model (slower, lower recall — this is ablation 5's "local" arm),
   or `EMBEDDING_PROVIDER=stub` for deterministic hash embeddings used by the test suite.
-- Action: free-tier key from https://voyageai.com, then `.env` + GitHub secret + both Render services.
+- Action: free-tier key from <https://voyageai.com>, then `.env` + GitHub secret + both Render services.
 
 ### 3. Render services not yet created
+
 - Needed for: `deployed.md` URLs, `MCP_BASE_URL`, deploy hooks, the live demo, cold-start measurement.
 - Everything on the repo side is done: `render.yaml` (Blueprint for both services, auto-deploy off,
   Node 22), `.github/workflows/deploy.yml` (fires hooks after green CI, polls `/health`), `deployed.md`
@@ -40,10 +43,12 @@ Everything not listed here has been built. Update/remove entries as they are res
   6. Fill the `TBD` URLs in `deployed.md` and the README; run `scripts/demo.sh <app-url>`.
 
 ### 4. GitHub repo + grader access
+
 - Action: create `westline-hr-agent`, push, add `quantic-grader` as collaborator,
   set Actions workflow permissions to read+write (needed by `eval.yml` to commit results).
 
 ### 5. Design system — decided, no action needed
+
 - Micah (2026-09-04): follow the Nimble editorial design system from `~/strategy-navigator`
   (ADR 0012). Fraunces / Inter Tight / JetBrains Mono via Google Fonts; B&W only. The earlier PP
   Editorial Old / PP Neue Montreal choice is superseded; the converted `.woff2` files in

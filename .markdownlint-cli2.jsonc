@@ -1,0 +1,7 @@
+{
+  // Documentation lint (PRD §15 M8 acceptance). Line length and inline-HTML are off: the docs
+  // use long tables and Mermaid, and the corpus is prose authored for retrieval, not for wrapping.
+  "config": { "MD013": false, "MD033": false, "MD024": { "siblings_only": true }, "MD041": false, "MD036": false, "MD040": false },
+  "globs": ["*.md", "docs/**/*.md", "evaluation/**/*.md", "!node_modules", "!evaluation/results/**", "!westline-prd.md"],
+  "ignores": ["node_modules/**", "**/dist/**", "corpus/**", "evaluation/results/**"]
+}

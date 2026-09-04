@@ -1,52 +1,107 @@
 # Westline HR Agent
 
-An agentic HR-policy assistant for **Westline Media Inc.**, a fictional Western Canadian media
-company. Audience-scoped RAG over a 14-document policy corpus, driven by a plan-then-act agent
-that reaches every capability through two MCP servers, enforces authorization at the tool
-boundary, gates mutating actions behind explicit confirmation, and returns cited, structured
-answers with a visible operational trace.
+An agentic HR-policy assistant for **Westline Media Inc.**, a fictional Western Canadian news and
+entertainment company with three workforce classes (staff, contractors, creator partners) whose
+rulebooks differ. The agent resolves *who is asking and which policies bind them* before it answers,
+retrieves from a 14-document corpus that is audience-filtered **before ranking**, reaches every
+capability through two MCP servers over Streamable HTTP, enforces authorization inside those
+servers, pauses every mutating action on a confirmation card backed by a single-use token bound to
+the exact arguments, verifies that every cited fact was actually retrieved this turn, and shows the
+whole thing in a trace rail that reads like a flight recorder.
 
-Quantic MSAIE · AI Engineering Techniques and Architectures · individual submission.
+Quantic MSAIE · AI Engineering Techniques and Architectures · individual submission · Micah Slavens.
 
-> **Status: build in progress.** See `STATUS.md` (written at M8) for what is done and verified,
-> and `BLOCKERS.md` for what still needs Micah's accounts.
+**Deployed:** `TBD` — see [`deployed.md`](deployed.md) (Render services not yet created; everything
+on the repo side is ready, see [`BLOCKERS.md`](BLOCKERS.md)).
 
 ## Documents
 
 | File | What's in it |
 |---|---|
-| `westline-prd.md` | Source of truth: scope, decisions, milestones, rubric traceability |
-| `design-and-evaluation.md` | Architecture diagram, design justifications, evaluation results |
-| `deployed.md` | Deployed URLs, env vars, cold-start behaviour |
-| `ai-tooling.md` | How Claude Code was used, and what it got wrong |
-| `CLAUDE.md` | Repo conventions |
-| `docs/adr/` | Architecture decision records |
+| [`westline-prd.md`](westline-prd.md) | Source of truth: scope, locked decisions, milestones, rubric traceability (§22) |
+| [`design-and-evaluation.md`](design-and-evaluation.md) | Architecture diagram, every design justification, tool and trace schemas, safety design, demo tasks, evaluation results |
+| [`deployed.md`](deployed.md) | Render topology, URLs, env var table, cold-start behaviour, single-service fallback |
+| [`ai-tooling.md`](ai-tooling.md) | How Claude Code was used, milestone by milestone: what was asked, what it got wrong, how that was caught |
+| [`docs/adr/`](docs/adr/) | Architecture decision records (0003 SQLite binding … 0012 design system) |
+| [`BLOCKERS.md`](BLOCKERS.md) / [`STATUS.md`](STATUS.md) | What needs Micah's accounts; what is done and verified |
+| [`CLAUDE.md`](CLAUDE.md) | Conventions the code follows |
+
+## Architecture in one paragraph
+
+`apps/web` (React, static) talks to `apps/server` (Fastify). The server runs a hand-rolled
+**plan → act → synthesize → verify** loop on Anthropic tool use. It never imports a tool: every call
+goes through `apps/server/src/mcp/client.ts`, which discovers tools from two MCP servers at startup,
+namespaces them `policy__*` / `hr__*`, strips the server-owned `acting_person_id` and
+`confirmation_token` from the model-facing schemas and injects them itself. `mcp/policy-mcp` owns the
+RAG index (`sqlite-vec` + BM25, reciprocal rank fusion, audience filter inside the KNN query) and the
+HANDBOOK §2 applicability matrix; `mcp/hr-data-mcp` owns the mock people/PTO/benefits data, the scope
+rules (`self` / `manager` / `hr_partner`) and the confirmation gate. Both are served by `mcp/host` as
+stateless Streamable HTTP behind a shared-secret header — as a separate Render service in production
+(`MCP_MODE=http`), or on a loopback port inside the app process locally (`MCP_MODE=inprocess`); the
+client code path is identical.
 
 ## Quick start
 
 ```bash
-nvm use              # Node 22+ (node:sqlite is required)
+nvm use                 # Node 22+ (node:sqlite is required — ADR 0003)
 npm ci
-cp .env.example .env # add ANTHROPIC_API_KEY and VOYAGE_API_KEY
+cp .env.example .env    # add ANTHROPIC_API_KEY and VOYAGE_API_KEY
 npm run build
-npm run index:build  # build the RAG index from corpus/
-npm run start:app    # http://localhost:3000
+npm run index:build     # embeds the corpus into data/index.sqlite (idempotent; hash-gated)
+npm run start:app       # http://localhost:3000
 ```
 
-`MCP_MODE=inprocess` (the local default) starts both MCP servers on loopback ports and talks to
-them over Streamable HTTP — the same client code path used against the deployed MCP service.
+Without keys, everything except the chat still works: `EMBEDDING_PROVIDER=stub ALLOW_STUB_INDEX=1`
+gives a deterministic test index, `/chat` returns a clear 503, and
+`npx tsx scripts/dev-scripted-server.ts` boots the app on port 3001 with a scripted model so the
+gate → confirm → verify flow can be exercised in the UI.
+
+## Reproducing the two demo tasks
+
+```bash
+scripts/demo.sh                       # against http://localhost:3000
+scripts/demo.sh https://<deployed-app> # against Render
+```
+
+The script reads `/demo/tasks`, posts each task to `/chat`, confirms the proposed action through
+`/confirm`, checks that the expected tool sequence appears in the trace, and shows the resulting
+ticket and draft on `/desk`. The same two tasks are the "Run demo task 01 / 02" buttons in the UI.
+
+## Evaluation
+
+```bash
+npm run eval -- --target local --runs 3 --ablations   # boots the app per configuration
+npm run eval -- --target deployed --runs 3            # base configuration against DEPLOYED_APP_URL
+node evaluation/dist/cold_start.js --url <deployed>   # ≥16 min idle, first-request latency ×3
+```
+
+28 items in six categories, an Opus judge at temperature 0 for groundedness and answer match,
+deterministic citation precision/recall, tool selection, workflow completion, behaviour accuracy,
+action safety, warm/cold latency, and four ablations. Results land in `evaluation/results/latest.json`
+and render at `/eval`. Human calibration scores go in `evaluation/human_scores.json`.
+
+## Tests and CI
+
+`npm test` runs 179 tests with no API keys: corpus and mock-data consistency, deterministic chunking
+(hash snapshot), audience-filtered retrieval, the nine MCP tools over the real HTTP transport, the
+gate (refuse / execute once / refuse replay / forged / mismatched), the app booting in `inprocess`
+mode with `/health` reporting both servers connected, the full demo-task-2 gate round trip with a
+scripted model, and the eval metrics. `ci.yml` runs typecheck, lint, build and tests on every push;
+`deploy.yml` fires the Render hooks only after a green run on `main`; `eval.yml` is manual.
 
 ## Layout
 
 ```
-corpus/            14 policy documents (markdown, HTML, PDF) with audience front-matter
-mock_data/         synthetic people, PTO ledger, benefits, creator records, markets
-packages/shared/   domain vocabulary, trace schema, answer schema, args hashing
-packages/rag/      ingestion, chunking, embeddings, hybrid retrieval, sqlite-vec store
-mcp/policy-mcp/    4 tools over the policy corpus (owns the index)
-mcp/hr-data-mcp/   5 tools over mock HR data (owns authorization and the confirmation gate)
-mcp/host/          HTTP host exposing both servers at /mcp/policy and /mcp/hr
-apps/server/       Fastify API, MCP client, plan-then-act orchestrator
-apps/web/          React chat UI, trace rail, confirmation card, /desk, /eval
-evaluation/        28-item eval set, metrics, ablations, results
+corpus/            14 policy documents (10 markdown, 2 HTML, 2 PDF) with audience front matter
+mock_data/         29 people, PTO ledger, benefits, creator records, markets, PTO config, desk seed
+packages/shared/   domain vocabulary, trace schema, answer schema, args hash, gate tokens, people directory
+packages/rag/      loaders and normalisers, heading-aware chunker, embeddings, sqlite-vec + BM25 store, retriever
+mcp/policy-mcp/    search_policy_documents · get_policy_section · get_policy_applicability · check_policy_compliance
+mcp/hr-data-mcp/   lookup_person_profile · check_pto_balance · lookup_benefits_status · create_mock_hr_ticket · draft_hr_email
+mcp/host/          Fastify host: /mcp/policy, /mcp/hr, /health, /desk; MCP_SHARED_SECRET check
+apps/server/       MCP client, plan-then-act orchestrator, gate suspend/resume, verify, API, static serving
+apps/web/          chat, trace rail, confirmation and citation cards, /desk, /eval
+evaluation/        eval set, metrics, judge, runner, ablations, results
+scripts/           demo.sh, build-pdfs.mjs, dev-scripted-server.ts
+docs/adr/          decision records
 ```

@@ -239,6 +239,7 @@ buys a server the client can hit cold at any time. Verified with raw `curl` JSON
 real `start:mcp` process: `initialize`, `tools/list`, 401 without the header.
 
 ---
+
 ## M4 — Agent and API (2026-09-04)
 
 **Asked for:** PRD §7 and §8 — the MCP client with discovery and namespacing, the plan-then-act
@@ -284,6 +285,7 @@ the scripted model through the same routes, but PRD §15 M4's "with a real key" 
 on `ANTHROPIC_API_KEY` (BLOCKERS.md item 1). Prompt quality against Sonnet is the M4 risk still open.
 
 ---
+
 ## M5 — Web UI (2026-09-04)
 
 **Asked for:** every screen in PRD §9 with the fixed §9.2 tokens — chat with persona switcher and
@@ -326,6 +328,7 @@ script plants. The acceptance item that remains open is the same as M4's: runnin
 buttons against Sonnet needs `ANTHROPIC_API_KEY`.
 
 ---
+
 ## M6 — Deploy (2026-09-04) — repo side complete; Render blocked
 
 **Asked for:** Render configuration honoured, `deploy.yml` with hooks and health polling,
@@ -354,6 +357,7 @@ passed because it never ran" that is worth writing down.
 `scripts/demo.sh <app-url>` against Render (BLOCKERS.md items 1–3).
 
 ---
+
 ## M5 addendum — design system pivot (2026-09-04)
 
 After seeing the PP Editorial Old / PP Neue Montreal build, Micah's first note was that the type
@@ -407,3 +411,37 @@ it second in the cut order and the retriever reports `rerank: false` honestly ra
 `VOYAGE_API_KEY`; the cold-start probe needs the deployed URL; the ten human scores are Micah's.
 
 ---
+
+## M8 — Documentation (2026-09-04)
+
+**Asked for:** README, `design-and-evaluation.md` with the Mermaid diagram and results,
+`deployed.md`, the ADR set from PRD §13, `ai-tooling.md` through M8, `STATUS.md`; a fresh clone
+following the README reaches a working local app; markdown lint passes.
+
+**Produced:** the README (architecture in a paragraph, quick start with and without keys, demo
+reproduction, eval commands, layout); `design-and-evaluation.md` (diagram of both deployment modes,
+one justification per rubric item with code pointers, the permission/audience matrix, all nine tool
+schemas, the trace schema, seven safety properties, both demo tasks with expected sequences, the eval
+set, metrics and ablations, and a results section that says plainly that no model run exists yet);
+ADRs 0001, 0002, 0005–0008 to complete the §13 list; `STATUS.md`; a `markdownlint-cli2` config.
+
+**What is honestly unfinished.** §8.4 of the design document is a description of what will be
+reported, not a report. Writing a results table from the scripted-model plumbing run would have
+produced plausible-looking numbers about nothing; leaving the section explicit about the gap is the
+right call for a document a grader will read. The same applies to the "verified against the deployed
+URL" column of `STATUS.md`: it is empty because the URL does not exist.
+
+**Judgment calls.** The PRD's `TAX` document is referenced (§4.1, "see REMOTE §4 and TAX §2") but not
+in the 14-document list; it became `EXPENSE §8` rather than a fifteenth document, and the corpus
+cross-references were written accordingly. `STATUS.md` lists every deviation in one place so nobody
+has to diff the PRD against the code to find them.
+
+---
+
+## Closing reflection
+
+*(Micah — this section is yours. Suggested prompts: what the trace rail changed about how you read
+the agent's behaviour; where Claude Code's first answer was wrong and what caught it — the
+`better-sqlite3` build, the turndown heading escape, the `wildcard: false` static routes, the two
+Tailwind ambiguities, the shell cwd that skipped two writes; what you would lock in the PRD next time
+and what you would leave open.)*
