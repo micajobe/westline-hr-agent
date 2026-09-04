@@ -48,7 +48,14 @@ print(x.get("id"), x.get("status"), "created", x.get("createdAt"), "finished", x
   ;;
 wait)
   deadline=$(($(date +%s) + ${3:-900}))
+  # A free instance hibernates, and a hibernating service does not start its new instance until
+  # traffic arrives — so a deploy can sit in update_in_progress indefinitely with no log output
+  # past "Running 'npm run start:…'". Poking the public URL each poll is what releases it.
+  url=$(api "$base/services/$svc" |
+    python3 -c 'import json,sys; print(json.load(sys.stdin).get("serviceDetails",{}).get("url",""))')
+  [ -n "$url" ] && echo "waking $url while polling"
   while :; do
+    [ -n "$url" ] && curl -s -o /dev/null --max-time 15 "$url/health" || true
     line=$("$0" status "$svc")
     state=$(echo "$line" | awk '{print $2}')
     echo "$(date -u +%H:%M:%S) $state"
