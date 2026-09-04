@@ -17,6 +17,7 @@
   "dependencies": {
     "@westline/shared": "*",
     "gray-matter": "^4.0.3",
+    "minisearch": "^7.2.0",
     "pdfjs-dist": "^4.10.38",
     "sqlite-vec": "^0.1.7-alpha.2",
     "turndown": "^7.2.0",

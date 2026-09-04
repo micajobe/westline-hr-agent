@@ -133,3 +133,27 @@ ones against a mocked `fetch` that returns vectors out of order to prove the cli
 `local` (transformers.js) is deliberately left as an explicit "not implemented" error: it is item 1
 in the PRD §16 cut order and nothing depends on it before the eval ablation. Nothing went wrong in
 this stretch; all checks passed on the first run.
+
+**Continued — vector store and BM25 (same day).** Asked to keep going on the sqlite-vec store and
+the BM25 index. Produced `packages/rag/src/store/`: `IndexStore` over `node:sqlite` + `sqlite-vec`
+(chunks table, `vec0` table with cosine metric, serialised MiniSearch, build metadata — one file,
+one hash), a `Bm25Index` wrapper, and `buildIndex` with corpus/model/chunker hash gating, a stub
+refusal, and temp-file-then-rename so a crash mid-build never leaves an openable half index.
+Twelve tests, including a no-op second build asserted by unchanged mtime, and reopen-from-disk
+returning identical KNN results.
+
+Two things worth recording. **Audience filtering inside the KNN query.** PRD §6.1 wants candidates
+filtered *before* ranking. Probed `vec0` first: metadata columns accept `IN (?, ?)` with bound
+parameters, combined with a second column, in the same `MATCH` query. So `audience` and `doc_id`
+are metadata columns on the vector table and the top-k is computed over permitted chunks only,
+which also means a filtered search still returns k results rather than "k minus the withheld ones".
+
+**Vitest could not import `node:sqlite`.** vitest 2's bundled Vite predates the module and tried to
+transform `sqlite` as a file, failing all three rag suites at import time. Fix in `vitest.config.ts`:
+workspace `dist/` bundles are marked external so Node loads them natively; tests still import
+`@westline/rag` normally. The ExperimentalWarning banner is silenced for the forks pool.
+
+**One relevance tweak, caught by the M2 spot-check query.** "notice for a three day vacation" did
+not surface PTO §3.2 on BM25 alone: no stemming meant "day" never met "days", and "for"/"a" carried
+weight. A deliberately light plural folder plus a stopword list moved §3.2 to rank 2 and the §3
+notice table to rank 4. A Porter stemmer was rejected: policy terms of art collide under it.

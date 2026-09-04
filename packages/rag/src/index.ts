@@ -13,3 +13,4 @@ export {
   SNIPPET_CHARS,
 } from './ingest/chunk.js';
 export * from './embed/index.js';
+export * from './store/index.js';
