@@ -17,9 +17,14 @@ export interface VoyageOptions {
   /** Voyage accepts up to 128 inputs per request; smaller batches keep under the token cap. */
   batchSize?: number;
   fetch?: typeof fetch;
-  /** Retries on 429/5xx with exponential backoff starting at `retryBaseMs`. */
+  /** Retries on 429/5xx with exponential backoff starting at `retryBaseMs`; a `Retry-After` header wins. */
   maxRetries?: number;
   retryBaseMs?: number;
+  /**
+   * Minimum gap between requests. Voyage keys without a payment method get 3 requests/min and
+   * 10K tokens/min; `minIntervalMs: 21000` with `batchSize: 20` builds the corpus under that cap.
+   */
+  minIntervalMs?: number;
 }
 
 interface VoyageResponse {
@@ -38,6 +43,8 @@ export class VoyageEmbeddingProvider implements EmbeddingProvider {
   private readonly fetchImpl: typeof fetch;
   private readonly maxRetries: number;
   private readonly retryBaseMs: number;
+  private readonly minIntervalMs: number;
+  private lastRequestAt = 0;
 
   constructor(opts: VoyageOptions) {
     if (!opts.apiKey) throw new EmbeddingError('voyage', 'VOYAGE_API_KEY is not set');
@@ -48,6 +55,7 @@ export class VoyageEmbeddingProvider implements EmbeddingProvider {
     this.fetchImpl = opts.fetch ?? fetch;
     this.maxRetries = opts.maxRetries ?? 4;
     this.retryBaseMs = opts.retryBaseMs ?? 500;
+    this.minIntervalMs = opts.minIntervalMs ?? 0;
   }
 
   async embedDocuments(texts: string[]): Promise<Float32Array[]> {
@@ -70,6 +78,11 @@ export class VoyageEmbeddingProvider implements EmbeddingProvider {
     if (input.length === 0) return [];
     let attempt = 0;
     for (;;) {
+      if (this.minIntervalMs > 0) {
+        const wait = this.lastRequestAt + this.minIntervalMs - Date.now();
+        if (wait > 0) await sleep(wait);
+      }
+      this.lastRequestAt = Date.now();
       const res = await this.fetchImpl(VOYAGE_ENDPOINT, {
         method: 'POST',
         headers: { 'content-type': 'application/json', authorization: `Bearer ${this.apiKey}` },
@@ -96,7 +109,11 @@ export class VoyageEmbeddingProvider implements EmbeddingProvider {
         const detail = (await res.text().catch(() => '')).slice(0, 300);
         throw new EmbeddingError('voyage', `HTTP ${res.status} ${detail}`.trim(), res.status);
       }
-      await sleep(this.retryBaseMs * 2 ** attempt);
+      const retryAfter = Number(res.headers.get('retry-after'));
+      // In paced (free-tier) mode a 429 means "wait for the minute to roll over"; back off at least 20 s.
+      const floor = res.status === 429 && this.minIntervalMs > 0 ? 20_000 : 0;
+      const wait = Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : Math.max(floor, this.retryBaseMs * 2 ** attempt);
+      await sleep(wait);
       attempt++;
     }
   }

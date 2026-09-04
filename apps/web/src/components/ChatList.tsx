@@ -1,5 +1,5 @@
 import { relativeTime, type Chat } from '../lib/chats';
-import { ClassBadge, GLYPH, Label } from './primitives';
+import { GLYPH, Label } from './primitives';
 
 /**
  * Recent chats. The left column of the Nimble navigator pattern (~/strategy-navigator
@@ -71,9 +71,8 @@ export function ChatList({
                       {chat.title}
                     </span>
                   </span>
-                  <span className="mt-1.5 flex items-center gap-2 pl-5">
+                  <span className="mt-1.5 flex items-baseline gap-2 pl-5">
                     <span className="mono-xs min-w-0 flex-1 truncate uppercase text-[var(--muted)]">{chat.persona_label}</span>
-                    {chat.workforce_class && <ClassBadge workforce_class={chat.workforce_class} className="shrink-0" />}
                     <span className="mono-xs shrink-0 text-[var(--muted)]">{relativeTime(chat.updated_at)}</span>
                   </span>
                 </button>

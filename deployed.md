@@ -57,6 +57,7 @@ to wake. Two services means a cascade: the first request to a sleeping app wakes
 
 - A cold `GET /health` on the app may report `degraded` with `mcp.policy.status: "down"` for the
   first request; the second request a few seconds later is normally `ok`.
+- **Voyage rate limits.** A Voyage key with no payment method is capped at 3 requests/min and 10K tokens/min; the index build then needs `VOYAGE_BATCH_SIZE=20` and `VOYAGE_MIN_INTERVAL_MS=21000` on both services (~7 min build) or Render's build step times out on 429s. Adding a card on the Voyage billing page lifts the cap; the env vars can then be removed.
 - `westline-mcp` opens `data/index.sqlite` on start. Render has no persistent disk, so on a
   **redeploy** the index is rebuilt from the committed corpus (~400 chunks through Voyage, typically
   under a minute). A plain **wake from sleep** does not rebuild — the filesystem survives sleep.

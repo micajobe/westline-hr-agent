@@ -15,6 +15,9 @@ export interface EmbeddingEnv {
   EMBEDDING_PROVIDER?: string;
   VOYAGE_API_KEY?: string;
   VOYAGE_MODEL?: string;
+  /** Free-tier pacing (see VoyageOptions). Defaults: 64 inputs per request, no minimum gap. */
+  VOYAGE_BATCH_SIZE?: string;
+  VOYAGE_MIN_INTERVAL_MS?: string;
 }
 
 /**
@@ -36,6 +39,8 @@ export function createEmbeddingProvider(env: EmbeddingEnv = process.env): Embedd
       return new VoyageEmbeddingProvider({
         apiKey: env.VOYAGE_API_KEY ?? '',
         model: env.VOYAGE_MODEL,
+        ...(env.VOYAGE_BATCH_SIZE ? { batchSize: Number(env.VOYAGE_BATCH_SIZE) } : {}),
+        ...(env.VOYAGE_MIN_INTERVAL_MS ? { minIntervalMs: Number(env.VOYAGE_MIN_INTERVAL_MS) } : {}),
       });
     case 'local':
       // PRD §16 cut order item 1 (optional ablation 5). Built last, if at all.

@@ -14,24 +14,13 @@ Everything not listed here has been built. Update/remove entries as they are res
   open M4 acceptance item.
 - Action: put it in `.env` locally, and add it as a GitHub Actions secret + a Render env var on `westline-app`.
 
-### 2. `VOYAGE_API_KEY` — key works, but the account has no payment method
-
-- The key is valid and embeds successfully, but Voyage caps unbilled accounts at **3 RPM / 10K TPM**
-  ("You have not yet added your payment method in the billing page"). The corpus is 414 chunks in
-  7 batches of 64; `VoyageEmbeddingProvider` retries 429s but its backoff tops out around 15s
-  cumulative (`maxRetries: 4`, `retryBaseMs: 500`), far short of the ~20s spacing 3 RPM demands.
-  `westline-mcp` got to `embedded 64/414` and exited 1; the service crash-looped and the deploy
-  was marked `update_failed` (2026-09-04 19:59Z).
-- `westline-app` will fail the same way — its build command runs `index:build` with the same key.
-- Action, cheapest first:
-  1. Add a payment method at <https://dash.voyageai.com> billing. Unlocks standard rate limits;
-     the free token grant still applies, so this is about limits, not spend. Nothing in the repo changes.
-  2. Or set `EMBEDDING_PROVIDER=local` on both services — the bundled transformers.js ONNX model,
-     no API calls. This is ablation 5's "local" arm: lower recall, and it competes for the free
-     plan's 512 MB.
-  3. Or raise `retryBaseMs`/`maxRetries` to survive 3 RPM. Rejected as the default: ~9 minutes of
-     wall-clock indexing on every redeploy, inside `westline-mcp`'s *start* command, so the health
-     check would fail while it runs.
+### 2. Voyage — key present; payment method optional
+- Key is in `.env` (2026-09-04) and works. Without a payment method Voyage caps the key at 3 requests
+  per minute and 10K tokens per minute; the index build is paced under that with
+  `VOYAGE_BATCH_SIZE=20 VOYAGE_MIN_INTERVAL_MS=21000` (~7 minutes). Adding a card at
+  https://dashboard.voyageai.com lifts the cap (the free token grant still applies) and lets those two
+  vars be dropped on Render.
+- `ANTHROPIC_API_KEY` is also in `.env` (found in `~/strategy-navigator/.env.local`); both model ids verified.
 
 ### 3. Render services — created and configured; first green deploy still pending
 
