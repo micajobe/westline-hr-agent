@@ -1,0 +1,50 @@
+[
+  {
+    "market": "Calgary",
+    "province": "AB",
+    "time_zone": "America/Edmonton",
+    "office_address": "221 Stampede Trail SW, Calgary AB",
+    "market_director_id": "W-1010",
+    "is_head_office": true
+  },
+  {
+    "market": "Edmonton",
+    "province": "AB",
+    "time_zone": "America/Edmonton",
+    "office_address": "88 Riverbend Way NW, Edmonton AB",
+    "market_director_id": "W-1010",
+    "is_head_office": false
+  },
+  {
+    "market": "Vancouver",
+    "province": "BC",
+    "time_zone": "America/Vancouver",
+    "office_address": "1400 Inlet Street, Vancouver BC",
+    "market_director_id": "W-1011",
+    "is_head_office": false
+  },
+  {
+    "market": "Kelowna",
+    "province": "BC",
+    "time_zone": "America/Vancouver",
+    "office_address": "55 Orchard Bench Road, Kelowna BC",
+    "market_director_id": "W-1011",
+    "is_head_office": false
+  },
+  {
+    "market": "Saskatoon",
+    "province": "SK",
+    "time_zone": "America/Regina",
+    "office_address": "310 Broadway Crossing, Saskatoon SK",
+    "market_director_id": "W-1012",
+    "is_head_office": false
+  },
+  {
+    "market": "Winnipeg",
+    "province": "MB",
+    "time_zone": "America/Winnipeg",
+    "office_address": "7 Portage Exchange, Winnipeg MB",
+    "market_director_id": "W-1012",
+    "is_head_office": false
+  }
+]

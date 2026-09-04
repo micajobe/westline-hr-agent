@@ -1,0 +1,64 @@
+[
+  {
+    "person_id": "W-3010",
+    "agreement_start": "2024-06-01",
+    "tier": 2,
+    "rate_card_id": "RC-2026-T2",
+    "base_segment_rate_cad": 1400,
+    "production_allowance_ceiling_cad": 600,
+    "exclusivity_window_days": 30,
+    "active_brand_deals": [
+      {
+        "campaign_id": "CMP-2026-0418",
+        "brand": "Summit Outfitters",
+        "product_category": "outdoor_apparel",
+        "final_segment_published": "2026-08-24",
+        "category_exclusivity_ends": "2026-09-23",
+        "source": "CREATOR \u00a76.1"
+      }
+    ],
+    "availability_windows": [
+      {
+        "start": "2026-11-10",
+        "end": "2026-11-28",
+        "days": 19,
+        "notice_given": "2026-09-02",
+        "status": "noted"
+      }
+    ],
+    "notes": "Tier 2. One live category exclusivity window (outdoor apparel) to 2026-09-23."
+  },
+  {
+    "person_id": "W-3011",
+    "agreement_start": "2025-11-04",
+    "tier": 1,
+    "rate_card_id": "RC-2026-T1",
+    "base_segment_rate_cad": 850,
+    "production_allowance_ceiling_cad": 350,
+    "exclusivity_window_days": 30,
+    "active_brand_deals": [],
+    "availability_windows": [],
+    "notes": "Tier 1. Fewer than 12 published segments."
+  },
+  {
+    "person_id": "W-3012",
+    "agreement_start": "2022-10-17",
+    "tier": 3,
+    "rate_card_id": "RC-2026-T3",
+    "base_segment_rate_cad": 2200,
+    "production_allowance_ceiling_cad": 1100,
+    "exclusivity_window_days": 60,
+    "active_brand_deals": [
+      {
+        "campaign_id": "CMP-2026-0377",
+        "brand": "Northline Trucks",
+        "product_category": "automotive",
+        "final_segment_published": "2026-08-02",
+        "category_exclusivity_ends": "2026-10-01",
+        "source": "CREATOR \u00a76.1"
+      }
+    ],
+    "availability_windows": [],
+    "notes": "Tier 3. Agreement carries a 60-day category commitment, longer than the CREATOR \u00a76.1 default of 30."
+  }
+]

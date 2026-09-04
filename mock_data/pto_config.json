@@ -1,0 +1,116 @@
+{
+  "as_of": "2026-09-04",
+  "source": {
+    "doc_id": "PTO",
+    "version": "3.1",
+    "note": "Every figure here is asserted against the PTO document by tests/mock-data.test.ts."
+  },
+  "accrual_tiers": [
+    {
+      "tier": "tier_1",
+      "min_years_service": 0,
+      "max_years_service": 2,
+      "annual_entitlement_days": 15,
+      "monthly_accrual_days": 1.25,
+      "source_section": "\u00a71.1"
+    },
+    {
+      "tier": "tier_2",
+      "min_years_service": 2,
+      "max_years_service": 5,
+      "annual_entitlement_days": 18,
+      "monthly_accrual_days": 1.5,
+      "source_section": "\u00a71.1"
+    },
+    {
+      "tier": "tier_3",
+      "min_years_service": 5,
+      "max_years_service": null,
+      "annual_entitlement_days": 22,
+      "monthly_accrual_days": 1.8333,
+      "source_section": "\u00a71.1"
+    }
+  ],
+  "part_time_threshold_hours_per_week": 20,
+  "carryover": {
+    "max_days": 5,
+    "must_be_used_by": "03-31",
+    "forfeited_on": "04-01",
+    "source_section": "\u00a72.1"
+  },
+  "notice_thresholds": [
+    {
+      "min_working_days": 1,
+      "max_working_days": 2,
+      "notice_calendar_days": 2,
+      "notice_label": "48 hours",
+      "approver": "newsroom_lead",
+      "source_section": "\u00a73.1"
+    },
+    {
+      "min_working_days": 3,
+      "max_working_days": 5,
+      "notice_calendar_days": 14,
+      "notice_label": "14 calendar days (2 weeks)",
+      "approver": "newsroom_lead",
+      "source_section": "\u00a73.2"
+    },
+    {
+      "min_working_days": 6,
+      "max_working_days": null,
+      "notice_calendar_days": 28,
+      "notice_label": "28 calendar days (4 weeks)",
+      "approver": "newsroom_lead and market_director",
+      "source_section": "\u00a73.3"
+    }
+  ],
+  "blackout_windows": [
+    {
+      "name": "Calgary Stampede",
+      "start": "2026-07-03",
+      "end": "2026-07-13",
+      "markets": [
+        "Calgary",
+        "Edmonton"
+      ],
+      "departments": null,
+      "reason": "Peak live coverage and sponsored production load.",
+      "source_section": "\u00a74.1"
+    },
+    {
+      "name": "Grey Cup week",
+      "start": "2026-11-16",
+      "end": "2026-11-23",
+      "markets": [
+        "Winnipeg"
+      ],
+      "departments": null,
+      "reason": "Host market only. Winnipeg hosts in 2026.",
+      "source_section": "\u00a74.1"
+    },
+    {
+      "name": "Saskatchewan provincial general election",
+      "start": "2026-10-17",
+      "end": "2026-10-26",
+      "markets": [
+        "Saskatoon"
+      ],
+      "departments": null,
+      "reason": "The 10 days ending on polling day, in the province holding the election.",
+      "source_section": "\u00a74.1"
+    },
+    {
+      "name": "Fiscal year end",
+      "start": "2026-12-27",
+      "end": "2026-12-31",
+      "markets": null,
+      "departments": [
+        "Finance",
+        "Sales"
+      ],
+      "reason": "Year-end close and advertising reconciliation.",
+      "source_section": "\u00a74.1"
+    }
+  ],
+  "westline_observed_holidays_note": "Westline-observed days are granted on top of the annual entitlement and are not deducted from the balance. See PTO \u00a75.1."
+}

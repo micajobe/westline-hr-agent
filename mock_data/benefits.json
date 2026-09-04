@@ -1,0 +1,473 @@
+[
+  {
+    "person_id": "W-1001",
+    "eligible": true,
+    "eligibility_reason": "Staff, regularly scheduled at or above 20 hours per week, past the 90-day waiting period. Coverage began 2020-06-01 (BENEFITS \u00a72.2).",
+    "waiting_period_ends": "2020-06-01",
+    "enrolled_plans": [
+      "extended_health",
+      "dental",
+      "vision",
+      "life_add",
+      "short_term_disability",
+      "long_term_disability",
+      "health_spending_account"
+    ],
+    "dependants_count": 0,
+    "next_enrollment_window": {
+      "start": "2026-11-01",
+      "end": "2026-11-30"
+    },
+    "fixed_term_months": null
+  },
+  {
+    "person_id": "W-1002",
+    "eligible": true,
+    "eligibility_reason": "Staff, regularly scheduled at or above 20 hours per week, past the 90-day waiting period. Coverage began 2017-08-01 (BENEFITS \u00a72.2).",
+    "waiting_period_ends": "2017-08-01",
+    "enrolled_plans": [
+      "extended_health",
+      "dental",
+      "vision",
+      "life_add",
+      "short_term_disability",
+      "long_term_disability",
+      "health_spending_account"
+    ],
+    "dependants_count": 2,
+    "next_enrollment_window": {
+      "start": "2026-11-01",
+      "end": "2026-11-30"
+    },
+    "fixed_term_months": null
+  },
+  {
+    "person_id": "W-1003",
+    "eligible": true,
+    "eligibility_reason": "Staff, regularly scheduled at or above 20 hours per week, past the 90-day waiting period. Coverage began 2022-01-01 (BENEFITS \u00a72.2).",
+    "waiting_period_ends": "2022-01-01",
+    "enrolled_plans": [
+      "extended_health",
+      "dental",
+      "vision",
+      "life_add",
+      "short_term_disability",
+      "long_term_disability",
+      "health_spending_account"
+    ],
+    "dependants_count": 0,
+    "next_enrollment_window": {
+      "start": "2026-11-01",
+      "end": "2026-11-30"
+    },
+    "fixed_term_months": null
+  },
+  {
+    "person_id": "W-1010",
+    "eligible": true,
+    "eligibility_reason": "Staff, regularly scheduled at or above 20 hours per week, past the 90-day waiting period. Coverage began 2016-10-01 (BENEFITS \u00a72.2).",
+    "waiting_period_ends": "2016-10-01",
+    "enrolled_plans": [
+      "extended_health",
+      "dental",
+      "vision",
+      "life_add",
+      "short_term_disability",
+      "long_term_disability",
+      "health_spending_account"
+    ],
+    "dependants_count": 1,
+    "next_enrollment_window": {
+      "start": "2026-11-01",
+      "end": "2026-11-30"
+    },
+    "fixed_term_months": null
+  },
+  {
+    "person_id": "W-1011",
+    "eligible": true,
+    "eligibility_reason": "Staff, regularly scheduled at or above 20 hours per week, past the 90-day waiting period. Coverage began 2018-05-01 (BENEFITS \u00a72.2).",
+    "waiting_period_ends": "2018-05-01",
+    "enrolled_plans": [
+      "extended_health",
+      "dental",
+      "vision",
+      "life_add",
+      "short_term_disability",
+      "long_term_disability",
+      "health_spending_account"
+    ],
+    "dependants_count": 2,
+    "next_enrollment_window": {
+      "start": "2026-11-01",
+      "end": "2026-11-30"
+    },
+    "fixed_term_months": null
+  },
+  {
+    "person_id": "W-1012",
+    "eligible": true,
+    "eligibility_reason": "Staff, regularly scheduled at or above 20 hours per week, past the 90-day waiting period. Coverage began 2019-06-01 (BENEFITS \u00a72.2).",
+    "waiting_period_ends": "2019-06-01",
+    "enrolled_plans": [
+      "extended_health",
+      "dental",
+      "vision",
+      "life_add",
+      "short_term_disability",
+      "long_term_disability",
+      "health_spending_account"
+    ],
+    "dependants_count": 1,
+    "next_enrollment_window": {
+      "start": "2026-11-01",
+      "end": "2026-11-30"
+    },
+    "fixed_term_months": null
+  },
+  {
+    "person_id": "W-1020",
+    "eligible": true,
+    "eligibility_reason": "Staff, regularly scheduled at or above 20 hours per week, past the 90-day waiting period. Coverage began 2019-12-01 (BENEFITS \u00a72.2).",
+    "waiting_period_ends": "2019-12-01",
+    "enrolled_plans": [
+      "extended_health",
+      "dental",
+      "vision",
+      "life_add",
+      "short_term_disability",
+      "long_term_disability",
+      "health_spending_account"
+    ],
+    "dependants_count": 2,
+    "next_enrollment_window": {
+      "start": "2026-11-01",
+      "end": "2026-11-30"
+    },
+    "fixed_term_months": null
+  },
+  {
+    "person_id": "W-1021",
+    "eligible": true,
+    "eligibility_reason": "Staff, regularly scheduled at or above 20 hours per week, past the 90-day waiting period. Coverage began 2021-03-01 (BENEFITS \u00a72.2).",
+    "waiting_period_ends": "2021-03-01",
+    "enrolled_plans": [
+      "extended_health",
+      "dental",
+      "vision",
+      "life_add",
+      "short_term_disability",
+      "long_term_disability",
+      "health_spending_account"
+    ],
+    "dependants_count": 0,
+    "next_enrollment_window": {
+      "start": "2026-11-01",
+      "end": "2026-11-30"
+    },
+    "fixed_term_months": null
+  },
+  {
+    "person_id": "W-1022",
+    "eligible": true,
+    "eligibility_reason": "Staff, regularly scheduled at or above 20 hours per week, past the 90-day waiting period. Coverage began 2021-06-01 (BENEFITS \u00a72.2).",
+    "waiting_period_ends": "2021-06-01",
+    "enrolled_plans": [
+      "extended_health",
+      "dental",
+      "vision",
+      "life_add",
+      "short_term_disability",
+      "long_term_disability",
+      "health_spending_account"
+    ],
+    "dependants_count": 0,
+    "next_enrollment_window": {
+      "start": "2026-11-01",
+      "end": "2026-11-30"
+    },
+    "fixed_term_months": null
+  },
+  {
+    "person_id": "W-1023",
+    "eligible": true,
+    "eligibility_reason": "Staff, regularly scheduled at or above 20 hours per week, past the 90-day waiting period. Coverage began 2022-09-01 (BENEFITS \u00a72.2).",
+    "waiting_period_ends": "2022-09-01",
+    "enrolled_plans": [
+      "extended_health",
+      "dental",
+      "vision",
+      "life_add",
+      "short_term_disability",
+      "long_term_disability",
+      "health_spending_account"
+    ],
+    "dependants_count": 1,
+    "next_enrollment_window": {
+      "start": "2026-11-01",
+      "end": "2026-11-30"
+    },
+    "fixed_term_months": null
+  },
+  {
+    "person_id": "W-1042",
+    "eligible": true,
+    "eligibility_reason": "Staff, regularly scheduled at or above 20 hours per week, past the 90-day waiting period. Coverage began 2023-06-01 (BENEFITS \u00a72.2).",
+    "waiting_period_ends": "2023-06-01",
+    "enrolled_plans": [
+      "extended_health",
+      "dental",
+      "vision",
+      "life_add",
+      "short_term_disability",
+      "long_term_disability",
+      "health_spending_account"
+    ],
+    "dependants_count": 0,
+    "next_enrollment_window": {
+      "start": "2026-11-01",
+      "end": "2026-11-30"
+    },
+    "fixed_term_months": null
+  },
+  {
+    "person_id": "W-1043",
+    "eligible": true,
+    "eligibility_reason": "Staff, regularly scheduled at or above 20 hours per week, past the 90-day waiting period. Coverage began 2021-09-01 (BENEFITS \u00a72.2).",
+    "waiting_period_ends": "2021-09-01",
+    "enrolled_plans": [
+      "extended_health",
+      "dental",
+      "vision",
+      "life_add",
+      "short_term_disability",
+      "long_term_disability",
+      "health_spending_account"
+    ],
+    "dependants_count": 1,
+    "next_enrollment_window": {
+      "start": "2026-11-01",
+      "end": "2026-11-30"
+    },
+    "fixed_term_months": null
+  },
+  {
+    "person_id": "W-1044",
+    "eligible": false,
+    "eligibility_reason": "Not eligible on two independent grounds. The engagement is a fixed term of four months, and BENEFITS \u00a72.1 requires a permanent or fixed-term engagement of at least six months. Separately, the 90-day waiting period in BENEFITS \u00a72.2 has not elapsed: coverage would not begin before 2026-11-01. The plan pays on the date of service, not the date of claim, so nothing incurred before coverage begins is payable. The Employee & Family Assistance Program (BENEFITS \u00a76) is available from day one.",
+    "waiting_period_ends": "2026-11-01",
+    "enrolled_plans": [],
+    "dependants_count": 0,
+    "next_enrollment_window": {
+      "start": "2026-11-01",
+      "end": "2026-11-30"
+    },
+    "fixed_term_months": 4
+  },
+  {
+    "person_id": "W-1045",
+    "eligible": true,
+    "eligibility_reason": "Staff, regularly scheduled at or above 20 hours per week, past the 90-day waiting period. Coverage began 2025-01-01 (BENEFITS \u00a72.2).",
+    "waiting_period_ends": "2025-01-01",
+    "enrolled_plans": [
+      "extended_health",
+      "dental",
+      "vision",
+      "life_add",
+      "short_term_disability",
+      "long_term_disability",
+      "health_spending_account"
+    ],
+    "dependants_count": 0,
+    "next_enrollment_window": {
+      "start": "2026-11-01",
+      "end": "2026-11-30"
+    },
+    "fixed_term_months": null
+  },
+  {
+    "person_id": "W-1046",
+    "eligible": true,
+    "eligibility_reason": "Staff, regularly scheduled at or above 20 hours per week, past the 90-day waiting period. Coverage began 2024-01-01 (BENEFITS \u00a72.2).",
+    "waiting_period_ends": "2024-01-01",
+    "enrolled_plans": [
+      "extended_health",
+      "dental",
+      "vision",
+      "life_add",
+      "short_term_disability",
+      "long_term_disability",
+      "health_spending_account"
+    ],
+    "dependants_count": 0,
+    "next_enrollment_window": {
+      "start": "2026-11-01",
+      "end": "2026-11-30"
+    },
+    "fixed_term_months": null
+  },
+  {
+    "person_id": "W-1047",
+    "eligible": true,
+    "eligibility_reason": "Staff, regularly scheduled at or above 20 hours per week, past the 90-day waiting period. Coverage began 2022-05-01 (BENEFITS \u00a72.2).",
+    "waiting_period_ends": "2022-05-01",
+    "enrolled_plans": [
+      "extended_health",
+      "dental",
+      "vision",
+      "life_add",
+      "short_term_disability",
+      "long_term_disability",
+      "health_spending_account"
+    ],
+    "dependants_count": 0,
+    "next_enrollment_window": {
+      "start": "2026-11-01",
+      "end": "2026-11-30"
+    },
+    "fixed_term_months": null
+  },
+  {
+    "person_id": "W-1048",
+    "eligible": true,
+    "eligibility_reason": "Staff, regularly scheduled at or above 20 hours per week, past the 90-day waiting period. Coverage began 2024-07-01 (BENEFITS \u00a72.2).",
+    "waiting_period_ends": "2024-07-01",
+    "enrolled_plans": [
+      "extended_health",
+      "dental",
+      "vision",
+      "life_add",
+      "short_term_disability",
+      "long_term_disability",
+      "health_spending_account"
+    ],
+    "dependants_count": 0,
+    "next_enrollment_window": {
+      "start": "2026-11-01",
+      "end": "2026-11-30"
+    },
+    "fixed_term_months": null
+  },
+  {
+    "person_id": "W-1049",
+    "eligible": true,
+    "eligibility_reason": "Staff, regularly scheduled at or above 20 hours per week, past the 90-day waiting period. Coverage began 2022-12-01 (BENEFITS \u00a72.2).",
+    "waiting_period_ends": "2022-12-01",
+    "enrolled_plans": [
+      "extended_health",
+      "life_add",
+      "short_term_disability",
+      "long_term_disability",
+      "health_spending_account"
+    ],
+    "dependants_count": 2,
+    "next_enrollment_window": {
+      "start": "2026-11-01",
+      "end": "2026-11-30"
+    },
+    "fixed_term_months": null
+  },
+  {
+    "person_id": "W-1050",
+    "eligible": true,
+    "eligibility_reason": "Staff, regularly scheduled at or above 20 hours per week, past the 90-day waiting period. Coverage began 2020-06-01 (BENEFITS \u00a72.2).",
+    "waiting_period_ends": "2020-06-01",
+    "enrolled_plans": [
+      "extended_health",
+      "dental",
+      "vision",
+      "life_add",
+      "short_term_disability",
+      "long_term_disability",
+      "health_spending_account"
+    ],
+    "dependants_count": 3,
+    "next_enrollment_window": {
+      "start": "2026-11-01",
+      "end": "2026-11-30"
+    },
+    "fixed_term_months": null
+  },
+  {
+    "person_id": "W-1051",
+    "eligible": true,
+    "eligibility_reason": "Staff, regularly scheduled at or above 20 hours per week, past the 90-day waiting period. Coverage began 2023-10-01 (BENEFITS \u00a72.2).",
+    "waiting_period_ends": "2023-10-01",
+    "enrolled_plans": [
+      "extended_health",
+      "dental",
+      "vision",
+      "life_add",
+      "short_term_disability",
+      "long_term_disability",
+      "health_spending_account"
+    ],
+    "dependants_count": 0,
+    "next_enrollment_window": {
+      "start": "2026-11-01",
+      "end": "2026-11-30"
+    },
+    "fixed_term_months": null
+  },
+  {
+    "person_id": "W-1052",
+    "eligible": true,
+    "eligibility_reason": "Staff, regularly scheduled at or above 20 hours per week, past the 90-day waiting period. Coverage began 2022-03-01 (BENEFITS \u00a72.2).",
+    "waiting_period_ends": "2022-03-01",
+    "enrolled_plans": [
+      "extended_health",
+      "life_add",
+      "short_term_disability",
+      "long_term_disability",
+      "health_spending_account"
+    ],
+    "dependants_count": 0,
+    "next_enrollment_window": {
+      "start": "2026-11-01",
+      "end": "2026-11-30"
+    },
+    "fixed_term_months": null
+  },
+  {
+    "person_id": "W-1053",
+    "eligible": true,
+    "eligibility_reason": "Staff, regularly scheduled at or above 20 hours per week, past the 90-day waiting period. Coverage began 2023-01-01 (BENEFITS \u00a72.2).",
+    "waiting_period_ends": "2023-01-01",
+    "enrolled_plans": [
+      "extended_health",
+      "dental",
+      "vision",
+      "life_add",
+      "short_term_disability",
+      "long_term_disability",
+      "health_spending_account"
+    ],
+    "dependants_count": 0,
+    "next_enrollment_window": {
+      "start": "2026-11-01",
+      "end": "2026-11-30"
+    },
+    "fixed_term_months": null
+  },
+  {
+    "person_id": "W-1054",
+    "eligible": true,
+    "eligibility_reason": "Staff, regularly scheduled at or above 20 hours per week, past the 90-day waiting period. Coverage began 2025-05-01 (BENEFITS \u00a72.2).",
+    "waiting_period_ends": "2025-05-01",
+    "enrolled_plans": [
+      "extended_health",
+      "dental",
+      "vision",
+      "life_add",
+      "short_term_disability",
+      "long_term_disability",
+      "health_spending_account"
+    ],
+    "dependants_count": 0,
+    "next_enrollment_window": {
+      "start": "2026-11-01",
+      "end": "2026-11-30"
+    },
+    "fixed_term_months": null
+  }
+]

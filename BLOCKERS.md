@@ -27,10 +27,12 @@ Everything not listed here has been built. Update/remove entries as they are res
 - Action: create `westline-hr-agent`, push, add `quantic-grader` as collaborator,
   set Actions workflow permissions to read+write (needed by `eval.yml` to commit results).
 
-### 5. Typeface pairing (PRD §9.2 placeholders)
-- The UI ships with a working default pairing (see `apps/web/src/styles/tokens.css`).
-  Swap `--font-display` / `--font-ui` and the Google Fonts link in `apps/web/index.html`
-  if you want a different pairing.
+### 5. Typeface pairing — decided, no action needed
+- Chosen (Micah, 2026-09-04): **PP Editorial Old** display / **PP Neue Montreal** body + UI.
+  Installed at `~/Library/Fonts` as `.otf`/`.ttf`; the build converts them to `.woff2` and
+  self-hosts them from `apps/web/public/fonts/` (gitignored, not committed).
+- Micah holds a general licence for the Pangram Pangram pack and has confirmed it covers this use.
+- Fallback stack is commented in `apps/web/src/styles/tokens.css` if the files are ever absent.
 
 ## Resolved
 

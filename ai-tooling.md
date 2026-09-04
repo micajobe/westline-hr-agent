@@ -42,3 +42,48 @@ PRD §18 lists only `voyage` and `local`. This is additive and test-only; `CLAUD
 to build a real index with it.
 
 ---
+
+## M1 — Corpus and mock data (2026-09-04)
+
+**Asked for:** the 14-document Westline policy corpus per PRD §4 — front matter, stable numbered
+headings, explicit figures, real cross-references, three source formats, 70–90 pages — plus the
+mock data in PRD §5 including every named persona and a `pto_config.json` consistent with the PTO
+document.
+
+**Produced:** 33,200 words / 73.8 page equivalents across 14 documents (10 markdown, 2 HTML with
+real tables, 2 PDF generated from committed markdown sources); `mock_data/` with 29 people across
+all three workforce classes, PTO ledger, benefits, creator records, markets, PTO config and desk
+seeds; 68 tests over the corpus and the mock data.
+
+**What went wrong — `pdf-parse` is dead on modern Node.** The PRD names `pdf-parse` for the PDF
+path. It bundles a 2019 copy of pdf.js that throws at *require* time on Node 26 —
+`FormatError: bad XRef entry` raised from the module's own top-level initialisation, before any
+file is opened. Caught on the first run of the PDF builder. Replaced with `pdfjs-dist`'s legacy
+build, which is maintained and runs in plain Node. That turned out better than a like-for-like
+swap: pdfjs returns positioned glyph runs with a `hasEOL` flag, which reconstructs real line breaks,
+and line breaks are exactly what the ingester's heading pattern needs.
+
+**A trap it nearly walked into, and the guard that catches it.** The ingester recovers section
+structure from PDFs by matching a heading pattern (`3.2 Requests of three to five days`) against
+extracted lines. A wrapped *body* line beginning with a digit would match that pattern and silently
+invent a section — a citation pointing at a section that does not exist, which is the worst possible
+failure for this project. So `scripts/build-pdfs.mjs` does not just render: it re-extracts each PDF
+it wrote and asserts that the set of lines matching the heading pattern is exactly the set of real
+headings from the source, failing the build otherwise. The PDF sources are written with numbers
+spelled out in prose ("sixty-two cents per kilometre") so that check passes honestly rather than by
+tuning the regex until it goes green.
+
+**An inconsistency in the PRD, caught while authoring.** PRD §4.2 and the `REMOTE` design intent in
+§4.1 both cross-reference a `TAX` document ("see `REMOTE` §4 and `TAX` §2"), but `TAX` does not exist
+— the document table in §4.1 lists 14 documents and none of them is it. Rather than invent a
+fifteenth document, the tax and payroll material became `EXPENSE` §8, which is where a reader would
+look for it anyway, and `REMOTE` §3 cites it. The corpus test asserts that no document references a
+`doc_id` outside the set of 14, so this class of dangling reference cannot come back.
+
+**Judgment calls worth recording.** `BENEFITS` §6 (the assistance programme) and `ONBOARD` §4/§6
+carry `section_audience_overrides` to `all`, so that contractors and creator partners can retrieve
+the parts of staff documents that genuinely bind them. The PRD only specified the `EXPENSE` §7
+override. This exercises the same mechanism three more times and makes `HANDBOOK` §2's `Partial`
+rows true rather than aspirational. Jordan Reyes' ledger is pinned — tier 2, 18 days, 4 carried,
+5 used, balance 11 — because the demo and the eval set depend on that number, and a test asserts it
+rather than trusting the generator.
