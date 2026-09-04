@@ -21,9 +21,23 @@ Everything not listed here has been built. Update/remove entries as they are res
 - Action: free-tier key from https://voyageai.com, then `.env` + GitHub secret + both Render services.
 
 ### 3. Render services not yet created
-- Needed for: `deployed.md` URLs, `MCP_BASE_URL`, deploy hooks, the live demo.
-- Action: follow PRD §19 "Render" and §10. Then set GitHub secrets
-  `RENDER_DEPLOY_HOOK_APP`, `RENDER_DEPLOY_HOOK_MCP`, `DEPLOYED_APP_URL`.
+- Needed for: `deployed.md` URLs, `MCP_BASE_URL`, deploy hooks, the live demo, cold-start measurement.
+- Everything on the repo side is done: `render.yaml` (Blueprint for both services, auto-deploy off,
+  Node 22), `.github/workflows/deploy.yml` (fires hooks after green CI, polls `/health`), `deployed.md`
+  (env table, cold-start notes, fallback). `MCP_MODE=http` has been verified locally with the MCP host
+  and the app as separate processes.
+- Steps (≈10 minutes):
+  1. Render → New → **Blueprint** → this repo → apply `render.yaml`. Both services are created with the
+     right build/start commands; confirm plan Free and Auto-Deploy **Off** on each.
+  2. Generate one secret: `openssl rand -hex 32`. Set it as `MCP_SHARED_SECRET` on **both** services.
+  3. On `westline-mcp`: set `VOYAGE_API_KEY`. Deploy once manually; copy its public URL.
+  4. On `westline-app`: set `ANTHROPIC_API_KEY`, `VOYAGE_API_KEY`, and `MCP_BASE_URL` = the
+     `westline-mcp` URL (no trailing slash). Deploy once manually.
+  5. Copy both **Deploy Hook** URLs (service → Settings → Deploy Hook) and run:
+     `gh secret set RENDER_DEPLOY_HOOK_MCP`, `gh secret set RENDER_DEPLOY_HOOK_APP`,
+     `gh secret set DEPLOYED_APP_URL` (the app URL). Also `gh secret set ANTHROPIC_API_KEY`,
+     `VOYAGE_API_KEY`, `AGENT_MODEL`, `JUDGE_MODEL` for `eval.yml`.
+  6. Fill the `TBD` URLs in `deployed.md` and the README; run `scripts/demo.sh <app-url>`.
 
 ### 4. GitHub repo + grader access
 - Action: create `westline-hr-agent`, push, add `quantic-grader` as collaborator,

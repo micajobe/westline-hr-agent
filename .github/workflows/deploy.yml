@@ -1,0 +1,67 @@
+name: deploy
+
+# PRD §11: deploy only after CI is green on main. Render auto-deploy is OFF on both services; this
+# workflow is the only thing that triggers a deploy, by POSTing the Render deploy hooks.
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [main]
+
+concurrency:
+  group: deploy-main
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    env:
+      HOOK_MCP: ${{ secrets.RENDER_DEPLOY_HOOK_MCP }}
+      HOOK_APP: ${{ secrets.RENDER_DEPLOY_HOOK_APP }}
+      APP_URL: ${{ secrets.DEPLOYED_APP_URL }}
+    steps:
+      - name: Check secrets
+        id: secrets
+        run: |
+          if [ -z "$HOOK_MCP" ] || [ -z "$HOOK_APP" ] || [ -z "$APP_URL" ]; then
+            echo "::notice::Render deploy hooks / DEPLOYED_APP_URL not configured; skipping deploy (see BLOCKERS.md)."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Trigger westline-mcp deploy
+        if: steps.secrets.outputs.configured == 'true'
+        run: curl -fsS -X POST "$HOOK_MCP?ref=${{ github.event.workflow_run.head_sha }}" -o /dev/null && echo "mcp deploy requested"
+
+      - name: Trigger westline-app deploy
+        if: steps.secrets.outputs.configured == 'true'
+        run: curl -fsS -X POST "$HOOK_APP?ref=${{ github.event.workflow_run.head_sha }}" -o /dev/null && echo "app deploy requested"
+
+      - name: Wait for the deployed app to report healthy (up to 10 minutes)
+        if: steps.secrets.outputs.configured == 'true'
+        run: |
+          URL="${APP_URL%/}/health"
+          echo "polling $URL"
+          for i in $(seq 1 60); do
+            BODY=$(curl -s --max-time 20 "$URL" || true)
+            if echo "$BODY" | grep -q '"status":"ok"'; then
+              echo "healthy after ~$((i*10))s"; echo "$BODY" | head -c 800; echo; exit 0
+            fi
+            if echo "$BODY" | grep -q '"status":"degraded"'; then
+              echo "app up but degraded (an MCP server is down): $BODY" | head -c 800; echo
+            fi
+            sleep 10
+          done
+          echo "::error::deployed app did not report healthy within 10 minutes"; exit 1
+
+      - name: Smoke the MCP discovery through the deployed app
+        if: steps.secrets.outputs.configured == 'true'
+        run: |
+          curl -fsS "${APP_URL%/}/health" | python3 -c '
+          import json,sys; h=json.load(sys.stdin)
+          assert h["mcp"]["policy"]["status"]=="connected", h["mcp"]
+          assert h["mcp"]["hr"]["status"]=="connected", h["mcp"]
+          assert h["mcp"]["policy"]["tools"]==4 and h["mcp"]["hr"]["tools"]==5, h["mcp"]
+          print("both MCP servers connected:", h["mcp"]["policy"]["tools"], "+", h["mcp"]["hr"]["tools"], "tools; mode", h["mode"]["mcp"])'

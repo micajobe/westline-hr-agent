@@ -1,0 +1,62 @@
+# Render Blueprint for the two PRD §10 services. Apply once from the Render dashboard
+# (New → Blueprint → this repo); it creates both services with the right commands and env var
+# names. Values marked sync: false are entered in the dashboard. Auto-deploy is OFF on both:
+# .github/workflows/deploy.yml fires the deploy hooks after CI passes on main.
+services:
+  - type: web
+    name: westline-mcp
+    runtime: node
+    plan: free
+    region: oregon
+    branch: main
+    autoDeploy: false
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start:mcp
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: EMBEDDING_PROVIDER
+        value: voyage
+      - key: VOYAGE_API_KEY
+        sync: false
+      - key: MCP_SHARED_SECRET
+        sync: false
+      - key: LOG_LEVEL
+        value: info
+
+  - type: web
+    name: westline-app
+    runtime: node
+    plan: free
+    region: oregon
+    branch: main
+    autoDeploy: false
+    buildCommand: npm ci && npm run build && npm run index:build
+    startCommand: npm run start:app
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: MCP_MODE
+        value: http
+      - key: MCP_BASE_URL
+        sync: false
+      - key: MCP_SHARED_SECRET
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: AGENT_MODEL
+        value: claude-sonnet-5
+      - key: JUDGE_MODEL
+        value: claude-opus-5
+      - key: EMBEDDING_PROVIDER
+        value: voyage
+      - key: VOYAGE_API_KEY
+        sync: false
+      - key: RERANK
+        value: "false"
+      - key: CHAOS_DISABLE_HR_MCP
+        value: "false"
+      - key: LOG_LEVEL
+        value: info

@@ -326,3 +326,31 @@ script plants. The acceptance item that remains open is the same as M4's: runnin
 buttons against Sonnet needs `ANTHROPIC_API_KEY`.
 
 ---
+## M6 — Deploy (2026-09-04) — repo side complete; Render blocked
+
+**Asked for:** Render configuration honoured, `deploy.yml` with hooks and health polling,
+`deployed.md`, verification of `MCP_MODE=http` against the live MCP service and the `inprocess`
+fallback.
+
+**Produced:** `render.yaml` (Blueprint for both services: commands, env var names, `autoDeploy:
+false`, Node 22), `.github/workflows/deploy.yml` (`workflow_run` on a green `ci`, POSTs the two
+hooks with `?ref=<sha>`, polls `/health` up to ten minutes, asserts 4 + 5 tools connected, and exits
+with a notice rather than a failure while the secrets are absent), `deployed.md` with the env table,
+cold-start cascade, fallback and verification commands, ADR 0009 (two services) and ADR 0010 (deploy
+gating). BLOCKERS.md item 3 now lists the six Render steps.
+
+**Verified locally in place of the live service.** `start:mcp` as its own process on one port,
+`start:app` with `MCP_MODE=http` pointed at it on another: discovery found 4 + 5 tools, `/desk` and
+the index metadata came through the host proxy, `/health` was `ok` with `mode.mcp: "http"`. Then the
+same with a deliberately wrong `MCP_SHARED_SECRET`: the app started, reported `degraded` with both
+servers `down`, and kept serving the UI — the failure mode PRD §7.5 asks for, not a crash.
+
+**What went wrong.** The wrong-secret check silently produced nothing the first time: the script used
+GNU `timeout`, which macOS does not have, so the app under test never started and the probe read an
+empty response. Rewritten with a background PID and `kill`. Small, but it is the kind of "the test
+passed because it never ran" that is worth writing down.
+
+**Open:** creating the services, setting the secrets, filling the `TBD` URLs, and running
+`scripts/demo.sh <app-url>` against Render (BLOCKERS.md items 1–3).
+
+---
