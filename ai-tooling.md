@@ -179,3 +179,13 @@ now requires the top 3 to be PTO notice material and §3.2 within the top 5; the
 out: the stub embedder now shares BM25's term normaliser, so the two rankers agree that "day" and
 "days" are the same word; before that, hybrid tests could fail for reasons unrelated to the code
 under test.
+
+**Continued — `index:build` and `corpus:check` CLIs; M2 closes (same day).** Wrote the two CLIs the
+root `package.json` already pointed at. `index:build` reads the provider from env, refuses the stub
+without `ALLOW_STUB_INDEX=1`, and prints the build metadata as JSON; verified by running it twice —
+first `"reason": "fresh"` (414 chunks, 248 ms with the stub), second `"reason": "up_to_date"` with
+an unchanged `built_at`. `corpus:check` runs the M1 acceptance gate through the real ingester and
+reports 14 documents, 489 sections, 414 chunks, 75.0 page equivalents. ADR 0004 records the seven
+M2 decisions the PRD left open. M2 is complete apart from the `local` embedding provider, which is
+PRD §16 cut-order item 1 and is deferred until the eval ablation needs it. Nothing went wrong in
+this stretch.
