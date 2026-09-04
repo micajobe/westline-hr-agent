@@ -1,5 +1,5 @@
 import { relativeTime, type Chat } from '../lib/chats';
-import { GLYPH, Label } from './primitives';
+import { GLYPH, Label, PanelToggle } from './primitives';
 
 /**
  * Recent chats. The left column of the Nimble navigator pattern (~/strategy-navigator
@@ -27,21 +27,17 @@ export function ChatList({
 }) {
   if (collapsed) {
     return (
-      <aside className="flex h-full flex-col items-center gap-3 border-r border-[var(--ink)] py-2.5">
-        <button type="button" className="link link-muted" onClick={onToggle} title="Show recent chats">
-          ▸
-        </button>
+      <aside className="flex h-full flex-col items-center gap-3 border-r border-[var(--ink)] py-2">
+        <PanelToggle side="left" collapsed onToggle={onToggle} label="recent chats" />
         <span className="mono-xs text-[var(--muted)]">{chats.length}</span>
       </aside>
     );
   }
   return (
-    <aside className="flex h-full flex-col border-r border-[var(--ink)]">
-      <div className="flex items-center justify-between border-b border-[var(--ink)] px-4 py-2.5">
+    <aside className="flex h-full min-h-0 flex-col border-r border-[var(--ink)]">
+      <div className="flex items-center justify-between border-b border-[var(--ink)] px-4 py-2">
         <Label>Chats</Label>
-        <button type="button" className="link link-muted" onClick={onToggle} title="Hide recent chats">
-          collapse
-        </button>
+        <PanelToggle side="left" collapsed={false} onToggle={onToggle} label="recent chats" />
       </div>
       <div className="border-b border-[var(--ink)] px-4 py-3">
         <button type="button" className="btn btn-outline btn-sm w-full" onClick={onNew} disabled={busy}>

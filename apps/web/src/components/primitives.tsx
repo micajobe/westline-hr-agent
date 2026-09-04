@@ -47,3 +47,26 @@ export function Details({ summary, children, open }: { summary: ReactNode; child
 export function Json({ value }: { value: unknown }) {
   return <pre className="mono max-h-80 overflow-auto whitespace-pre-wrap break-words border border-[var(--paper-2)] bg-[var(--paper)] p-2 text-[11.5px] leading-[1.5] tracking-normal">{JSON.stringify(value, null, 2)}</pre>;
 }
+
+/**
+ * Panel show/hide, following the navigator pattern in ~/strategy-navigator
+ * (`table-of-contents.tsx`, `navigator-layout.tsx`): a bare 16px stroked chevron pointing the way
+ * the panel will move, never a word. `side` is the edge the panel is docked to.
+ */
+export function PanelToggle({ side, collapsed, onToggle, label }: { side: 'left' | 'right'; collapsed: boolean; onToggle: () => void; label: string }) {
+  const points: 'left' | 'right' = collapsed === (side === 'left') ? 'right' : 'left';
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      title={`${collapsed ? 'Show' : 'Hide'} ${label}`}
+      aria-label={`${collapsed ? 'Show' : 'Hide'} ${label}`}
+      aria-expanded={!collapsed}
+      className="flex h-6 w-6 items-center justify-center text-[var(--muted)] hover:text-[var(--ink)]"
+    >
+      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" d={points === 'left' ? 'M15 19l-7-7 7-7' : 'M9 5l7 7-7 7'} />
+      </svg>
+    </button>
+  );
+}

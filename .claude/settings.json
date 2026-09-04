@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(scripts/render-deploy.sh *)",
+      "Bash(./scripts/render-deploy.sh *)",
+      "Bash(bash scripts/render-deploy.sh *)"
+    ]
+  }
+}

@@ -12,6 +12,7 @@ import {
   loadChats,
   MAX_CHATS,
   newChat,
+  pruneEmpty,
   saveChats,
   sortChats,
   withPersona,
@@ -30,6 +31,7 @@ export function ChatPage({ persona, personas, onPersona }: { persona: Persona | 
   });
   const [activeId, setActiveId] = useState<string>(() => chats[0]?.chat_id ?? '');
   const [listCollapsed, setListCollapsed] = useState(false);
+  const [traceCollapsed, setTraceCollapsed] = useState(false);
   const [input, setInput] = useState('');
   const [tasks, setTasks] = useState<DemoTask[]>([]);
   const [citation, setCitation] = useState<Citation | null>(null);
@@ -61,7 +63,7 @@ export function ChatPage({ persona, personas, onPersona }: { persona: Persona | 
   const startChat = useCallback((as: Persona | null): Chat => {
     const chat = newChat(as);
     touched.current.add(chat.chat_id);
-    setChats((cs) => sortChats([chat, ...cs]).slice(0, MAX_CHATS));
+    setChats((cs) => sortChats([chat, ...pruneEmpty(cs, chat.chat_id)]).slice(0, MAX_CHATS));
     setActiveId(chat.chat_id);
     setCitation(null);
     return chat;
@@ -118,6 +120,7 @@ export function ChatPage({ persona, personas, onPersona }: { persona: Persona | 
   const decide = useCallback(async (chat_id: string, turn: Turn, decision: 'confirm' | 'cancel') => {
     const req = turn.envelope?.confirmation_required;
     if (!req || !turn.envelope) return;
+    touched.current.add(chat_id);
     patchTurn(chat_id, turn.turn_id, (t) => ({ ...t, busy: true }));
     try {
       const env = await confirmStream({ conversation_id: turn.envelope.conversation_id, turn_id: turn.turn_id, args_hash: req.args_hash, decision }, {
@@ -130,6 +133,7 @@ export function ChatPage({ persona, personas, onPersona }: { persona: Persona | 
   }, [patchTurn]);
 
   const selectChat = (chat: Chat) => {
+    setChats((cs) => pruneEmpty(cs, chat.chat_id));
     setActiveId(chat.chat_id);
     setCitation(null);
     if ((persona?.person_id ?? null) !== chat.acting_person_id) {
@@ -172,8 +176,8 @@ export function ChatPage({ persona, personas, onPersona }: { persona: Persona | 
 
   return (
     <div
-      className="mx-auto grid max-w-[var(--max-content)] flex-1 gap-0"
-      style={{ minHeight: 'calc(100vh - 49px)', gridTemplateColumns: `${listCollapsed ? 'var(--chat-list-collapsed)' : 'var(--chat-list)'} minmax(0,1fr) var(--trace-rail)` }}
+      className="grid min-h-0 w-full flex-1 gap-0 overflow-hidden"
+      style={{ gridTemplateRows: 'minmax(0,1fr)', gridTemplateColumns: `${listCollapsed ? 'var(--rail-collapsed)' : 'var(--chat-list)'} minmax(0,1fr) ${traceCollapsed ? 'var(--rail-collapsed)' : 'var(--trace-rail)'}` }}
     >
       <ChatList
         chats={chats}
@@ -185,40 +189,42 @@ export function ChatPage({ persona, personas, onPersona }: { persona: Persona | 
         onNew={onNew}
         onDelete={deleteChat}
       />
-      <section className="flex min-w-0 flex-col">
-        <div className="mx-auto w-full max-w-[var(--chat-col)] flex-1 px-6 py-8">
-          {turns.length === 0 && (
-            <div className="mt-12">
-              <Label className="mb-4">Westline · policy assistant · HANDBOOK §2</Label>
-              <h1 className="headline text-[length:var(--t-h1)]">Ask about Westline policy<br />as the person <em>you picked</em>.</h1>
-              <p className="lede mt-6 max-w-[560px] text-[var(--muted)]">Answers come only from the policy corpus and the HR data this persona is allowed to see. Anything that would create or draft something pauses for your confirmation first. The trace on the right shows every tool call as it happens.</p>
-            </div>
-          )}
-          <ol className="space-y-10">
-            {turns.map((t) => (
-              <li key={t.turn_id}>
-                <div className="flex items-center gap-3">
-                  <Label>{t.persona?.name ?? 'Anonymous'}</Label>
-                  {t.persona && <ClassBadge workforce_class={t.persona.workforce_class} />}
-                </div>
-                <p className="headline mt-2 text-[length:var(--t-h2)]">{t.message}</p>
-                <div className="rule mt-5 pt-5">
-                  {t.busy && !t.envelope && <p className="mono text-[var(--muted)]">{GLYPH.off} {describeProgress(t.events)}</p>}
-                  {t.error && <p className="mono">{GLYPH.warn} {t.error}</p>}
-                  {t.envelope && (
-                    <div className="space-y-4">
-                      <AnswerView answer={t.envelope.answer} onCite={setCitation} />
-                      {t.envelope.confirmation_required && active && <ConfirmationCard request={t.envelope.confirmation_required} busy={t.busy} onDecision={(d) => void decide(active.chat_id, t, d)} />}
-                    </div>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ol>
-          <div ref={bottomRef} />
+      <section className="flex min-w-0 min-h-0 flex-col">
+        <div className="flex-1 overflow-y-auto">
+          <div className="mx-auto w-full max-w-[var(--chat-col)] px-6 py-8">
+            {turns.length === 0 && (
+              <div className="mt-12">
+                <Label className="mb-4">Westline · policy assistant · HANDBOOK §2</Label>
+                <h1 className="headline text-[length:var(--t-h1)]">Ask about Westline policy<br />as the person <em>you picked</em>.</h1>
+                <p className="lede mt-6 max-w-[560px] text-[var(--muted)]">Answers come only from the policy corpus and the HR data this persona is allowed to see. Anything that would create or draft something pauses for your confirmation first. The trace on the right shows every tool call as it happens.</p>
+              </div>
+            )}
+            <ol className="space-y-10">
+              {turns.map((t) => (
+                <li key={t.turn_id}>
+                  <div className="flex items-center gap-3">
+                    <Label>{t.persona?.name ?? 'Anonymous'}</Label>
+                    {t.persona && <ClassBadge workforce_class={t.persona.workforce_class} />}
+                  </div>
+                  <p className="headline mt-2 text-[length:var(--t-h2)]">{t.message}</p>
+                  <div className="rule mt-5 pt-5">
+                    {t.busy && !t.envelope && <p className="mono text-[var(--muted)]">{GLYPH.off} {describeProgress(t.events)}</p>}
+                    {t.error && <p className="mono">{GLYPH.warn} {t.error}</p>}
+                    {t.envelope && (
+                      <div className="space-y-4">
+                        <AnswerView answer={t.envelope.answer} onCite={setCitation} />
+                        {t.envelope.confirmation_required && active && <ConfirmationCard request={t.envelope.confirmation_required} busy={t.busy} onDecision={(d) => void decide(active.chat_id, t, d)} />}
+                      </div>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ol>
+            <div ref={bottomRef} />
+          </div>
         </div>
 
-        <div className="sticky bottom-0 border-t border-[var(--ink)] bg-[var(--paper)]">
+        <div className="shrink-0 border-t border-[var(--ink)] bg-[var(--paper)]">
           <div className="mx-auto w-full max-w-[var(--chat-col)] px-6 py-4">
             {citation && <div className="mb-4"><CitationCard citation={citation} onClose={() => setCitation(null)} /></div>}
             {restored && (
@@ -239,7 +245,7 @@ export function ChatPage({ persona, personas, onPersona }: { persona: Persona | 
           </div>
         </div>
       </section>
-      <TraceRail turns={traceTurns} />
+      <TraceRail turns={traceTurns} collapsed={traceCollapsed} onToggle={() => setTraceCollapsed((c) => !c)} />
     </div>
   );
 }

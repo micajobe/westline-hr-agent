@@ -445,6 +445,7 @@ the agent's behaviour; where Claude Code's first answer was wrong and what caugh
 `better-sqlite3` build, the turndown heading escape, the `wildcard: false` static routes, the two
 Tailwind ambiguities, the shell cwd that skipped two writes; what you would lock in the PRD next time
 and what you would leave open.)*
+
 ## First real model run — prompt and robustness tuning (2026-09-04, evening)
 
 **Asked for:** with Micah's Anthropic key in `.env`, run `scripts/demo.sh` against Sonnet 5 for the
@@ -491,5 +492,62 @@ citing PTO §3.2. Expected-tool checks accept `a|b` alternatives (search *or* se
 
 **Still open.** Voyage returns HTTP 500 for every request, including with a deliberately invalid key,
 which points at their API rather than the key; the index is still stub-embedded. The eval has not run.
+
+---
+
+## Post-M8 — Recent-chats sidebar (2026-09-04)
+
+**Asked for:** a sidebar of recent chats following the pattern in `~/strategy-navigator`, with the
+question of whether changing the acting person should start a new chat — and whether the rubric
+says otherwise.
+
+**Produced:** `apps/web/src/lib/chats.ts` (a `localStorage` chat archive, 20 chats, turns and trace
+included, with 12 unit tests over titling, capping, pruning, corrupt input and quota failure),
+`ChatList.tsx` in the Nimble navigator idiom, a `PanelToggle` chevron shared by both rails, a
+full-bleed Chat shell with the list anchored left and the trace anchored right, and ADR 0013.
+Switching persona now starts a new chat; selecting a chat sets the header persona back to that
+chat's.
+
+**On the rubric.** Nothing in PRD §22 or §9.1 asks for chat history, and nothing there requires
+persona continuity inside one conversation — so the rubric does not contradict the reset. It mildly
+favours it: rubric 6 wants a grader to reproduce both demo tasks, and each demo button now opens its
+own chat, and rubric 3/4's guardrails are better served by not carrying one audience's answers into
+another person's context. The real argument is in the server: `runTurn` reassigns
+`conv.acting_person_id` per turn but keeps `conv.history`, so a mid-conversation switch left the
+previous persona's answers in the new persona's prompt. Tool-level authorization (ADR 0007/0008) was
+never at risk; the model restating history was.
+
+**What went wrong.**
+
+1. **The persona-sync effect looked broken and wasn't.** The first browser check showed the header
+   on a new persona with the old chat still active, which read as a dead effect. It was a screenshot
+   taken between commit and passive effects; the next frame had the new chat. Caught by re-shooting
+   instead of editing — worth remembering before "fixing" a React effect.
+2. **Empty chats piled up.** Selecting a chat while an untouched one existed stranded it in the
+   list. Fixed with `pruneEmpty(chats, keepId)` — only the chat you are looking at may be empty —
+   with a test.
+3. **The composer fell off the bottom.** With the shell switched to viewport height, the grid's
+   implicit row is `auto`, so a long trace pushed the row past the container and the input off
+   screen. Fixed with `gridTemplateRows: minmax(0,1fr)` plus `min-h-0` on both rails. Caught in the
+   live app mid-turn, not by tests.
+4. **A restored chat still said "restored" after being confirmed.** `touched` was recorded in `send`
+   but not in `decide`, so confirming a gate in a reloaded chat left the staleness note up. Caught
+   by running demo task 2 through reload → Confirm.
+5. **Two spellings of the toggle.** The first pass used the word "collapse"; Micah pointed at the
+   navigator project's chevron. Both rails now share `PanelToggle`, and the trace rail's collapse
+   actually gives its 440px back instead of only hiding its contents.
+## Real index and the PRD M2 spot check (2026-09-04, evening)
+
+With the Voyage key working (after an outage that returned 500 even to a deliberately wrong key), the
+index built under the no-payment-method cap — 3 requests/min, 10K tokens/min — with the new pacing
+knobs, in about ten minutes. The PRD §15 M2 manual check then passed on real embeddings: "notice for a
+three day vacation" as Jordan returns `PTO §8.1`, `PTO §3.2`, `PTO §3` (§3.2 in the top 3; the top hit
+is the worked example that cites it); as Dani it returns HANDBOOK §8 and CREATOR §5/§9 material with
+`withheld_by_audience: true` and `PTO`, `REMOTE` withheld.
+
+**What broke.** Under 21-second pacing, `check_policy_compliance` (six query embeddings) exceeded the MCP
+client's 20-second tool timeout and Task 1 got a `TOOL_UNAVAILABLE` for the policy server — the
+graceful path, but a self-inflicted one. Timeout is now 120 s by default (`MCP_TOOL_TIMEOUT_MS`). The
+real fix is a payment method on the Voyage account; until then every turn is slow by design.
 
 ---

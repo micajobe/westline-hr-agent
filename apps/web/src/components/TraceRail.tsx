@@ -1,24 +1,29 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import type { TraceEvent } from '../lib/types';
-import { Chip, Details, GLYPH, Json, Label } from './primitives';
+import { Chip, Details, GLYPH, Json, Label, PanelToggle } from './primitives';
 
 export interface TraceTurn { turn_id: string; label: string; events: TraceEvent[]; live?: boolean }
 
 /** A flight recorder: grouped by turn, one row per event, state by glyph and weight, never colour. */
-export function TraceRail({ turns }: { turns: TraceTurn[] }) {
-  const [collapsed, setCollapsed] = useState(false);
+export function TraceRail({ turns, collapsed, onToggle }: { turns: TraceTurn[]; collapsed: boolean; onToggle: () => void }) {
+  if (collapsed) {
+    return (
+      <aside className="flex h-full flex-col items-center gap-3 border-l border-[var(--ink)] py-2">
+        <PanelToggle side="right" collapsed onToggle={onToggle} label="trace" />
+        <span className="mono-xs text-[var(--muted)]">{turns.length}</span>
+      </aside>
+    );
+  }
   return (
-    <aside className="flex h-full flex-col border-l border-[var(--ink)]">
-      <div className="flex items-center justify-between border-b border-[var(--ink)] px-4 py-2.5">
+    <aside className="flex h-full min-h-0 flex-col border-l border-[var(--ink)]">
+      <div className="flex items-center justify-between border-b border-[var(--ink)] px-4 py-2">
         <Label>Trace</Label>
-        <button type="button" className="link link-muted" onClick={() => setCollapsed((c) => !c)}>{collapsed ? 'expand' : 'collapse'}</button>
+        <PanelToggle side="right" collapsed={false} onToggle={onToggle} label="trace" />
       </div>
-      {!collapsed && (
-        <div className="flex-1 overflow-y-auto">
-          {turns.length === 0 && <p className="p-4 text-[length:var(--t-body-sm)] text-[var(--muted)]">Tool calls, retrievals, gates and verification for each turn appear here as they happen.</p>}
-          {turns.map((t, i) => <TurnGroup key={t.turn_id} turn={t} index={i + 1} />)}
-        </div>
-      )}
+      <div className="flex-1 overflow-y-auto">
+        {turns.length === 0 && <p className="p-4 text-[length:var(--t-body-sm)] text-[var(--muted)]">Tool calls, retrievals, gates and verification for each turn appear here as they happen.</p>}
+        {turns.map((t, i) => <TurnGroup key={t.turn_id} turn={t} index={i + 1} />)}
+      </div>
     </aside>
   );
 }

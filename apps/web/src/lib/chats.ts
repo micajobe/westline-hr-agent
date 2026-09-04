@@ -74,6 +74,10 @@ export function withPersona(chat: Chat, persona: Persona | null): Chat {
 
 export const sortChats = (chats: Chat[]): Chat[] => [...chats].sort((a, b) => b.updated_at - a.updated_at);
 
+/** Only the chat you are looking at is allowed to be empty; the rest would just be clutter. */
+export const pruneEmpty = (chats: Chat[], keepId: string): Chat[] =>
+  chats.filter((c) => c.turns.length > 0 || c.chat_id === keepId);
+
 export function loadChats(storage: StorageLike | undefined): Chat[] {
   if (!storage) return [];
   let raw: string | null = null;

@@ -68,7 +68,9 @@ export class McpToolClient {
   private readonly timeoutMs: number;
 
   constructor(private readonly opts: McpClientOptions) {
-    this.timeoutMs = opts.timeoutMs ?? 20_000;
+    // Generous by default: a compliance call embeds several queries, and a rate-limited Voyage key
+    // can space those 21 s apart. MCP_TOOL_TIMEOUT_MS overrides.
+    this.timeoutMs = opts.timeoutMs ?? Number(process.env.MCP_TOOL_TIMEOUT_MS ?? 120_000);
   }
 
   get baseUrl(): string {

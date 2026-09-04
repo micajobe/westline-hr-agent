@@ -37,7 +37,7 @@
 
   --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-6: 24px; --space-8: 32px; --space-12: 48px;
   --max-content: 1280px; --chat-col: 720px; --trace-rail: 440px;
-  --chat-list: 240px; --chat-list-collapsed: 44px;
+  --chat-list: 240px; --rail-collapsed: 40px;
 
   --border-rule: 1px solid var(--rule);
   --border-soft: 1px solid var(--paper-2);

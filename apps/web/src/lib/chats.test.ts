@@ -5,6 +5,7 @@ import {
   loadChats,
   MAX_CHATS,
   newChat,
+  pruneEmpty,
   relativeTime,
   saveChats,
   sortChats,
@@ -140,5 +141,14 @@ describe('relativeTime', () => {
     expect(relativeTime(now - 3 * 3_600_000, now)).toBe('3h');
     expect(relativeTime(now - 4 * 86_400_000, now)).toBe('4d');
     expect(relativeTime(now + 5_000, now)).toBe('now');
+  });
+});
+
+describe('pruneEmpty', () => {
+  it('keeps every chat with turns plus the one being looked at', () => {
+    const kept = chat({ chat_id: 'keep' });
+    const stranded = chat({ chat_id: 'stranded' });
+    const withTurn = chat({ chat_id: 'real', turns: [{ turn_id: 't', persona: persona(), message: 'q', events: [], busy: false }] });
+    expect(pruneEmpty([kept, stranded, withTurn], 'keep').map((c) => c.chat_id)).toEqual(['keep', 'real']);
   });
 });

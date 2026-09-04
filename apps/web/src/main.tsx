@@ -27,7 +27,7 @@ function App() {
   };
   return (
     <BrowserRouter>
-      <div className="flex min-h-screen flex-col">
+      <div className="flex h-screen flex-col overflow-hidden">
         <Header personas={personas} persona={persona} onPersona={setPersona} />
         <Routes>
           <Route path="/" element={<ChatPage persona={persona} personas={personas} onPersona={setPersona} />} />

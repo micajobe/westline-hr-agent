@@ -10,8 +10,8 @@ export function Header({ personas, persona, onPersona }: { personas: Persona[]; 
     <Link to={to} className={`link ${loc.pathname === to ? '' : 'link-muted'}`} style={{ borderBottomWidth: loc.pathname === to ? 1 : 0 }}>{label}</Link>
   );
   return (
-    <header className="border-b border-[var(--ink)]">
-      <div className="mx-auto flex max-w-[var(--max-content)] items-center gap-8 px-6 py-3">
+    <header className="shrink-0 border-b border-[var(--ink)]">
+      <div className="flex w-full items-center gap-8 px-6 py-3">
         <Link to="/" className="headline text-[22px]">Westline <span className="pull font-light text-[var(--muted)]">HR assistant</span></Link>
         <nav className="flex items-center gap-5">{nav('/', 'Chat')}{nav('/desk', 'Desk')}{nav('/eval', 'Eval')}</nav>
         <div className="ml-auto flex items-center gap-5">
