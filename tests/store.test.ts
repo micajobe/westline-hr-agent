@@ -85,7 +85,7 @@ describe('SQLite + sqlite-vec store', () => {
     const meta = store.meta();
     expect(meta.corpus_hash).toBe(corpusHash(docs));
     expect(meta.chunk_count).toBe(chunks.length);
-    expect(meta.doc_count).toBe(14);
+    expect(meta.doc_count).toBe(15);
     expect(meta.embedding_model).toBe(stub.model);
     expect(meta.embedding_dimensions).toBe(stub.dimensions);
     expect(meta.chunker).toBe(CHUNKER_VERSION);

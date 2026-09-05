@@ -39,7 +39,7 @@ function sourceHeadingCount(doc: LoadedDocument): number {
 }
 
 describe('loading and normalising', () => {
-  it('loads all 14 documents across md, html and pdf', () => {
+  it('loads all 15 documents across md, html and pdf', () => {
     expect(docs.map((d) => d.doc_id)).toEqual([...EXPECTED_DOC_IDS]);
     expect(new Set(docs.map((d) => d.source_format))).toEqual(new Set(['md', 'html', 'pdf']));
   });

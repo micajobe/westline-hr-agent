@@ -83,24 +83,25 @@ Denials return a structured `FORBIDDEN { reason, required_scope }`. The agent re
 ## 4. Policy corpus (`corpus/`)
 
 ### 4.1 Documents
-14 documents, ~70–90 pages total, three source formats.
+15 documents, ~70–90 pages total, three source formats.
 
 | # | doc_id | Title | Format | audience | Design intent |
 |---|---|---|---|---|---|
 | 1 | `HANDBOOK` | Westline Employee Handbook | md | `all` | Hub. §2 is the **applicability matrix**: table of every policy × workforce class. Cross-references all docs |
 | 2 | `PTO` | Paid Time Off & Statutory Holidays | HTML | `staff` | Accrual tiers by tenure (e.g., 15/18/22 days), carryover cap, blackout weeks tied to major local events (Stampede, Grey Cup week when hosted), notice periods by request length (≤2 days: 48h; 3–5 days: 2 weeks; >5 days: 4 weeks), provincial statutory holiday table |
-| 3 | `REMOTE` | Remote, Hybrid & Multi-Market Work | md | `staff` | Home-market default; working from another Westline market (notify lead); temporary out-of-province ≤4 weeks self-approved with lead sign-off; >4 weeks or any out-of-country requires HR + Finance review; references `TAX` and `INFOSEC` |
-| 4 | `INFOSEC` | Information Security & Devices | PDF | `all` | Newsroom systems, source protection, public Wi-Fi + VPN, cross-border device rules, personal devices for content capture, incident reporting |
-| 5 | `EXPENSE` | Expense & Equipment Policy | PDF | `staff_and_contractors` + section override `§7 Creator Partner Invoicing` → `creator_partners` | Camera/phone kits, travel between markets, per diems by market, role-based limits, home office cap, what contractors may claim (§6), what creator partners may invoice vs. what is theirs to own (§7: equipment purchases are the creator's, not reimbursable; sponsored-shoot production costs are invoiced per the Creator Guide rate card) |
-| 6 | `BENEFITS` | Benefits Guide | HTML | `staff` | Eligibility by class and tenure, waiting periods (e.g., 90 days), enrollment windows, life-event changes, part-time thresholds |
-| 7 | `LEAVE` | Leaves of Absence | md | `staff` | Parental, medical, bereavement, jury; interaction with PTO and benefits continuation |
-| 8 | `ONBOARD` | Onboarding & Offboarding | md | `staff_and_contractors` | Staff checklist, equipment issue/return, access provisioning/deprovisioning timelines |
-| 9 | `CONDUCT` | Respectful Workplace & Conduct | md | `all` | Harassment, complaints process, confidentiality, public-facing conduct for on-camera staff, escalation path to HR partner |
-| 10 | `PERF` | Performance & Compensation Review Process | md | `staff` | Process and calendar only; explicitly does not describe outcomes — out-of-scope bait |
-| 11 | `EDITORIAL` | Editorial Standards & Sponsored Content Disclosure | md | `all` | Ad-as-entertainment model; disclosure rules (on-screen label duration, caption tags, spoken disclosure for audio), who signs off (Editorial Standards desk), conflicts of interest, generic references to Canadian advertising standards |
-| 12 | `CREATOR` | Creator Partner Program Guide | md | `creator_partners` (+ `hr_only`) | What a creator partner is/isn't; which handbook sections apply; rate card and invoicing (Net 30); exclusivity windows; brand deals outside Westline (disclosure + 10-day notice); equipment ownership; time-away expectations (no PTO — "availability windows") |
-| 13 | `SAFETY` | Field Safety & Live Coverage | md | `all` | Solo shooting rules, events and crowds, weather, night coverage, drones (licensing, no-fly zones, approval), incident reporting |
-| 14 | `SOCIAL` | Social Media & Personal Brand | md | `all` | Staff vs creators, use of Westline handles, political content, corrections |
+| 3 | `HOURS` | Hours of Work, Breaks & Scheduling | md | `staff` + section override `§6 Crew calls, turnaround and meals in the field` → `staff_and_contractors` | The practical week: 37.5-hour standard week and 7.5-hour day, reference day 09:00–17:00 and core hours 10:00–15:00, 05:00–24:00 scheduling window and shift patterns, unpaid 30-minute meal break by the fifth hour plus two paid rest breaks, 10/11-hour turnaround, 10-hour scheduled day with a 14-hour hard stop, 14-day schedule publication, standby and call-in minimums, overtime and lieu. §6 binds contractors on a Westline call sheet |
+| 4 | `REMOTE` | Remote, Hybrid & Multi-Market Work | md | `staff` | Home-market default; working from another Westline market (notify lead); temporary out-of-province ≤4 weeks self-approved with lead sign-off; >4 weeks or any out-of-country requires HR + Finance review; references `TAX` and `INFOSEC` |
+| 5 | `INFOSEC` | Information Security & Devices | PDF | `all` | Newsroom systems, source protection, public Wi-Fi + VPN, cross-border device rules, personal devices for content capture, incident reporting |
+| 6 | `EXPENSE` | Expense & Equipment Policy | PDF | `staff_and_contractors` + section override `§7 Creator Partner Invoicing` → `creator_partners` | Camera/phone kits, travel between markets, per diems by market, role-based limits, home office cap, what contractors may claim (§6), what creator partners may invoice vs. what is theirs to own (§7: equipment purchases are the creator's, not reimbursable; sponsored-shoot production costs are invoiced per the Creator Guide rate card) |
+| 7 | `BENEFITS` | Benefits Guide | HTML | `staff` | Eligibility by class and tenure, waiting periods (e.g., 90 days), enrollment windows, life-event changes, part-time thresholds |
+| 8 | `LEAVE` | Leaves of Absence | md | `staff` | Parental, medical, bereavement, jury; interaction with PTO and benefits continuation |
+| 9 | `ONBOARD` | Onboarding & Offboarding | md | `staff_and_contractors` | Staff checklist, equipment issue/return, access provisioning/deprovisioning timelines |
+| 10 | `CONDUCT` | Respectful Workplace & Conduct | md | `all` | Harassment, complaints process, confidentiality, public-facing conduct for on-camera staff, escalation path to HR partner |
+| 11 | `PERF` | Performance & Compensation Review Process | md | `staff` | Process and calendar only; explicitly does not describe outcomes — out-of-scope bait |
+| 12 | `EDITORIAL` | Editorial Standards & Sponsored Content Disclosure | md | `all` | Ad-as-entertainment model; disclosure rules (on-screen label duration, caption tags, spoken disclosure for audio), who signs off (Editorial Standards desk), conflicts of interest, generic references to Canadian advertising standards |
+| 13 | `CREATOR` | Creator Partner Program Guide | md | `creator_partners` (+ `hr_only`) | What a creator partner is/isn't; which handbook sections apply; rate card and invoicing (Net 30); exclusivity windows; brand deals outside Westline (disclosure + 10-day notice); equipment ownership; time-away expectations (no PTO — "availability windows") |
+| 14 | `SAFETY` | Field Safety & Live Coverage | md | `all` | Solo shooting rules, events and crowds, weather, night coverage, drones (licensing, no-fly zones, approval), incident reporting |
+| 15 | `SOCIAL` | Social Media & Personal Brand | md | `all` | Staff vs creators, use of Westline handles, political content, corrections |
 
 ### 4.2 Authoring rules (docs are retrieval instruments)
 - Front-matter on every doc: `doc_id`, `title`, `version`, `effective_date`, `owner`, `audience`, optional `section_audience_overrides: { "§7": "creator_partners" }`.
@@ -447,7 +448,7 @@ Workspaces: `apps/web`, `apps/server`, `mcp/policy-mcp`, `mcp/hr-data-mcp`, `pac
 Accept: `npm ci && npm run build && npm test` passes with placeholder tests; CI green on first push.
 
 **M1 — Corpus and mock data**
-All 14 docs per §4 with front-matter, numbered headings, cross-refs, three formats (PDFs generated and committed); all mock data files per §5 including required personas and `pto_config.json` (thresholds, blackout windows) consistent with PTO doc.
+All 15 docs per §4 with front-matter, numbered headings, cross-refs, three formats (PDFs generated and committed); all mock data files per §5 including required personas and `pto_config.json` (thresholds, blackout windows) consistent with PTO doc.
 Accept: front-matter validator passes; page-count script reports 70–90 pages; every persona in §5 present; a consistency test asserts `pto_config` thresholds equal the numbers stated in `PTO` §3.
 
 **M2 — Ingestion, index, retrieval**

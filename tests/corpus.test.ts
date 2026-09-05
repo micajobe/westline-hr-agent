@@ -9,7 +9,7 @@ import {
 const corpus = loadCorpus();
 
 describe('corpus inventory', () => {
-  it('has exactly the 14 documents the PRD specifies', () => {
+  it('has exactly the 15 documents the PRD specifies', () => {
     expect(corpus.map((f) => f.doc_id)).toEqual([...EXPECTED_DOC_IDS]);
   });
 
@@ -49,11 +49,17 @@ describe('front matter', () => {
     expect(audienceOf('EXPENSE')).toBe('staff_and_contractors');
     expect(audienceOf('HANDBOOK')).toBe('all');
     expect(audienceOf('EDITORIAL')).toBe('all');
+    expect(audienceOf('HOURS')).toBe('staff');
   });
 
   it('overrides EXPENSE §7 to creator partners, which is what makes demo task 1 work', () => {
     const expense = corpus.find((f) => f.doc_id === 'EXPENSE')!;
     expect(expense.frontMatter.section_audience_overrides).toEqual({ '§7': 'creator_partners' });
+  });
+
+  it('opens HOURS §6 to contractors, who are on the same call sheets as staff', () => {
+    const hours = corpus.find((f) => f.doc_id === 'HOURS')!;
+    expect(hours.frontMatter.section_audience_overrides).toEqual({ '§6': 'staff_and_contractors' });
   });
 
   it('only overrides sections to valid audiences', () => {

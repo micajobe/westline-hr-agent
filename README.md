@@ -93,7 +93,7 @@ scripted model, and the eval metrics. `ci.yml` runs typecheck, lint, build and t
 ## Layout
 
 ```
-corpus/            14 policy documents (10 markdown, 2 HTML, 2 PDF) with audience front matter
+corpus/            15 policy documents (11 markdown, 2 HTML, 2 PDF) with audience front matter
 mock_data/         29 people, PTO ledger, benefits, creator records, markets, PTO config, desk seed
 packages/shared/   domain vocabulary, trace schema, answer schema, args hash, gate tokens, people directory
 packages/rag/      loaders and normalisers, heading-aware chunker, embeddings, sqlite-vec + BM25 store, retriever

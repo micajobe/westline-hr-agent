@@ -115,6 +115,11 @@ After 22:00: park in lit areas, keep the vehicle between you and the road, do no
 while walking, and tell the desk when you are clear. §3.1 restricts solo night work outside city
 centres.
 
+A night assignment also lengthens the rest owed before the next one: `HOURS` §4.1 sets turnaround
+at eleven hours after night coverage or a wrap past 23:00, and `HOURS` §6.3 applies the same rule
+to contractors on consecutive Westline call sheets. A producer may not book a call time that
+breaches it.
+
 ### 4.5 Live broadcast positions
 
 A live position is assessed for traffic, crowd flow and overhead hazards before the truck is set. The

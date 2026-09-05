@@ -9,6 +9,22 @@ export function ClassBadge({ workforce_class, className = '' }: { workforce_clas
 /** State glyphs (the system's ● ◌ △): solid = on/done, hollow = pending/off, triangle = attention. */
 export const GLYPH = { on: '●', off: '◌', warn: '△' } as const;
 
+/**
+ * The working mark: an eight-spoke asterisk that turns while a turn is in flight. Spokes alternate
+ * long and short so the rotation is actually legible — eight equal spokes are symmetric enough to
+ * look still. It honours `prefers-reduced-motion` and falls back to the same mark, static.
+ */
+export function Asterisk({ className = '' }: { className?: string }) {
+  return (
+    <svg className={`asterisk-spin inline-block h-3.5 w-3.5 align-[-0.15em] ${className}`} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      {[0, 45, 90, 135, 180, 225, 270, 315].map((deg, i) => {
+        const long = i % 2 === 0;
+        return <rect key={deg} x="11.1" y={long ? 2.4 : 5.2} width="1.8" height={long ? 9.2 : 6.4} rx="0.9" transform={`rotate(${deg} 12 12)`} />;
+      })}
+    </svg>
+  );
+}
+
 export function Badge({ children, tone = 'ink', className = '' }: { children: ReactNode; tone?: 'ink' | 'muted' | 'fill' | 'dashed'; className?: string }) {
   const v = tone === 'fill' ? 'tag-fill' : tone === 'dashed' ? 'tag-dashed' : tone === 'muted' ? 'tag-muted' : '';
   return <span className={`tag ${v} ${className}`}>{children}</span>;

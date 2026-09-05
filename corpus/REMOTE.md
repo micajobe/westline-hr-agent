@@ -166,6 +166,11 @@ lead in writing before the arrangement starts. A three-hour time difference is w
 nine-hour difference usually is not, and that is the practical reason most long out-of-country
 requests are declined rather than any of the tax reasons.
 
+The 09:00–17:00 window is Westline's reference working day (`HOURS` §1.2), and the core hours in
+`HOURS` §1.3 sit inside it. Working remotely does not change how long your day is, when your breaks
+fall or the turnaround you are owed between shifts; those stay as `HOURS` §3 and §4 set them,
+wherever you are.
+
 ### 6.2 Remote work is not time off
 
 A day worked from another location is a working day. It is not paid time off, it does not draw on

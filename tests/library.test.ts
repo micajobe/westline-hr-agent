@@ -80,6 +80,15 @@ describe('library audience filtering', () => {
     expect(open.every((p) => p === '§6' || p.startsWith('§6.'))).toBe(true);
   });
 
+  it('opens HOURS §6 to a contractor, and withholds the rest of the hours policy', () => {
+    const hours = docFor(marcus, 'HOURS');
+    expect(hours.readable).toBe(true);
+    const open = hours.sections.filter((s) => s.readable).map((s) => s.section_path);
+    expect(open.length).toBeGreaterThan(0);
+    expect(open.every((p) => p === '§6' || p.startsWith('§6.'))).toBe(true);
+    expect(buildLibrary(store, dani, categories).withheld_doc_ids).toContain('HOURS');
+  });
+
   it('opens EXPENSE §7 and only §7 to a creator partner', () => {
     const expense = docFor(dani, 'EXPENSE');
     expect(expense.readable).toBe(true);
@@ -154,6 +163,10 @@ describe('policy-mcp browse surface', () => {
     expect(listPolicyLibrary(ctx.policy, P.dani).applicability.EXPENSE).toMatchObject({
       scope: 'partial',
       sections: ['§7'],
+    });
+    expect(listPolicyLibrary(ctx.policy, P.marcus).applicability.HOURS).toMatchObject({
+      scope: 'partial',
+      sections: ['§6'],
     });
     expect(listPolicyLibrary(ctx.policy, null).applicability).toEqual({});
   });

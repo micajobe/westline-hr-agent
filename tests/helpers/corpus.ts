@@ -6,7 +6,7 @@ export const PDF_SRC_DIR = join(CORPUS_DIR, '_pdf_src');
 export const MOCK_DIR = join(process.cwd(), 'mock_data');
 
 export const EXPECTED_DOC_IDS = [
-  'BENEFITS', 'CONDUCT', 'CREATOR', 'EDITORIAL', 'EXPENSE', 'HANDBOOK', 'INFOSEC',
+  'BENEFITS', 'CONDUCT', 'CREATOR', 'EDITORIAL', 'EXPENSE', 'HANDBOOK', 'HOURS', 'INFOSEC',
   'LEAVE', 'ONBOARD', 'PERF', 'PTO', 'REMOTE', 'SAFETY', 'SOCIAL',
 ] as const;
 

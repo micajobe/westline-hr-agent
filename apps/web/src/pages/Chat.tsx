@@ -4,7 +4,7 @@ import { ChatList } from '../components/ChatList';
 import { CitationCard } from '../components/CitationCard';
 import { Composer } from '../components/Composer';
 import { ConfirmationCard } from '../components/ConfirmationCard';
-import { ClassBadge, GLYPH, Label } from '../components/primitives';
+import { Asterisk, ClassBadge, GLYPH, Label } from '../components/primitives';
 import { TraceRail, type TraceTurn } from '../components/TraceRail';
 import { api, chatStream, confirmStream } from '../lib/api';
 import {
@@ -25,7 +25,7 @@ import type { Citation, DemoTask, Persona, TraceEvent } from '../lib/types';
 const storage = browserStorage();
 
 /**
- * PRD §9.1 Chat, restructured per ADR 0014: recent chats left, trace rail right, and one question
+ * PRD §9.1 Chat, restructured per ADR 0016: recent chats left, trace rail right, and one question
  * field that moves. An empty chat opens with the generous field under the header; once the first
  * answer lands the field re-appears docked at the bottom for follow-ups. Every turn — first or
  * follow-up — goes through the same `/chat/stream` pipeline, so the guardrails do not change.
@@ -251,7 +251,7 @@ export function ChatPage({ persona, personas, onPersona }: { persona: Persona | 
                     </div>
                     <div>
                       <Label className="mb-3">Westline</Label>
-                      {t.busy && !t.envelope && <p className="mono text-[var(--muted)]">{GLYPH.off} {describeProgress(t.events)}</p>}
+                      {t.busy && !t.envelope && <p className="mono flex items-center gap-2 text-[var(--muted)]"><Asterisk className="text-[var(--ink)]" />{describeProgress(t.events)}</p>}
                       {t.error && <p className="mono">{GLYPH.warn} {t.error}</p>}
                       {t.envelope && (
                         <div className="space-y-4">

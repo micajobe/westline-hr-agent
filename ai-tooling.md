@@ -636,3 +636,123 @@ happens in exactly one place.
    otherwise staff-only documents. That is the behaviour the feature exists to show, and asserting
    the wrong number would have hidden it. The other was a double-count of withheld documents in the
    test itself, not in the code.
+
+## 2026-09-04 — Chat flow: one field that moves, drawn persona switcher, a working mark
+
+**Asked.** The chat read as a standard chat but only the first entry looked like it triggered a
+lookup, and a follow-up looked like it started over. Open on a generous field under the header with
+no field at the bottom; remove it once the question is asked; bring a field back at the bottom once
+the response lands, for discussing it; keep the guardrails; give testers a way to run scenario 1 or
+2 directly; keep the back-and-forth simple. Then, mid-session: replace the browser `<select>` for
+names and roles with a custom one, and put an animated asterisk next to the reasoning line so an
+in-flight turn does not look like nothing is happening.
+
+**Produced.** `Composer.tsx` (one field, `opening` / `docked`), a rebuilt `Chat.tsx` transcript
+(user message right-aligned on `--paper-2`, answer under a `Westline` eyebrow, no headline
+treatment for the first question), the two PRD §14 tasks as `Scenario 01 / 02` rows on the opening
+panel titled from `/demo/tasks`, `PersonaSelect.tsx` (hand-built listbox), `Asterisk` in
+`primitives.tsx` with a scoped `.asterisk-spin` keyframe in `tokens.css`. No server change.
+206 tests green, typecheck and lint clean. ADR 0016.
+
+**Decisions worth naming.** The premise was worth checking before building to it: the server has
+kept `conv.history` per `conversation_id` since M5, and the client has always passed the chat's
+`conversation_id` on every turn, so follow-ups were never starting over — the layout was what said
+they did. So this is a layout change, and the fix for "the same guardrails" was to leave the request
+path alone rather than to add a second, lighter one. Verified end to end in the browser: a follow-up
+asked after a confirmed draft re-armed the confirmation gate inside the same `conversation_id`.
+And the animated asterisk is a real exception to ADR 0012, not an oversight, so it is scoped to one
+element, honours `prefers-reduced-motion`, and is written down in the ADR rather than slipped in.
+
+**What went wrong, and how it was caught.**
+
+1. **The opening panel loaded scrolled past its own headline.** Caught in the first browser
+   screenshot, not by a test. `bottomRef.scrollIntoView` ran unconditionally on mount, so the empty
+   chat auto-scrolled to the bottom of a panel it should have been pinned to the top of. Now
+   conditional on there being turns.
+2. **A reload mid-flight would have left the chat with no field at all.** Found by reasoning through
+   the state table rather than by hitting it: `loadChats` normalizes `busy` to false, so a restored
+   in-flight turn has no envelope, no error and no `busy` — which satisfied neither the opening
+   condition nor the "has answered" one. The docked field's condition now includes `!busy`.
+3. **Prettier reformatted `PersonaSelect.tsx` away from the house style.** `npm run format` is
+   configured but the repo is not formatted to it; running it on one new file made that file the odd
+   one out. Rewritten by hand to read like its neighbours. The lesson is about the file, not the
+   tool: match the surrounding code, and leave a repo-wide reformat to a decision about the repo.
+4. **Three browser clicks silently did nothing and looked like control bugs.** The Browser pane's
+   coordinate frame (800×500) is not the emulated viewport (1440×900), so `ref`-derived coordinates
+   landed off-frame. Chased one of them as a suspected dropdown-close bug before noticing the
+   pattern. The controls were fine; the harness was the variable.
+
+---
+
+## 2026-09-04 — HOURS: the practical week the corpus never wrote down
+
+**Asked for.** Micah noticed the corpus was missing the questions staff actually ask most: how many
+hours a week, how long is the working day, when is lunch, whether hours can be worked at particular
+times of day. Fill those in.
+
+**Checked first.** A grep for `lunch`, `meal break`, `rest break`, `overtime`, `shift`, `workday`
+and `work ?week` across the fourteen documents returned four hits outside `PTO`, none of them a
+rule. The gap was real and total: the corpus had a great deal to say about time *away* and nothing
+about time *at work*.
+
+**Produced.** `corpus/HOURS.md` — Hours of Work, Breaks & Scheduling, v1.0, People & Culture, 3,500
+words / 7.8 page equivalents, eleven numbered sections: the standard week and part-time thresholds,
+the scheduling window and shift patterns, meal and rest breaks, turnaround and maximum day,
+schedule publication and standby, crew calls in the field, overtime and lieu, timesheets, a
+cross-policy hand-off table, five worked examples and a FAQ. `HANDBOOK` gains a §2 applicability
+row, a §4 ownership entry, five glossary terms and five common questions; `PTO`, `REMOTE`, `SAFETY`
+and `LEAVE` gain cross-references back. PRD §4.1 grows to 15 documents, README / STATUS /
+design-and-evaluation follow, ADR 0017 records the decision. Corpus is now 83.3 page equivalents
+against the PRD's 70–90 ceiling; index rebuilt to 457 chunks.
+
+**Decisions worth naming.**
+
+- **A new document rather than paragraphs bolted onto four existing ones.** Day length could have
+  gone into `PTO`, core hours into `REMOTE`, turnaround into `SAFETY`. Every one of those would have
+  left "how long is my lunch break" without a home to retrieve from, and the applicability matrix
+  with nothing to point at. The cost is that the PRD's own document table had to change; CLAUDE.md
+  says the PRD wins unless an ADR says otherwise, so the PRD was edited in the same commit rather
+  than left to disagree with the corpus.
+- **Inherit the figures already in the corpus.** `PTO` §1.2 had already fixed the standard week at
+  37.5 hours by pro-rating against it, and `REMOTE` §6.1 had already fixed 09:00–17:00 as the
+  reference day by measuring time-zone overlap against it. Both were inherited rather than
+  re-decided; core hours (10:00–15:00) were placed inside the existing window, not beside it. A new
+  document that quietly contradicted two old ones would have been worse than no document.
+- **§6 is overridden to `staff_and_contractors`.** Crew calls, meal windows and turnaround bind
+  everyone on a Westline call sheet, because fatigue does not care how a person is engaged. This is
+  the second use of `section_audience_overrides` and the first that widens a staff document rather
+  than narrowing one, and it gives contractors a real answer to a question they actually ask.
+- **New tensions on purpose,** per PRD §4.2: lieu time resembles paid time off and is governed
+  differently (`HOURS` §7.3 vs `PTO` §2.1); a graduated return replaces the standard week for its
+  period (`LEAVE` §4.4); a night assignment lengthens turnaround (`SAFETY` §4.4).
+
+**What went wrong, and how it was caught.**
+
+1. **`npm run build` failed on `orchestrator.ts` errors that did not exist.** Thirteen TS2304 /
+   TS18048 errors at lines whose current source contains none of the named symbols — a stale
+   `tsbuildinfo` from the in-flight edits in the working tree. `npm run typecheck` was clean on the
+   same files a minute later and the rebuild passed. Worth naming because the instinct was to start
+   fixing someone else's half-finished work: the errors were not mine and not real.
+2. **A cross-reference pointed at the wrong section.** §3.1 sent a staff member on a long desk day
+   to §6.2, which is the shoot-day call sheet. Caught on a consistency read-through of the finished
+   draft, not by any test — nothing in the suite checks that a `§n` reference is *apt*, only that
+   the document it names exists. Reworded, and the index rebuild was restarted from scratch so the
+   embedded text matches the corpus hash.
+3. **§4.2 and its own worked example disagreed about the maximum day.** The rule said a scheduled
+   day is capped at ten hours and that running past *twelve* needs desk approval, leaving the two
+   hours between them unowned; §10.3 then described a twelve-hour shoot day and claimed passing
+   *ten* needed approval. Caught reading the document end to end against its examples, which is the
+   only way to catch it — the tests check that a cited document exists, never that a rule and its
+   illustration agree. §4.2 now separates the ordinary ten-hour day from a shoot day the desk may
+   call to twelve, and the example follows it.
+4. **The worked examples had to be recomputed by hand.** Nothing in the suite checks the arithmetic
+   in prose, so every figure in §10 was worked back against §4.1: 22:30 finish plus ten hours is an
+   08:30 start; a 23:45 finish is after 23:00 so it is eleven hours to 10:45; a 07:00 call hits the
+   14-hour stop at 21:00. They held, but §10.3 was quietly assuming the *forecast* wrap when it said
+   the crew's next call could be 05:00, which is only true if the day does not run on. Now it says
+   so.
+
+**Verification.** 213 tests green, typecheck and lint clean; chunk-hash snapshot regenerated (the
+five cross-referenced documents change hash too, which is the snapshot doing its job);
+`library.test.ts` gains an assertion that a contractor sees §6 of `HOURS` and nothing else, and that
+a creator partner sees it named in `withheld_doc_ids` rather than hidden.

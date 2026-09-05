@@ -26,7 +26,7 @@ flowchart LR
   end
   LLM[Anthropic API<br/>AGENT_MODEL Sonnet 5 · JUDGE_MODEL Opus 5]
   EMB[Voyage voyage-3-lite<br/>embeddings]
-  CORPUS[(corpus/<br/>14 docs · md/html/pdf)]
+  CORPUS[(corpus/<br/>15 docs · md/html/pdf)]
 
   UI -- JSON / SSE --> API --> ORCH
   ORCH <--> CONV

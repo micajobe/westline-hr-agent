@@ -127,7 +127,9 @@ the waiting period has no long-term disability coverage.
 
 A graduated return to work is arranged where the attending physician recommends one, typically over
 2 to 8 weeks. Pay during a graduated return is pro-rated to hours worked, topped up by the
-short-term disability benefit for the balance.
+short-term disability benefit for the balance. The reduced schedule replaces the standard week in
+`HOURS` §1.1 for the period it runs, and is published like any other schedule under `HOURS` §5.1 so
+that the desk does not roster hours the return plan does not allow.
 
 ## 5. Other statutory leaves
 

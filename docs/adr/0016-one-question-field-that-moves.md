@@ -1,4 +1,4 @@
-# ADR 0016 — One question field that moves; scenarios on the opening panel
+# ADR 0016 — One question field that moves; scenarios on the opening panel; a working mark
 
 Status: accepted · 2026-09-04 · Decided by Micah
 
@@ -33,6 +33,22 @@ same conversation.
   video does not see them beside a live conversation. `New chat` returns to the opening panel, so
   the scenarios are always one click away.
 
+- **The persona switcher is drawn, not native.** A `<select>` renders in the OS chrome — rounded
+  corners, the platform's type, the platform's blue highlight — and is the one control on the page
+  ADR 0012 cannot reach. `PersonaSelect` replaces it with the same thing in the system: hairline
+  trigger, a panel of rows carrying name, class badge and a mono `title · market · scope` line, `●`
+  on the selected row and an ink left bar on the keyboard-active one. The listbox keyboard contract
+  is written out (arrows, Home/End, Enter/Space, Escape, Tab), the panel is right-anchored to the
+  trigger because the trigger's width moves with the persona, and a pointer outside closes it.
+- **One exception to "no motion": the working mark.** While a turn is in flight the reasoning line
+  is the only thing in the conversation column and it does not move, which reads as nothing
+  happening — the trace rail is filling, but that is the other side of the screen. `Asterisk` is an
+  eight-spoke mark, spokes alternating long and short so the rotation is legible (eight equal spokes
+  are symmetric enough to look still), turning once every 1.4s, linear, in ink. It is the only
+  animation in the app: `.asterisk-spin` is scoped to this one element and beats the global
+  `* { animation: none !important }` on specificity, and `prefers-reduced-motion: reduce` returns it
+  to the static mark.
+
 ## Consequences
 
 - No server change and no change to the guardrails. A follow-up is a `/chat/stream` POST carrying
@@ -46,6 +62,8 @@ same conversation.
   without that second condition the chat would have no field at all.
 - The `bottomRef` auto-scroll is now conditional on there being turns; unconditional, it scrolled the
   opening panel past its own headline on load.
+- Departs from ADR 0012 twice, deliberately and narrowly: motion, above, and the chevron carve-out
+  ADR 0013 already took. Neither touches colour, corners, shadows or the type roles.
 - Departs from PRD §9.1 on composer placement and on the demo buttons' position and labels. Nothing
   else in §9.1 moves: header, trace rail, confirmation card, citation card and the ADR 0013 shell
   are untouched.

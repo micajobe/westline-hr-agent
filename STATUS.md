@@ -8,7 +8,7 @@ with CI green and 179 tests passing without API keys.
 | Milestone | State | Verified by |
 |---|---|---|
 | M0 Scaffold | done | `npm ci && npm run build && npm test`; CI green from the first push |
-| M1 Corpus + mock data | done | 14 docs (10 md, 2 html, 2 pdf), 73.8 page-equivalents; 29 people incl. every PRD §5 persona; `pto_config` asserted against PTO §1–4 |
+| M1 Corpus + mock data | done | 15 docs (11 md, 2 html, 2 pdf), 83.3 page-equivalents; 29 people incl. every PRD §5 persona; `pto_config` asserted against PTO §1–4 |
 | M2 Ingestion / index / retrieval | done | 414 deterministic chunks (hash snapshot); sqlite-vec + BM25 + RRF; audience diff; `index:build` idempotent (`up_to_date` on second run) |
 | M3 MCP servers | done | 9 tools over real Streamable HTTP; scope, audience, gate token tests; `start:mcp` smoke-tested with raw JSON-RPC |
 | M4 Agent + API | done (model unverified) | `server.start.test.ts` runs demo task 2 end to end with a scripted model: identity injection, gate hold, `/confirm`, replay refusal, verify stripping a fabricated citation; `MCP_MODE=http` verified with two processes |

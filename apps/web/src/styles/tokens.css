@@ -111,6 +111,15 @@ em, i { font-family: var(--serif); font-style: italic; }
 /* Wide tables scroll inside their own box rather than pushing the page sideways. */
 .prose-scroll { overflow-x: auto; margin: 0 0 0.8em; }
 
+/*
+ * The single exception to "no motion" (ADR 0012, carved out in ADR 0016). While a turn is in flight
+ * the reasoning line is the only thing on screen and it does not move, which reads as nothing
+ * happening. Scoped to this one mark, and the class beats the global `* { animation: none }`.
+ */
+@keyframes asterisk-spin { to { transform: rotate(360deg); } }
+.asterisk-spin { transform-origin: 50% 50%; animation: asterisk-spin 1.4s linear infinite !important; }
+@media (prefers-reduced-motion: reduce) { .asterisk-spin { animation: none !important; } }
+
 details > summary { cursor: pointer; list-style: none; }
 details > summary::-webkit-details-marker { display: none; }
 input::placeholder { color: var(--muted); }

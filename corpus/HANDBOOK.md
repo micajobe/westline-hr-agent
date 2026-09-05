@@ -71,6 +71,7 @@ document applies. `None` means it does not apply to you at all and you should no
 |---|---|---|---|---|---|
 | `HANDBOOK` | Westline Employee Handbook | Full | Full | Full | This document. |
 | `PTO` | Paid Time Off & Statutory Holidays | Full | None | None | Contractors invoice for days worked. Creator partners use availability windows; see `CREATOR` §5. |
+| `HOURS` | Hours of Work, Breaks & Scheduling | Full | Partial (§6) | None | Contractors: §6 crew calls, meal windows and turnaround on a Westline call sheet. Creator partners set their own hours; see `CREATOR` §5. |
 | `REMOTE` | Remote, Hybrid & Multi-Market Work | Full | None | None | Contractors and creator partners choose their own place of work, subject to `INFOSEC` and `SAFETY`. |
 | `INFOSEC` | Information Security & Devices | Full | Full | Full | Binds anyone who touches newsroom systems, source material or a Westline account. |
 | `EXPENSE` | Expense & Equipment Policy | Full | Partial (§6, §8) | Partial (§7) | Contractors: §6 claimable costs and §8 tax. Creator partners: §7 invoicing only — the rest does not apply. |
@@ -128,7 +129,7 @@ change reduces an entitlement, we give at least 30 days' notice before the effec
 
 | Area | Owner | Documents |
 |---|---|---|
-| Employment policy, leave, benefits, conduct | People & Culture | `PTO`, `LEAVE`, `BENEFITS`, `CONDUCT`, `PERF`, `ONBOARD`, `REMOTE` |
+| Employment policy, leave, benefits, conduct | People & Culture | `PTO`, `HOURS`, `LEAVE`, `BENEFITS`, `CONDUCT`, `PERF`, `ONBOARD`, `REMOTE` |
 | Editorial standards and disclosure | Editorial Standards desk | `EDITORIAL`, `SOCIAL` |
 | Field safety and live coverage | Field Safety desk | `SAFETY` |
 | Information security | Information Security | `INFOSEC` |
@@ -181,8 +182,14 @@ paid time off; they give notice of periods when they are unavailable for commiss
 **Blackout window.** A period in which paid time off is not normally approved in an affected market
 because coverage demand is at its annual peak. `PTO` §4.
 
+**Call sheet.** The assignment desk's schedule of record for a shoot day: call time, meal window,
+expected wrap and travel. It is the schedule for everyone on it, staff or contractor. `HOURS` §6.1.
+
 **Commissioning brief.** The written instruction that creates a paid deliverable from a creator
 partner, including the rate reference and any production allowance. `CREATOR` §3.1.
+
+**Core hours.** 10:00–15:00 local, the part of the day staff are reachable and available for
+scheduled collaboration whatever else their pattern looks like. `HOURS` §1.3.
 
 **Creator partner.** An independent creator publishing under a Creator Partner Agreement. Not an
 employee and not a contractor. `CREATOR` §1.
@@ -192,6 +199,9 @@ short-term disability payment. Seven calendar days. `LEAVE` §4.2.
 
 **Home market.** The market a staff member is attached to, which sets statutory holidays, per diem
 rate, payroll province and in-office expectation. `REMOTE` §1.1.
+
+**Lieu time.** Authorised overtime banked by salaried staff at 1.5×, used within 90 days. It is not
+paid time off, does not enter the `PTO` bank and is not paid out. `HOURS` §7.3.
 
 **Production allowance.** A budgeted amount, agreed in the commissioning brief before a shoot, for
 costs specific to that segment. It is not a reimbursement scheme and it never covers equipment
@@ -203,9 +213,16 @@ secure store and never crosses an international border.
 **Scope.** What a person may see about other people: `self`, `manager` or `hr_partner`. Distinct from
 workforce class, which is what policy applies *to* them. §3 below.
 
+**Standard week.** 37.5 paid hours: five days of 7.5 paid hours, each spanning eight with an unpaid
+30-minute meal break. The figure every pro-rated entitlement is measured against. `HOURS` §1.1.
+
 **Tier.** For staff, the paid-time-off accrual band set by length of service (`PTO` §1.1). For creator
 partners, the rate band set by Creator Partnerships (`CREATOR` §1.3). The two are unrelated and the
 word is unfortunately reused.
+
+**Turnaround.** The minimum rest between the end of one shift and the start of the next: ten hours,
+eleven after a shift ending past 23:00 or a night assignment. Not waivable by the person it
+protects. `HOURS` §4.1.
 
 **Waiting period.** The 90 days of continuous service before group benefits begin. `BENEFITS` §2.2.
 
@@ -221,6 +238,18 @@ They are shortcuts to the right page, not answers in themselves.
 
 *How much time off do I have, and how much notice do I need?* Entitlement in `PTO` §1.1, notice in
 `PTO` §3 — 48 hours for one or two days, two weeks for three to five days, four weeks beyond that.
+
+*How long is a working day, and is lunch paid?* 7.5 paid hours across an eight-hour span, with an
+unpaid 30-minute meal break taken by the end of the fifth hour. `HOURS` §1.1 and §3.1.
+
+*How early can a shift start, and how much rest do I get between two of them?* Ordinary shifts run
+between 05:00 and 24:00; turnaround is ten hours, eleven after a late finish. `HOURS` §2.1 and §4.1.
+
+*Do I have to answer messages after my shift?* No, unless you are on standby, on a declared
+call-out, or on air. `HOURS` §2.5.
+
+*How much notice do I get of my shifts?* Fourteen days, and a change inside seven days of the shift
+needs your agreement. `HOURS` §5.1 and §5.2.
 
 *Can I carry unused days into next year?* Up to five, used by March 31. `PTO` §2.1.
 
@@ -249,6 +278,10 @@ rate. `EXPENSE` §6.2.
 
 *Am I covered by the safety policy?* Yes, in full, including the risk assessment and incident rules.
 `SAFETY` applies to everyone in the field.
+
+*When does the crew break, and how long between call sheets?* `HOURS` §6 — the one section of the
+hours policy that binds you. First meal window within five hours of call, ten hours from wrap to
+the next call, eleven after a wrap past 23:00.
 
 *Can I use the assistance programme?* Yes, from day one, and Westline never learns you used it.
 `BENEFITS` §6.
