@@ -102,6 +102,14 @@ em, i { font-family: var(--serif); font-style: italic; }
 .prose code { font-family: var(--mono); font-size: 0.85em; letter-spacing: 0; }
 .prose strong { font-weight: 500; }
 .prose em { font-family: inherit; }
+/* Policy documents carry markdown tables (HANDBOOK §2, §4). Hairlines only, like every other rule. */
+.prose table { width: 100%; border-collapse: collapse; margin: 0 0 0.8em; font-size: var(--t-body-sm); }
+.prose th, .prose td { border-top: var(--border-soft); padding: 6px 10px 6px 0; text-align: left; vertical-align: top; }
+.prose thead th { border-top: var(--border-rule); border-bottom: var(--border-rule); font-family: var(--mono); font-size: var(--t-mono-sm); text-transform: uppercase; letter-spacing: var(--tracking-mono-sm); font-weight: 400; color: var(--muted); }
+.prose blockquote { margin: 0 0 0.6em; padding-left: var(--space-4); border-left: var(--border-rule); color: var(--muted); }
+.prose li { margin: 0 0 0.2em; }
+/* Wide tables scroll inside their own box rather than pushing the page sideways. */
+.prose-scroll { overflow-x: auto; margin: 0 0 0.8em; }
 
 details > summary { cursor: pointer; list-style: none; }
 details > summary::-webkit-details-marker { display: none; }

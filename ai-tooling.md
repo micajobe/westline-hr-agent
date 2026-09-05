@@ -596,3 +596,43 @@ two hook URLs and reports the deploy's real outcome instead of a fire-and-forget
    numbering had a hole. Rewritten against reality — including checking the GitHub item with `gh`
    instead of trusting the file, which surfaced that `quantic-grader` is still not a collaborator
    and Actions is still read-only.
+
+---
+
+## Handbook tab — browsing the corpus, and citations that open in context (2026-09-04, evening)
+
+**Asked for.** A categorised listing of the handbook as a tab, on the reasoning that a reader who
+gets an answer will want the passage in its document; and a link inside the citation excerpts that
+open on click in an answer, pointing at that passage in the handbook.
+
+**Produced.** `parseCategories` / `assignCategories` in `packages/rag/src/ingest/categories.ts`
+(HANDBOOK §4 "Who owns what" parsed the way §2 already was), `buildLibrary` / `buildDocumentView` in
+`packages/rag/src/retrieve/library.ts`, `mcp/policy-mcp/src/library.ts` as the only caller, two
+read-only host routes alongside `/desk`, proxy routes on the app, a `/handbook` + `/handbook/:doc_id`
+page, and a `Read §n in the handbook` link on `CitationCard`. `tests/library.test.ts` (12 tests);
+206 tests green, typecheck and lint clean. ADR 0015.
+
+**Decisions worth naming.** The categorisation is *read out of the corpus* rather than written in
+code — asked where a taxonomy should come from, `HANDBOOK` §4 was already the authoritative answer,
+and a hand-written map would have drifted from the document it describes. And the browse path is not
+an MCP tool: the agent gains nothing, the eval surface is unchanged, and audience filtering still
+happens in exactly one place.
+
+**What went wrong, and how it was caught.**
+
+1. **A staff member deep-linking to a staff-only document got "not available to this reader".**
+   Found by opening `/handbook/LEAVE` as Jordan Reyes in the browser, not by a test. The persona
+   resolves a tick after mount, so the page fires an anonymous request first and the real one second;
+   the anonymous `403` was landing last and winning. Both fetches now drop superseded replies. The
+   test suite would never have found this — it has no notion of two requests in flight.
+2. **The scroll-to-cited-section landed at the end of the document.** The first measurement said the
+   target was correctly at the top of the viewport *and* the screenshot showed the last section, which
+   is the contradiction that gave it away: the fonts load with `display=swap`, the jump was computed
+   against fallback metrics on a layout ~8× too tall, and the offset was clamped when the real
+   metrics arrived. The jump is repeated after `document.fonts.ready`.
+3. **Two test expectations were written from memory of the corpus rather than from the corpus.** The
+   anonymous reader was expected to see six `all` documents; the real answer is eight, because
+   `BENEFITS` §6 and `ONBOARD` §4/§6 are `all`-tagged section overrides that open a door into
+   otherwise staff-only documents. That is the behaviour the feature exists to show, and asserting
+   the wrong number would have hidden it. The other was a double-count of withheld documents in the
+   test itself, not in the code.

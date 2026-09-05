@@ -7,7 +7,9 @@ import {
   createEmbeddingProvider,
   loadCorpus,
   parseApplicabilityMatrix,
+  parseCategories,
   type ApplicabilityMatrix,
+  type PolicyCategory,
   type EmbeddingProvider,
 } from '@westline/rag';
 import { PeopleDirectory } from '@westline/shared';
@@ -20,6 +22,8 @@ export interface PolicyContext {
   /** Resolves `acting_person_id` to a viewer (class + scope). The only identity source. */
   people: PeopleDirectory;
   applicability: ApplicabilityMatrix;
+  /** HANDBOOK §4 "Who owns what" -- the browse taxonomy behind the Handbook tab. */
+  categories: PolicyCategory[];
   /** `RERANK=true` -- the LLM reranker ablation. Reported in every search result. */
   rerank: boolean;
   /** Eval ablations (PRD §12.3): force `k` and/or retrieval mode for every search, whatever the model asked for. */
@@ -44,6 +48,7 @@ export function createPolicyContext(init: PolicyContextInit): PolicyContext {
     people: init.people,
     retriever: new Retriever(init.store, init.provider),
     applicability: parseApplicabilityMatrix(handbook),
+    categories: parseCategories(handbook),
     rerank: init.rerank ?? false,
     overrides: init.overrides ?? {},
   };

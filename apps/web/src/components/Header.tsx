@@ -2,38 +2,27 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { api } from '../lib/api';
 import type { Health, Persona } from '../lib/types';
-import { ClassBadge, GLYPH, Json, Label } from './primitives';
+import { PersonaSelect } from './PersonaSelect';
+import { GLYPH, Json, Label } from './primitives';
 
 export function Header({ personas, persona, onPersona }: { personas: Persona[]; persona: Persona | null; onPersona: (p: Persona | null) => void }) {
   const loc = useLocation();
+  // `/handbook/PTO` still marks Handbook as the current tab; only `/` matches exactly.
+  const current = (to: string) => (to === '/' ? loc.pathname === '/' : loc.pathname.startsWith(to));
   const nav = (to: string, label: string) => (
-    <Link to={to} className={`link ${loc.pathname === to ? '' : 'link-muted'}`} style={{ borderBottomWidth: loc.pathname === to ? 1 : 0 }}>{label}</Link>
+    <Link to={to} className={`link ${current(to) ? '' : 'link-muted'}`} style={{ borderBottomWidth: current(to) ? 1 : 0 }}>{label}</Link>
   );
   return (
     <header className="shrink-0 border-b border-[var(--ink)]">
       <div className="flex w-full items-center gap-8 px-6 py-3">
         <Link to="/" className="headline text-[22px]">Westline <span className="pull font-light text-[var(--muted)]">HR assistant</span></Link>
-        <nav className="flex items-center gap-5">{nav('/', 'Chat')}{nav('/desk', 'Desk')}{nav('/eval', 'Eval')}</nav>
+        <nav className="flex items-center gap-5">{nav('/', 'Chat')}{nav('/handbook', 'Handbook')}{nav('/desk', 'Desk')}{nav('/eval', 'Eval')}</nav>
         <div className="ml-auto flex items-center gap-5">
-          <PersonaSwitcher personas={personas} persona={persona} onPersona={onPersona} />
+          <PersonaSelect personas={personas} persona={persona} onPersona={onPersona} />
           <HealthDot />
         </div>
       </div>
     </header>
-  );
-}
-
-function PersonaSwitcher({ personas, persona, onPersona }: { personas: Persona[]; persona: Persona | null; onPersona: (p: Persona | null) => void }) {
-  return (
-    <label className="flex items-center gap-3">
-      <Label>Acting as</Label>
-      <select className="max-w-[340px] border border-[var(--ink)] bg-[var(--paper)] px-2 py-1 text-[length:var(--t-body-sm)]" value={persona?.person_id ?? ''} onChange={(e) => onPersona(personas.find((p) => p.person_id === e.target.value) ?? null)}>
-        <option value="">No persona (anonymous)</option>
-        {personas.map((p) => <option key={p.person_id} value={p.person_id}>{p.name} · {p.title} · {p.workforce_class.replace('_', ' ')} · {p.scope}</option>)}
-      </select>
-      {persona && <ClassBadge workforce_class={persona.workforce_class} />}
-      {persona && <span className="mono-xs uppercase text-[var(--muted)]">{persona.scope}</span>}
-    </label>
   );
 }
 

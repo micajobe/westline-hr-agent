@@ -7,6 +7,7 @@ import type { Persona } from './lib/types';
 import { ChatPage } from './pages/Chat';
 import { DeskPage } from './pages/Desk';
 import { EvalPage } from './pages/Eval';
+import { HandbookPage } from './pages/Handbook';
 import './styles/app.css';
 
 const PERSONA_KEY = 'westline.persona';
@@ -31,6 +32,8 @@ function App() {
         <Header personas={personas} persona={persona} onPersona={setPersona} />
         <Routes>
           <Route path="/" element={<ChatPage persona={persona} personas={personas} onPersona={setPersona} />} />
+          <Route path="/handbook" element={<HandbookPage persona={persona} />} />
+          <Route path="/handbook/:doc_id" element={<HandbookPage persona={persona} />} />
           <Route path="/desk" element={<DeskPage />} />
           <Route path="/eval" element={<EvalPage />} />
         </Routes>

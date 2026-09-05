@@ -1,4 +1,4 @@
-import type { ChatEnvelope, Desk, DemoTask, Health, Persona, TraceEvent } from './types';
+import type { ChatEnvelope, Desk, DemoTask, HandbookDocument, Health, Library, Persona, TraceEvent } from './types';
 
 async function getJson<T>(path: string): Promise<T> {
   const res = await fetch(path, { headers: { accept: 'application/json' } });
@@ -12,7 +12,13 @@ export const api = {
   demoTasks: () => getJson<DemoTask[]>('/demo/tasks'),
   desk: () => getJson<Desk>('/desk'),
   evalLatest: () => getJson<Record<string, unknown>>('/eval/latest'),
+  /** The categorised corpus listing for one acting person. Audience filtering happens server-side. */
+  handbook: (acting_person_id: string | null) => getJson<Library>(`/handbook${actingQuery(acting_person_id)}`),
+  handbookDoc: (doc_id: string, acting_person_id: string | null) =>
+    getJson<HandbookDocument>(`/handbook/${encodeURIComponent(doc_id)}${actingQuery(acting_person_id)}`),
 };
+
+const actingQuery = (id: string | null) => (id ? `?acting_person_id=${encodeURIComponent(id)}` : '');
 
 export interface StreamHandlers {
   onTrace: (e: TraceEvent) => void;

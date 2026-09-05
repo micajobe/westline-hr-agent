@@ -4,7 +4,13 @@ import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest }
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { HR_TOOL_NAMES, createHrDataServer, type HrContext } from '@westline/hr-data-mcp';
-import { POLICY_TOOL_NAMES, createPolicyServer, type PolicyContext } from '@westline/policy-mcp';
+import {
+  POLICY_TOOL_NAMES,
+  createPolicyServer,
+  listPolicyLibrary,
+  readPolicyDocument,
+  type PolicyContext,
+} from '@westline/policy-mcp';
 
 export const MCP_SECRET_HEADER = 'x-westline-mcp-secret';
 export const MCP_PATHS = { policy: '/mcp/policy', hr: '/mcp/hr' } as const;
@@ -74,6 +80,28 @@ export async function startMcpHost(opts: McpHostOptions): Promise<McpHost> {
     return { tickets: opts.hr.desk.listTickets(), drafts: opts.hr.desk.listDrafts(), resets_on_redeploy: true };
   });
 
+  // Read-only browse for the app's Handbook tab. Secret-protected like the MCP routes, and served
+  // from here for the same reason /desk is: the index lives with policy-mcp, not with the app. The
+  // acting person is a query parameter and audience filtering happens inside policy-mcp.
+  app.get<{ Querystring: { acting_person_id?: string } }>('/handbook', async (request, reply) => {
+    if (!secretMatches(request, opts.secret)) return reply.code(401).send({ error: 'UNAUTHORIZED' });
+    return listPolicyLibrary(opts.policy, actingPersonId(request.query.acting_person_id));
+  });
+
+  app.get<{ Params: { doc_id: string }; Querystring: { acting_person_id?: string } }>(
+    '/handbook/:doc_id',
+    async (request, reply) => {
+      if (!secretMatches(request, opts.secret)) return reply.code(401).send({ error: 'UNAUTHORIZED' });
+      const result = readPolicyDocument(
+        opts.policy,
+        actingPersonId(request.query.acting_person_id),
+        request.params.doc_id,
+      );
+      if (!result.ok) return reply.code(result.error === 'NOT_FOUND' ? 404 : 403).send(result);
+      return result.document;
+    },
+  );
+
   app.get('/health', async () => ({
     status: 'ok',
     service: 'westline-mcp',
@@ -96,6 +124,11 @@ export async function startMcpHost(opts: McpHostOptions): Promise<McpHost> {
     urls: { policy: `${url}${MCP_PATHS.policy}`, hr: `${url}${MCP_PATHS.hr}` },
     close: () => app.close(),
   };
+}
+
+/** An absent, empty or malformed id is anonymous: `all`-audience material only, per PRD §6.1. */
+function actingPersonId(raw: string | undefined): string | null {
+  return raw && /^W-\d{4}$/.test(raw) ? raw : null;
 }
 
 function secretMatches(request: FastifyRequest, secret: string): boolean {

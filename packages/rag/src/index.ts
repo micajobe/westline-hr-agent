@@ -3,6 +3,7 @@ export { loadCorpus, loadDocument } from './ingest/load.js';
 export { parseFrontMatter, FrontMatterError } from './ingest/frontmatter.js';
 export { parseSections, leafUnits, effectiveAudience } from './ingest/headings.js';
 export { parseApplicabilityMatrix, APPLICABILITY_SOURCE } from './ingest/applicability.js';
+export { parseCategories, assignCategories, CATEGORY_SOURCE } from './ingest/categories.js';
 export {
   chunkDocument,
   chunkCorpus,

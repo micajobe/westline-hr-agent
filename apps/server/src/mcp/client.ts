@@ -9,6 +9,10 @@ interface AjvInstance { compile(schema: object): Validator }
 type Validator = ((data: unknown) => boolean) & { errors?: { instancePath: string; message?: string; params?: Record<string, unknown> }[] | null };
 
 export type ServerName = 'policy' | 'hr';
+/** Read-only host routes the app may proxy. */
+export type HostPath = '/health' | '/desk' | `/handbook${string}`;
+/** Thrown by `hostGet` on a non-2xx; `status` and `body` are the host's own. */
+export interface HostGetError extends Error { status?: number; body?: unknown }
 export const SERVER_NAMES: ServerName[] = ['policy', 'hr'];
 export const MCP_SECRET_HEADER = 'x-westline-mcp-secret';
 /** Namespace separator: `policy__search_policy_documents` (Anthropic tool names allow `_`). */
@@ -218,10 +222,19 @@ export class McpToolClient {
     return out;
   }
 
-  /** The host's own /health and /desk, proxied so the app never opens the index or desk files itself. */
-  async hostGet<T = unknown>(path: '/health' | '/desk'): Promise<T> {
+  /**
+   * The host's read-only HTTP surface -- /health, /desk and the Handbook browse routes -- proxied so
+   * the app never opens the index or the desk file itself. Not the MCP request path.
+   *
+   * A non-2xx carries the host's status and parsed body on the thrown error, so a caller can pass a
+   * structured NOT_FOUND / FORBIDDEN_AUDIENCE through instead of flattening it to a 503.
+   */
+  async hostGet<T = unknown>(path: HostPath): Promise<T> {
     const res = await fetch(`${this.opts.baseUrl}${path}`, { headers: { [MCP_SECRET_HEADER]: this.opts.secret }, signal: AbortSignal.timeout(5_000) });
-    if (!res.ok) throw new Error(`${path} -> ${res.status}`);
+    if (!res.ok) {
+      const body: unknown = await res.json().catch(() => null);
+      throw Object.assign(new Error(`${path} -> ${res.status}`), { status: res.status, body });
+    }
     return (await res.json()) as T;
   }
 

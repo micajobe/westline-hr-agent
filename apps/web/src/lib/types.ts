@@ -36,3 +36,33 @@ export interface Desk {
   drafts: { draft_id: string; created_by: string; about_person_id: string; recipient_role: string; subject: string; body: string; created_at: string; turn_id: string | null }[];
   resets_on_redeploy?: boolean;
 }
+
+// ---------- Handbook (browse) ----------
+
+/** HANDBOOK §2 row for the acting person's class: does this document bind them, and how much of it. */
+export interface Applicability { doc_id: string; title: string; scope: 'full' | 'partial' | 'none'; sections?: string[]; note: string }
+export interface LibrarySection { section_path: string; section_title: string; level: number; audience: string; readable: boolean }
+export interface LibraryDocument {
+  doc_id: string; title: string; source_format: 'md' | 'html' | 'pdf';
+  version: string; effective_date: string; owner: string; audience: string;
+  readable: boolean; section_count: number; readable_section_count: number;
+  sections: LibrarySection[];
+}
+/** One row of HANDBOOK §4 "Who owns what", with its documents. */
+export interface LibraryCategory { area: string; owner: string; doc_ids: string[]; documents: LibraryDocument[] }
+export interface Library {
+  categories: LibraryCategory[];
+  viewer: { workforce_class: string | null; scope: string | null };
+  workforce_class: string | null;
+  applicability: Record<string, Applicability>;
+  withheld_doc_ids: string[];
+  doc_count: number;
+  readable_doc_count: number;
+}
+export interface DocumentSection extends LibrarySection { text: string | null; withheld_reason: string | null }
+export interface HandbookDocument {
+  doc_id: string; title: string; source_format: 'md' | 'html' | 'pdf';
+  version: string; effective_date: string; owner: string; audience: string;
+  preamble: string | null; sections: DocumentSection[]; withheld_section_count: number;
+  applicability: Applicability | null;
+}

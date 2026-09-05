@@ -118,3 +118,71 @@ export interface ApplicabilityRow {
 }
 
 export type ApplicabilityMatrix = Record<WorkforceClass, ApplicabilityRow[]>;
+
+/** Parsed from HANDBOOK §4 "Who owns what": the browse taxonomy behind the Handbook tab. */
+export interface PolicyCategory {
+  /** The `Area` cell, e.g. "Editorial standards and disclosure". */
+  area: string;
+  owner: string;
+  doc_ids: string[];
+}
+
+/** One numbered section as the browse listing sees it. No text: the listing is a table of contents. */
+export interface LibrarySection {
+  section_path: string;
+  section_title: string;
+  level: number;
+  /** Effective audience after `section_audience_overrides`. */
+  audience: Audience;
+  /** False when this viewer's class and scope do not cover `audience`. */
+  readable: boolean;
+}
+
+export interface LibraryDocument {
+  doc_id: string;
+  title: string;
+  source_format: SourceFormat;
+  version: string;
+  effective_date: string;
+  owner: string;
+  audience: Audience;
+  /** True when at least one section is readable -- `BENEFITS` §6 opens the door for contractors. */
+  readable: boolean;
+  section_count: number;
+  readable_section_count: number;
+  sections: LibrarySection[];
+}
+
+export interface LibraryCategory extends PolicyCategory {
+  documents: LibraryDocument[];
+}
+
+export interface PolicyLibrary {
+  categories: LibraryCategory[];
+  viewer: Viewer;
+  /** Documents whose every section is closed to this viewer. Named, never hidden: HANDBOOK §2 is public. */
+  withheld_doc_ids: string[];
+  doc_count: number;
+  readable_doc_count: number;
+}
+
+/** A section in the reading view: its own body only, children excluded, text present iff readable. */
+export interface DocumentSection extends LibrarySection {
+  text: string | null;
+  /** Set when `text` is null, in the shape of `getPolicySection`'s FORBIDDEN_AUDIENCE reason. */
+  withheld_reason: string | null;
+}
+
+export interface DocumentView {
+  doc_id: string;
+  title: string;
+  source_format: SourceFormat;
+  version: string;
+  effective_date: string;
+  owner: string;
+  audience: Audience;
+  /** Text under the document's `#` title, before the first numbered section. Null when withheld. */
+  preamble: string | null;
+  sections: DocumentSection[];
+  withheld_section_count: number;
+}
