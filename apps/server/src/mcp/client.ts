@@ -67,6 +67,8 @@ export interface McpClientOptions {
 export class McpToolClient {
   private readonly clients = new Map<ServerName, Client>();
   private tools: DiscoveredTool[] = [];
+  /** In-flight re-discovery, so concurrent turns wait on one attempt instead of stampeding. */
+  private rediscovery?: Promise<void>;
   private readonly validators = new Map<string, Validator>();
   private readonly ajv = new AjvCtor({ allErrors: true, strict: false });
   private readonly timeoutMs: number;
@@ -95,15 +97,57 @@ export class McpToolClient {
     for (const server of SERVER_NAMES) {
       if (this.isDisabled(server)) continue;
       try {
-        const client = await this.connect(server);
-        const { tools } = await client.listTools();
-        for (const t of tools) found.push(toDiscovered(server, t));
+        found.push(...(await this.discoverServer(server)));
       } catch {
-        // Reported by health(); calls to this server return TOOL_UNAVAILABLE.
+        // Left to ensureDiscovered() to retry before the next turn; health() reports it meanwhile.
       }
     }
     this.tools = found;
     return found;
+  }
+
+  /**
+   * Startup discovery is best-effort, and on a free Render instance the MCP service is routinely
+   * asleep or mid-restart when the app boots (a cold start measured 33 s). A server that yields
+   * nothing then leaves the agent holding an empty tool list for the life of the process: the model
+   * is handed no tools, so it calls none, and every answer comes back with no data and an
+   * escalation -- while `/health` still reports the server connected, because health re-runs
+   * `list_tools` itself instead of reading this cache. Re-discover any enabled server with no
+   * cached tools before a turn reads the list.
+   */
+  async ensureDiscovered(): Promise<DiscoveredTool[]> {
+    const missing = SERVER_NAMES.filter((s) => !this.isDisabled(s) && !this.tools.some((t) => t.server === s));
+    if (missing.length === 0) return this.discovered();
+    this.rediscovery ??= this.rediscoverServers(missing).finally(() => {
+      this.rediscovery = undefined;
+    });
+    await this.rediscovery;
+    return this.discovered();
+  }
+
+  private async rediscoverServers(servers: ServerName[]): Promise<void> {
+    for (const server of servers) {
+      try {
+        const found = await this.discoverServer(server);
+        this.tools = [...this.tools.filter((t) => t.server !== server), ...found];
+      } catch {
+        // Still unreachable. The next turn tries again rather than failing permanently.
+      }
+    }
+  }
+
+  private async discoverServer(server: ServerName): Promise<DiscoveredTool[]> {
+    try {
+      const client = await this.connect(server);
+      const { tools } = await client.listTools();
+      return tools.map((t) => toDiscovered(server, t));
+    } catch (err) {
+      // A Streamable HTTP session does not survive the MCP service restarting or sleeping, and
+      // connect() hands back whatever is cached without checking. Drop it so the retry reconnects
+      // instead of reusing a dead session forever.
+      this.clients.delete(server);
+      throw err;
+    }
   }
 
   discovered(): DiscoveredTool[] {

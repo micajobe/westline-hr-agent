@@ -111,11 +111,17 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
       index = null;
     }
     const allUp = Object.values(servers).every((s) => s.status === 'connected' || s.status === 'disabled');
+    // `mcp` above is a fresh list_tools probe; `tools` below is the cache the agent is actually
+    // handed. They diverge when startup discovery failed, and that gap is the difference between a
+    // working agent and one that answers every question with no data -- so report it, and do not
+    // call the app healthy while it holds no tools.
+    const agentTools = mcp.discovered();
     return {
-      status: allUp ? 'ok' : 'degraded',
+      status: allUp && agentTools.length > 0 ? 'ok' : 'degraded',
       uptime_s: Math.round((Date.now() - startedAt) / 1000),
       version: config.version,
       mcp: servers,
+      tools: { available_to_agent: agentTools.length, names: agentTools.map((t) => t.namespaced) },
       index,
       models: { agent: config.agentModel, judge: config.judgeModel, available: deps.modelAvailable },
       mode: { mcp: config.mcpMode, chaos: config.chaosDisableHrMcp, rerank: config.rerank, mcp_base_url: mcp.baseUrl },

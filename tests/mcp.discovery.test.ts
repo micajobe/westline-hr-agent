@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { MCP_SECRET_HEADER } from '@westline/mcp-host';
-import { startTestHost, type TestHost } from './helpers/mcp.js';
+import { McpToolClient } from '@westline/server';
+import { startTestHost, TEST_SECRET, type TestHost } from './helpers/mcp.js';
 
 let host: TestHost;
 beforeAll(async () => {
@@ -76,5 +77,48 @@ describe('MCP discovery over Streamable HTTP', () => {
     } finally {
       await chaos.stop();
     }
+  });
+});
+
+/**
+ * Regression: startup discovery is best-effort, so an MCP server that is asleep or restarting when
+ * the app boots leaves the tool cache empty for the life of the process. The agent is then handed
+ * no tools, calls none, and answers every question with no data -- while /health, which re-runs
+ * list_tools itself, still reports the server connected. Nothing may leave the cache empty for a
+ * turn that could have refilled it.
+ */
+describe('tool cache recovery after a failed startup discovery', () => {
+  it('fills an empty cache on demand, without an explicit discover()', async () => {
+    const mcp = new McpToolClient({ baseUrl: host.url, secret: TEST_SECRET });
+    expect(mcp.discovered(), 'cache starts empty, as it would after a failed boot').toHaveLength(0);
+    expect(mcp.anthropicTools(), 'the model would be handed nothing').toHaveLength(0);
+
+    try {
+      const tools = await mcp.ensureDiscovered();
+      expect(tools).toHaveLength(9);
+      expect(mcp.anthropicTools()).toHaveLength(9);
+      expect(new Set(tools.map((t) => t.server))).toEqual(new Set(['policy', 'hr']));
+    } finally {
+      await mcp.close();
+    }
+  });
+
+  it('is a no-op once the cache is populated', async () => {
+    const mcp = new McpToolClient({ baseUrl: host.url, secret: TEST_SECRET });
+    try {
+      await mcp.discover();
+      expect(mcp.discovered()).toHaveLength(9);
+      await mcp.ensureDiscovered();
+      expect(mcp.discovered(), 'must not duplicate the cached tools').toHaveLength(9);
+    } finally {
+      await mcp.close();
+    }
+  });
+
+  it('leaves the cache empty and does not throw when every server is unreachable', async () => {
+    const mcp = new McpToolClient({ baseUrl: 'http://127.0.0.1:1', secret: TEST_SECRET });
+    await expect(mcp.ensureDiscovered()).resolves.toHaveLength(0);
+    // Retried rather than poisoned: a later turn gets another attempt.
+    await expect(mcp.ensureDiscovered()).resolves.toHaveLength(0);
   });
 });

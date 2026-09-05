@@ -80,8 +80,12 @@ jobs:
           assert h["mcp"]["policy"]["status"] == "connected", h["mcp"]
           assert h["mcp"]["hr"]["status"] == "connected", h["mcp"]
           assert h["mcp"]["policy"]["tools"] == 4 and h["mcp"]["hr"]["tools"] == 5, h["mcp"]
+          # The checks above are a fresh probe and stay green even when startup discovery failed
+          # and the agent holds no tools at all. Assert the cache the agent is handed.
+          assert h.get("tools", {}).get("available_to_agent") == 9, h.get("tools")
           print("both MCP servers connected:", h["mcp"]["policy"]["tools"], "+",
                 h["mcp"]["hr"]["tools"], "tools; mode", h["mode"]["mcp"])
+          print("tools available to the agent:", h["tools"]["available_to_agent"])
           print("index:", h["index"]["chunk_count"], "chunks,", h["index"]["embedding_model"])'
               exit 0
             fi

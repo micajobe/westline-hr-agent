@@ -8,6 +8,8 @@
 export const TRACE_TYPES = [
   'intent',
   'plan',
+  /** One ACT-loop model round trip. Without it a third of a turn's latency is unaccounted for. */
+  'act',
   'tool_call',
   'tool_result',
   'retrieval',

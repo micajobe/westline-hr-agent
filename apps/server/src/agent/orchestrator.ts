@@ -191,6 +191,9 @@ export class Orchestrator {
 
   /** The ACT loop. Returns `done` when the model stops calling tools, or `gate` when a gated call needs confirmation. */
   private async act(state: LoopState, resume?: { pendingArgs: Record<string, unknown>; pendingTool: string }): Promise<LoopOutcome> {
+    // Startup discovery may have found nothing (MCP service asleep or restarting). Retry here
+    // rather than handing the model an empty tool list and answering with no data.
+    await this.d.mcp.ensureDiscovered();
     const tools = this.d.mcp.anthropicTools();
     const maxIterations = state.plan.intent === 'out_of_scope' ? Math.min(2, this.d.maxIterations) : this.d.maxIterations;
 
@@ -212,19 +215,29 @@ export class Orchestrator {
 
     while (state.iteration < maxIterations) {
       state.iteration++;
+      const modelStarted = Date.now();
       const res = await this.d.model.create({ system: state.system, messages: state.messages, tools: tools as any, max_tokens: 4096 });
       state.messages.push({ role: 'assistant', content: res.content as ContentBlock[] });
       const toolUses = res.content.filter((b): b is Extract<ContentBlock, { type: 'tool_use' }> => b.type === 'tool_use');
+      state.trace.emit({ type: 'act', duration_ms: Date.now() - modelStarted, result_summary: `iteration ${state.iteration} · ${toolUses.length} tool call${toolUses.length === 1 ? '' : 's'} proposed`, detail: { stop_reason: res.stop_reason, tools_available: tools.length, usage: res.usage ? { input_tokens: res.usage.input_tokens, output_tokens: res.usage.output_tokens } : undefined } });
       if (res.stop_reason !== 'tool_use' || toolUses.length === 0) return { kind: 'done' };
 
-      const results: { tool_use_id: string; content: string }[] = [];
-      for (const tu of toolUses) {
+      // Classify in order first. A gate suspends the turn, so nothing after it may run -- but the
+      // ungated reads before it are independent, and executing them one await at a time made a
+      // four-tool turn four sequential round trips.
+      const slots: ({ tool_use_id: string; content: string } | undefined)[] = new Array(toolUses.length);
+      const runnable: { index: number; id: string; tool: string; args: Record<string, unknown> }[] = [];
+      let gate: PendingGate | undefined;
+
+      for (let i = 0; i < toolUses.length && !gate; i++) {
+        const tu = toolUses[i];
+        if (!tu) continue;
         const discovered = this.d.mcp.resolve(tu.name);
         const checked = this.d.mcp.validateArgs(tu.name, tu.input ?? {});
         if (!checked.ok) {
           // Malformed call: tell the model, never the user. A gate must only ever show valid arguments.
           state.trace.emit({ type: 'tool_result', server: discovered?.server, tool: tu.name, result_status: 'INVALID_ARGS', result_summary: checked.message.slice(0, 200), detail: { proposed: tu.input } });
-          results.push({ tool_use_id: tu.id, content: JSON.stringify({ status: 'INVALID_ARGS', message: checked.message, hint: 'fix the arguments to match the tool schema exactly and call again' }) });
+          slots[i] = { tool_use_id: tu.id, content: JSON.stringify({ status: 'INVALID_ARGS', message: checked.message, hint: 'fix the arguments to match the tool schema exactly and call again' }) };
           continue;
         }
         const args = checked.args;
@@ -232,19 +245,29 @@ export class Orchestrator {
         if (already) {
           // The confirmed action has run once this turn. Never gate (or execute) it a second time;
           // hand the model the earlier result so it finishes the answer.
-          results.push({ tool_use_id: tu.id, content: JSON.stringify({ status: 'ALREADY_EXECUTED', ref_id: already.ref_id, result_summary: already.result_summary, note: 'this action already ran after the user confirmed it; do not call it again, finish the answer' }) });
+          slots[i] = { tool_use_id: tu.id, content: JSON.stringify({ status: 'ALREADY_EXECUTED', ref_id: already.ref_id, result_summary: already.result_summary, note: 'this action already ran after the user confirmed it; do not call it again, finish the answer' }) };
           state.trace.emit({ type: 'tool_result', server: 'hr', tool: tu.name, result_status: 'ALREADY_EXECUTED', result_summary: `repeat call suppressed; ${already.result_summary}` });
           continue;
         }
         if (discovered?.gated) {
           const args_hash = proposedArgsHash(args, state.acting_person_id);
-          const pending: PendingGate = { tool_use_id: tu.id, tool: tu.name, args, args_hash, summary: this.describeAction(tu.name, args, state.acting_person_id) };
-          state.trace.emit({ type: 'gate', server: 'hr', tool: tu.name, args: { ...args, acting_person_id: state.acting_person_id }, result_status: 'CONFIRMATION_REQUIRED', result_summary: pending.summary, detail: { args_hash, proposed_args: args } });
-          return { kind: 'gate', pending, completed_results: results };
+          gate = { tool_use_id: tu.id, tool: tu.name, args, args_hash, summary: this.describeAction(tu.name, args, state.acting_person_id) };
+          state.trace.emit({ type: 'gate', server: 'hr', tool: tu.name, args: { ...args, acting_person_id: state.acting_person_id }, result_status: 'CONFIRMATION_REQUIRED', result_summary: gate.summary, detail: { args_hash, proposed_args: args } });
+          continue;
         }
-        const executed = await executeTool(this.d.mcp, state.citations, state.trace, state.actions, { tool_use_id: tu.id, tool: tu.name, args }, { acting_person_id: state.acting_person_id });
-        results.push({ tool_use_id: tu.id, content: JSON.stringify(executed.result) });
+        runnable.push({ index: i, id: tu.id, tool: tu.name, args });
       }
+
+      const executed = await Promise.all(
+        runnable.map((r) => executeTool(this.d.mcp, state.citations, state.trace, state.actions, { tool_use_id: r.id, tool: r.tool, args: r.args }, { acting_person_id: state.acting_person_id })),
+      );
+      runnable.forEach((r, k) => {
+        const out = executed[k];
+        if (out) slots[r.index] = { tool_use_id: r.id, content: JSON.stringify(out.result) };
+      });
+      const results = slots.filter((s): s is { tool_use_id: string; content: string } => Boolean(s));
+
+      if (gate) return { kind: 'gate', pending: gate, completed_results: results };
       state.messages.push(toolResultsMessage(results));
     }
     state.trace.emit({ type: 'error', result_status: 'iteration_cap', result_summary: `stopped after ${maxIterations} tool iterations; synthesizing from what was gathered` });
