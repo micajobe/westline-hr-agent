@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import Markdown from 'react-markdown';
+import Markdown, { type Options } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Badge, GLYPH, Label, PanelToggle } from '../components/primitives';
 import { api } from '../lib/api';
@@ -15,16 +15,16 @@ import type {
 } from '../lib/types';
 
 /** Policy tables are wide; give each its own scroll box so the reading column never shifts. */
-const MD = {
+const MD: Options = {
   remarkPlugins: [remarkGfm],
   components: {
-    table: ({ children }: { children?: ReactNode }) => (
+    table: ({ children }) => (
       <div className="prose-scroll">
         <table>{children}</table>
       </div>
     ),
   },
-} as const;
+};
 
 /** DOM id for a section anchor: `§3.2` is not a safe fragment, `sec-3.2` is. */
 export const sectionId = (section_path: string) => `sec-${section_path.replace('§', '')}`;
