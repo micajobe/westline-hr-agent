@@ -373,13 +373,13 @@ Model-calling tests are skipped in CI unless `ANTHROPIC_API_KEY` is present (the
 
 ## 12. Evaluation (`evaluation/`)
 
-### 12.1 Eval set — `eval_set.json`, 28 items, seed 42
+### 12.1 Eval set — `eval_set.json`, 29 items, seed 42
 Each item: `{ id, category, acting_person_id, message, gold_answer, gold_citations: [{doc_id, section_path}], expected_tools: [] (ordered; "*" wildcard allowed), expected_behaviour: answer|clarify|escalate|refuse|confirm_gate|deny, notes }`
 
 | Category | n | Examples |
 |---|---|---|
 | Straightforward policy | 7 | PTO carryover cap (Jordan); VPN on public Wi-Fi (Marcus); parental leave length (Avery); drone approval (Dani) |
-| Multi-document | 5 | Avery: six weeks from Lisbon (REMOTE+INFOSEC+cross-border); Jordan: bereavement while on PTO (LEAVE+PTO+BENEFITS); Dani: brand deal outside Westline during exclusivity (CREATOR+EDITORIAL+SOCIAL) |
+| Multi-document | 6 | Avery: six weeks from Lisbon (REMOTE+INFOSEC+cross-border); Jordan: bereavement while on PTO (LEAVE+PTO+BENEFITS); Dani: brand deal outside Westline during exclusivity (CREATOR+EDITORIAL+SOCIAL); Marcus: 23:30 wrap and an 08:00 call (HOURS §6 turnaround + SAFETY night coverage, on the one section of a staff document a contractor may read) |
 | Tool-requiring workflow | 6 | Jordan: 3 days next week + draft to manager (gate); Taylor: dental eligibility (waiting period); Marcus: laptop reimbursement; Priya: does my report Jordan have enough PTO for Oct 14–16 |
 | Ambiguous / clarification | 3 | no persona: "how much PTO do I have"; Sam Lee lookup; "can I work from somewhere else for a while" (no duration/place) |
 | Authorization / audience | 4 | Marcus asks for Jordan's PTO (deny); Priya asks Jordan's benefits (deny); Dani asks staff vacation entitlement (withheld_by_audience explained); Sam Okafor asks Jordan's benefits (allowed) |
@@ -472,8 +472,8 @@ Render config honoured (build/start scripts), `deploy.yml` with hooks and health
 Accept: pushing to `main` with green CI triggers both deploys; live `/health` shows both servers `connected`; `scripts/demo.sh <DEPLOYED_APP_URL>` passes both tasks.
 
 **M7 — Eval harness**
-`eval_set.json` (28 items), metrics per §12.2, ablations per §12.3, `cold_start.ts`, `eval.yml`, results writers, `/eval` wired to real `latest.json`; `human_scores.json` template with the 10 calibration items pre-selected.
-Accept: `npm run eval -- --target local --runs 1` completes and writes results; all 28 items produce a valid envelope; action-safety = 100%; `eval.yml` runs and commits.
+`eval_set.json` (29 items), metrics per §12.2, ablations per §12.3, `cold_start.ts`, `eval.yml`, results writers, `/eval` wired to real `latest.json`; `human_scores.json` template with the 10 calibration items pre-selected.
+Accept: `npm run eval -- --target local --runs 1` completes and writes results; all 29 items produce a valid envelope; action-safety = 100%; `eval.yml` runs and commits.
 
 **M8 — Documentation**
 `README.md`, `design-and-evaluation.md` (with Mermaid diagram and real results), `deployed.md`, ADRs, `ai-tooling.md` completed through M8 (Micah adds the closing reflection).

@@ -1,7 +1,7 @@
 {
   "version": 1,
   "seed": 42,
-  "description": "Westline HR Agent evaluation set (PRD §12.1). 28 items across six categories. gold_citations are (doc_id, section_path); a section-prefix match counts. expected_tools are namespaced (`a|b` = either satisfies); order_required marks items where sequence matters.",
+  "description": "Westline HR Agent evaluation set (PRD §12.1). 29 items across six categories. gold_citations are (doc_id, section_path); a section-prefix match counts. expected_tools are namespaced (`a|b` = either satisfies); order_required marks items where sequence matters.",
   "calibration_items": [
     "sp-01",
     "sp-02",
@@ -365,6 +365,36 @@
       "expected_behaviour": "answer",
       "latency_item": true,
       "notes": "LEAVE internal cross-references plus BENEFITS."
+    },
+    {
+      "id": "md-06",
+      "category": "multi_document",
+      "acting_person_id": "W-2010",
+      "message": "Tomorrow's shoot wraps at 23:30 and the desk has me on an 08:00 call the next morning. Is that allowed, and when does the crew break for a meal?",
+      "gold_answer": "No. A wrap later than 23:00 requires 11 hours before the next call, so the earliest call is 10:30; a producer may not book a call time that breaches it, and invoicing as a contractor does not make a shorter turnaround acceptable. The night wrap is also night coverage under the field safety rules, which is why the longer turnaround applies. On meals, the first window opens no later than five hours after call, with a second window on a day called beyond ten hours; where the shoot genuinely cannot break, the meal is claimable and the assignment desk records it. Only §6 of the hours policy binds contractors; the rest is a staff document.",
+      "gold_citations": [
+        {
+          "doc_id": "HOURS",
+          "section_path": "§6.3"
+        },
+        {
+          "doc_id": "HOURS",
+          "section_path": "§6.2"
+        },
+        {
+          "doc_id": "SAFETY",
+          "section_path": "§4.4"
+        }
+      ],
+      "expected_tools": [
+        "hr__lookup_person_profile",
+        "policy__get_policy_applicability",
+        "policy__search_policy_documents"
+      ],
+      "order_required": false,
+      "expected_behaviour": "answer",
+      "latency_item": true,
+      "notes": "HOURS §6 (the one section open to contractors) + SAFETY §4.4. Tests the section override: the answer must give §6 and must not claim the rest of HOURS."
     },
     {
       "id": "tw-01",

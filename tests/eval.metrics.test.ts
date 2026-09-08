@@ -12,9 +12,9 @@ const ev = (type: string, extra: Partial<Envelope['trace'][number]> = {}) => ({ 
 const fact = (doc: string, sec: string) => ({ id: 'f1', statement: 's', citations: [{ chunk_id: `${doc}#${sec}#0`, doc_id: doc, section_path: sec, snippet: '' }] });
 
 describe('eval set', () => {
-  it('loads 28 valid items across six categories with the calibration items present', () => {
+  it('loads 29 valid items across six categories with the calibration items present', () => {
     const set = loadEvalSet();
-    expect(set.items).toHaveLength(28);
+    expect(set.items).toHaveLength(29);
     expect(new Set(set.items.map((i) => i.category)).size).toBe(6);
     expect(set.calibration_items).toHaveLength(10);
     expect(set.items.filter((i) => i.latency_item).length).toBeGreaterThanOrEqual(15);
