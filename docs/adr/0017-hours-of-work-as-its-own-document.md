@@ -54,6 +54,10 @@ the applicability matrix would have had nothing to point at.
 - The eval set is unchanged at 28 items (PRD §12.1). `HOURS` is retrievable but nothing scores it
   yet; an hours item is worth adding the next time the eval set is revised, and would fit the
   `multi_document` category since the good answers cite `HOURS` alongside `PTO` or `SAFETY`.
+  **Followed up 2026-09-08 (`2ef8111`):** `md-06` was added on exactly that reasoning — a contractor
+  asked about a 23:30 wrap against an 08:00 call, scored against `HOURS` §6 plus `SAFETY` §4.4. It is
+  the only item that exercises the section-level audience override rather than a whole-document one.
+  The set is now 29 items.
 - Adding a staff-only document slightly widens what a creator partner is told they cannot read.
   `withheld_doc_ids` grows by one for `dani`, which is the intended behaviour under ADR 0008:
   withheld is named, never hidden.

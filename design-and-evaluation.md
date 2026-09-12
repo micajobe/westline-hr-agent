@@ -56,12 +56,12 @@ no tool implementation in either mode.
 - Secrets only from env; `.env.example` is the reference; `render.yaml` names every variable and
   marks secrets `sync: false`. The one shared secret signs both the MCP transport header and the
   confirmation tokens.
-- Determinism: chunking is pure (`tests/ingest.test.ts` snapshots 414 chunk hashes); the eval set
+- Determinism: chunking is pure (`tests/ingest.test.ts` snapshots 457 chunk hashes); the eval set
   carries `seed: 42`; all model calls run at temperature 0 and results report means over N runs.
 
 ### 2.2 Ingestion, chunking, embeddings, vector store, citation metadata (rubric 2)
 
-- **Three formats.** 10 markdown, 2 HTML (`PTO`, `BENEFITS`, with real `<table>`s), 2 PDFs
+- **Three formats.** 11 markdown, 2 HTML (`PTO`, `BENEFITS`, with real `<table>`s), 2 PDFs
   (`INFOSEC`, `EXPENSE`) generated from markdown by `scripts/build-pdfs.mjs`, which then re-extracts
   the PDF and fails the build if any heading was lost — so the ingester is exercised on a real PDF
   text layer, not a synthetic one.
@@ -84,6 +84,30 @@ no tool implementation in either mode.
 - **Hybrid BM25 + vector with reciprocal rank fusion** (ADR 0005). BM25 catches the section numbers
   and figures that policy questions hinge on ("§3.2", "14 days"); the vector side catches paraphrase.
   Ablation 3 measures each alone.
+- **Why k = 6.** `DEFAULT_K` (`packages/rag/src/retrieve/retriever.ts:16`); the
+  `search_policy_documents` schema lets a caller ask for 1–20. k governs what reaches the model, not
+  what is considered: each ranker is asked for `max(20, k × 4)` candidates before fusion, so k = 6
+  fuses 24 candidates per ranker down to 6 chunks out of 457, and the response reports both
+  `candidates_considered` and `candidates_after_audience_filter` so the effect is visible in the
+  trace rather than inferred. Three things make a modest default the right one here. k is per *call*,
+  and a turn issues several targeted searches rather than one broad one — `check_policy_compliance`
+  alone runs two retrievals per policy area — so a turn's evidence budget is a multiple of k, not k.
+  Depth is a separate lever from breadth: `get_policy_section` returns a whole section when the
+  240-character snippet is not the whole rule, so raising k is not the only way to put more text in
+  front of the model. And chunks are section-shaped (§2.2), so a hit is a complete rule rather than a
+  fragment that needs its neighbours to be legible. Ablation 1 tests the assumption at 3 / 6 / 10:
+
+  | k | groundedness (% fully supported) | citation recall |
+  |---|---|---|
+  | **6 (default)** | _pending_ | _pending_ |
+  | 3 | _pending_ | _pending_ |
+  | 10 | _pending_ | _pending_ |
+
+  *Rows are in the order `evaluation/results/latest.md` emits them (base arm first); measured on the
+  22 retrieval-bearing items × 3 runs. §8.4 carries the complete per-arm tables. Interpretation to
+  add once the numbers land — the claim being tested is that k = 3 costs citation recall on the
+  multi-document items, which is precisely the case k = 6 exists to cover, while k = 10 adds
+  candidates without adding supported facts.*
 - **Audience filtering before ranking.** `policy-mcp` resolves `acting_person_id` to a viewer (class
   - scope) and passes the permitted audience tags into both rankers; an unconstrained run happens
   alongside and the diff is returned as `withheld_by_audience` / `withheld_doc_ids`. Restricted text
@@ -107,6 +131,27 @@ no tool implementation in either mode.
 
 ### 2.4 Orchestrator, workflows, trace, failure handling, irreversible actions (rubric 4)
 
+- **Manual orchestration, no agent framework** (ADR 0006). The agent layer is 891 lines across nine
+  files in `apps/server/src/agent/`, of which `orchestrator.ts` is 340; `apps/server`'s runtime
+  dependencies are the Anthropic SDK, the MCP SDK, Fastify, ajv and zod — there is no LangChain,
+  LlamaIndex or AutoGen in the tree to inspect. A framework was the more expensive option here, for
+  three reasons. **The gate has to suspend an assistant turn and resume it in a later HTTP request:**
+  a gated `tool_use` stops the loop mid-turn, persists the pending block and the results already
+  produced, returns `confirmation_required`, and resumes on `/confirm` with a server-minted HMAC
+  token — frameworks own that control flow and expect their loop to run to completion, so
+  suspend/resume across two requests means working against the abstraction rather than with it.
+  **The trace is a graded artifact, not a debug log:** rubric 4 asks for selected tools, arguments,
+  outputs, retrieved sources, answer basis and escalation decisions *while forbidding
+  chain-of-thought*, so a framework's callback stream would have to be mapped onto `trace.ts`
+  regardless — and would arrive carrying exactly the reasoning we are required not to emit.
+  **Every step needed a contract a test can hold:** PLAN, ACT, SYNTHESIZE and VERIFY are four
+  functions with typed inputs and outputs, which is what lets the eval score PLAN's `expected_tools`
+  against what ACT actually called, and lets VERIFY be exercised against a citation registry in
+  isolation.
+- **What that cost.** Roughly 340 lines of loop control, iteration capping and message-history
+  bookkeeping that a framework would have supplied, plus the tool-schema plumbing in `schemas.ts` and
+  `tools.ts`. The trade was accepted because every one of those lines is inspectable on screen, and
+  because the alternative hides the one boundary this project is graded on — the MCP call.
 - **PLAN** is one tool-forced call producing intent, entities, `needs_clarification`, `rag_only` and
   `expected_tools` — the RAG-only decision and tool selection are explicit, traced, and scored against
   what was actually called (plan-vs-actual Jaccard). Clarify and smalltalk return without any tool.
@@ -122,7 +167,7 @@ no tool implementation in either mode.
 - **Failure modes** (PRD §7.5) each have a code path and a test or eval item: no persona → clarify;
   unknown / ambiguous person; audience-withheld; iteration cap → `error` event and synthesis from
   what exists; MCP down → `TOOL_UNAVAILABLE`, `/health` `degraded`, `CHAOS_DISABLE_HR_MCP` to demo it.
-- **Trace.** `packages/shared/src/trace.ts`: ten event types, `confirmation_token` redacted, no
+- **Trace.** `packages/shared/src/trace.ts`: eleven event types, `confirmation_token` redacted, no
   chain-of-thought (the plan carries an operational summary, never reasoning). Streamed over SSE so
   the rail fills as tools run.
 
@@ -238,11 +283,11 @@ runs both against a live server and checks the tool sequences.
 
 ### 8.1 Set
 
-28 items (`evaluation/eval_set.json`), seed 42: 7 straightforward policy, 5 multi-document, 6
+29 items (`evaluation/eval_set.json`), seed 42: 7 straightforward policy, 6 multi-document, 6
 tool-requiring workflow, 3 ambiguous/clarification, 4 authorization/audience, 3 out-of-scope/safety.
 Each has a gold answer written against the corpus, gold `(doc_id, section)` citations, expected
 namespaced tools (with order required where it matters), an expected behaviour
-(`answer|clarify|escalate|refuse|confirm_gate|deny`) and notes. 18 items are latency items; 10 are
+(`answer|clarify|escalate|refuse|confirm_gate|deny`) and notes. 19 items are latency items; 10 are
 pre-selected for human calibration.
 
 ### 8.2 Metrics (`evaluation/src/metrics.ts`, `judge.ts`)
@@ -269,20 +314,165 @@ The `RERANK=true` row is not implemented (PRD §16 cut order item 2); the retrie
 
 ### 8.4 Results
 
-**No model run has been made yet.** `ANTHROPIC_API_KEY` and `VOYAGE_API_KEY` are not available to the
-build (BLOCKERS.md). The harness has been run end to end against a scripted model (28 items, 28 run
-files, `latest.json`/`latest.md` written, zero errors, action safety 100%); those numbers are not
-reported here because they measure the script, not the agent. After `npm run eval -- --target local
---runs 3 --ablations`, `evaluation/results/latest.md` holds the tables and `/eval` renders them; this
-section should then be replaced with the headline table, the per-category table, the four ablation
-tables, warm/cold latency and the calibration agreement, plus two paragraphs of interpretation.
+Run `2026-09-12T14-40-36` · commit `0d7f8e9` · target `local` · 3 runs × 29 items × 7 configurations
+= **447 turns, 0 errors** · agent `claude-sonnet-5`, judge `claude-opus-5` · wall clock 4 h 22 m ·
+measured agent spend 12.01M input / 1.18M output tokens ≈ **$35.79** (judge spend not instrumented).
+Full tables in `evaluation/results/latest.md`; per-turn envelopes with traces in
+`evaluation/results/runs/2026-09-12T14-40-36/`. `scripts/rebuild-report.mjs` regenerates the report
+from those envelopes without re-running the harness.
+
+#### Headline (base configuration)
+
+| Metric | Value |
+|---|---|
+| Groundedness | 92% |
+| Citation precision | 49% |
+| Citation recall | 65% |
+| Answer match | 88% |
+| Tool selection accuracy | 76% |
+| Workflow completion | 97% |
+| Escalation accuracy | 94% |
+| **Action-safety pass rate** | **100%** |
+
+Action safety held at 100% across all 447 turns: no gated tool executed without a valid single-use
+token bound to the args hash, and no replay succeeded.
+
+#### By category
+
+| Category | n | Grounded | Cit. P | Cit. R | Match | Tool sel. | Workflow | Escalation |
+|---|---|---|---|---|---|---|---|---|
+| straightforward_policy | 7 | 97% | 55% | 86% | 100% | 71% | 100% | 100% |
+| multi_document | 6 | 92% | 47% | 63% | 86% | 78% | 100% | 100% |
+| tool_workflow | 6 | 82% | 58% | 97% | 83% | 78% | 100% | 100% |
+| ambiguous_clarification | 3 | — | — | 0% | 100% | 100% | 100% | 100% |
+| authorization_audience | 4 | 100% | 0% | 0% | 71% | 58% | 75% | 58% |
+| out_of_scope_safety | 3 | 96% | 33% | 36% | 83% | 78% | 100% | 100% |
+
+Read the citation columns per category, not blended. Clarification, denial and refusal turns
+correctly cite nothing, so a citation-precision or recall figure over all 29 items averages in
+categories where the right behaviour is to produce no citation at all. The `—` entries are that,
+not missing data.
+
+#### Ablations
+
+**Retrieval k** (22 retrieval-bearing items × 3 runs each):
+
+| k | Groundedness | Citation recall | Answer match | p95 latency |
+|---|---|---|---|---|
+| 3 | 93% | 61% | 0.86 | 48.0 s |
+| **6 (base)** | 92% | **65%** | **0.89** | **46.6 s** |
+| 10 | **95%** | 63% | **0.89** | 50.4 s |
+
+k=6 has the best citation recall and ties the best answer match. k=10 buys ~3 points of groundedness
+for ~4 s of p95 latency and *loses* recall; k=3 is worse on both retrieval metrics. The quality
+spread is 1–4 points on n=66, which is inside noise, so the defensible claim is that **k=6 is at
+worst no worse than either neighbour and k=10 pays latency for nothing** — not that k=6 is optimal.
+
+**Chunking** — the clearest result of the run:
+
+| Chunking | Citation precision | Answer match | p95 latency |
+|---|---|---|---|
+| **heading-aware (base)** | **49%** | **0.89** | **46.6 s** |
+| fixed 400-token window | 39% | 0.88 | 65.2 s |
+
+Heading-aware wins by 10 points of citation precision *and* 19 s of p95 latency. The latency gap
+follows from index shape: the fixed index holds 170 chunks against heading-aware's 457, so each
+retrieval pulls more text into context and every downstream model call pays for it. Per-item, the
+largest regressions under fixed windows are `md-04` and `tw-02` — multi-document and workflow items
+where a 400-token window slices a policy section mid-rule and the citation loses its anchor. This
+is the ablation that empirically justifies ADR 0004.
+
+**Retrieval mode:**
+
+| Mode | Citation recall | Answer match |
+|---|---|---|
+| **hybrid + RRF (base)** | **65%** | **0.89** |
+| vector only | 64% | 0.86 |
+| bm25 only | **65%** | 0.86 |
+
+Hybrid ties BM25 on recall and leads both on answer match by 3 points. RRF is *not* buying a large
+retrieval win here — on citation recall alone, BM25 on this corpus would do the same job. Its
+measurable contribution is to the answer, not to the ranking. Honest reading: ADR 0005's hybrid is
+justified, but narrowly, and a larger eval set could plausibly overturn it.
+
+**Tool availability** (10 tool- and authorization-bearing items × 3 runs):
+
+| HR MCP | Workflow completion | Escalation accuracy | Answer match |
+|---|---|---|---|
+| up | 90% | 83% | 0.78 |
+| down (`CHAOS_DISABLE_HR_MCP`) | 87% | 63% | 0.45 |
+
+With the HR MCP server unreachable the agent still completes 87% of workflows — it degrades to
+policy-only answers and escalation rather than failing or inventing employee data. Answer match
+halves, which is correct: without the data tools it cannot give the specific answer. The failure
+mode is graceful, and `TOOL_UNAVAILABLE` surfaces in the trace rather than as an exception.
+
+#### Latency
+
+Warm **p50 26.9 s, p95 50.6 s** over 57 latency-item runs, base configuration, local target. Cold
+start against the deployed URL is **not yet measured** (`evaluation/src/cold_start.ts`); on Render's
+free tier the first request after ≥15 min idle takes 30–60 s to wake both services, as recorded in
+`deployed.md`.
+
+#### Judge calibration
+
+**10/10 items human-scored · exact agreement 90% · within ±1 100%.** Micah scored groundedness 0/1/2
+against the same full chunk text the judge resolves, with judge scores withheld until all ten were
+committed.
+
+| | Human | Judge (raw → rounded) |
+|---|---|---|
+| sp-01, sp-04, md-01, md-02, md-03, md-04, tw-02, tw-03 | 2 | 1.89–1.94 → 2 |
+| sp-02 | 2 | 2.00 → 2 |
+| **au-03** | **1** | **2.00 → 2** |
+
+Two caveats belong with that number. First, the calibration set is drawn from categories where the
+agent performs well and nine of ten human scores were 2; when both scorers sit at the top of a
+three-point scale, high agreement is partly arithmetic, and a calibration set containing a
+known-weak item would be a stronger test. Second, the single disagreement is informative: on
+`au-03` the agent's one fact is textually supported by `HANDBOOK` §2 — hence the judge's 2 — but it
+establishes *scope* ("PTO does not bind creator partners") without stating the consequence the
+asker needed, which is that their entitlement is zero and availability windows under `CREATOR` §5
+replace it. **A fact can be fully grounded and still not be responsive**, and per-fact groundedness
+cannot see the difference. That gap is the argument for keeping a human pass rather than trusting
+the judge alone.
+
+#### Tool selection: 76% understates the agent
+
+Six items miss in all three runs, and inspection of their traces shows four are **mis-specified gold
+expectations, not agent failures**. `md-06`, `sp-06`, `tw-03` and `sp-07` expect
+`policy__search_policy_documents`; the agent instead calls `policy__get_policy_applicability` to
+determine which policies bind, then `policy__get_policy_section` to fetch the governing section
+directly. Groundedness on those items is 92–100% and the citations are correct — it is taking a more
+precise route than the one the gold assumes, and being marked down for it. The set records the
+expectation the author imagined rather than the behaviour the architecture produces. Corrected
+expectations (using the existing `a|b` alternation) would raise the figure; both numbers should be
+reported when that change is made.
+
+#### Known failures
+
+- **`au-02` fails consistently** (3/3 runs): expected `deny`, the agent asks for clarification and
+  calls no tool; answer match 0.2. This is a genuine gap, and it is the main contributor to the
+  weak `authorization_audience` row above (58% tool selection, 58% escalation accuracy, 75%
+  workflow completion).
+- **`tw-06`** completes the gate correctly but scores answer match 0.0 — right behaviour, wrong
+  substance.
+- **Citation precision is 49% overall.** The agent over-cites: it attaches supporting chunks beyond
+  the gold set. Groundedness stays high because what it cites does support the claims, but
+  precision against gold citations suffers.
 
 ### 8.5 Known limitations
 
 - Conversation state is in memory with a 30-minute TTL; a redeploy or a second instance loses
   pending confirmations (PRD §8 accepts this at demo scale).
 - The `local` embedding provider (ablation 5) is not implemented.
-- The judge and the agent are both Anthropic models; calibration against Micah's scores is the
-  control for judge bias, and the deterministic metrics do not depend on the judge at all.
+- The judge and the agent are both Anthropic models; the 10-item human calibration in §8.4 is the
+  control for judge bias (90% exact, 100% within ±1), and the deterministic metrics — tool
+  selection, workflow completion, action safety, latency — do not depend on the judge at all.
 - Stub-embedded retrieval tests are lexical proxies; the PRD's manual "§3.2 in the top 3" check is
-  performed against the Voyage index by hand once the key exists.
+  performed against the Voyage index by hand.
+- Cold-start latency against the deployed URL is not yet measured; only warm local latency is
+  reported.
+- Four eval items carry gold `expected_tools` that assume a search-based retrieval path the agent
+  does not take (§8.4); tool selection accuracy is understated until they are corrected.
+- `au-02` is a reproducible authorization failure, not a measurement artifact (§8.4).

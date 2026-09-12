@@ -3,7 +3,7 @@
 An agentic HR-policy assistant for **Westline Media Inc.**, a fictional Western Canadian news and
 entertainment company with three workforce classes (staff, contractors, creator partners) whose
 rulebooks differ. The agent resolves *who is asking and which policies bind them* before it answers,
-retrieves from a 14-document corpus that is audience-filtered **before ranking**, reaches every
+retrieves from a 15-document corpus that is audience-filtered **before ranking**, reaches every
 capability through two MCP servers over Streamable HTTP, enforces authorization inside those
 servers, pauses every mutating action on a confirmation card backed by a single-use token bound to
 the exact arguments, verifies that every cited fact was actually retrieved this turn, and shows the
@@ -76,7 +76,7 @@ npm run eval -- --target deployed --runs 3            # base configuration again
 node evaluation/dist/cold_start.js --url <deployed>   # ≥16 min idle, first-request latency ×3
 ```
 
-28 items in six categories, an Opus judge at temperature 0 for groundedness and answer match,
+29 items in six categories, an Opus judge at temperature 0 for groundedness and answer match,
 deterministic citation precision/recall, tool selection, workflow completion, behaviour accuracy,
 action safety, warm/cold latency, and four ablations. Results land in `evaluation/results/latest.json`
 and render at `/eval`. Human calibration scores go in `evaluation/human_scores.json`.

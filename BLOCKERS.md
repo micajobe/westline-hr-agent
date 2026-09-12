@@ -1,50 +1,89 @@
 # Blockers
 
-Items that require Micah's accounts or values not available to the build agent.
-Everything not listed here has been built. Update/remove entries as they are resolved.
+Items that require Micah's accounts, values or physical presence. Everything not listed here has
+been built. Update/remove entries as they are resolved.
 
 ## Open
 
-### 1. `scripts/demo.sh` has not been run against a real model
+### 1. GitHub: grader access expires around 2026-09-15
 
-- `ANTHROPIC_API_KEY` is in `.env` and set on `westline-app`; deployed `/health` reports
-  `models.available: true` with `claude-sonnet-5` / `claude-opus-5`. So the key is no longer the
-  blocker — the open item is the M4 acceptance run itself: `scripts/demo.sh` was written and
-  exercised against the scripted model only, never against Sonnet. Expect prompt tuning.
-- Action: `scripts/demo.sh https://westline-hr-agent.onrender.com` (or locally), then record the
-  result in `ai-tooling.md`.
+- `quantic-grader` was invited 2026-09-08 with **read** permission (invite `332198617`). The
+  invitation is **pending** — it is not access until they accept, and GitHub expires invitations
+  after 7 days.
+- Action: check <https://github.com/micajobe/westline-hr-agent/invitations>; re-send if it has
+  lapsed. The repository is private, so without an accepted invitation the grader cannot open it.
 
-### 2. GitHub: grader access and Actions write permission
+### 2. Demo video not recorded
 
-- `micajobe/westline-hr-agent` exists, is private, and `main` is pushed (2026-09-04).
-- Remaining: `quantic-grader` is **not** a collaborator (only `micajobe`), and Actions
-  `default_workflow_permissions` is **read**, which `eval.yml` needs as read+write to commit results.
-- Action: `gh api -X PUT repos/micajobe/westline-hr-agent/collaborators/quantic-grader` and set
-  workflow permissions to read+write in repo settings.
+- PRD §14.1 / rubric: 7–10 minutes, on camera, government ID, both agentic tasks end to end with
+  the MCP tool names, arguments, outputs and citations called out, plus a walkthrough of design,
+  deployment, CI/CD and evaluation.
+- Wake both Render services before recording — free instances sleep after 15 minutes idle and the
+  first request takes 30–60 s.
 
-### 3. Deploy secrets for `deploy.yml`
+### 3. Cold-start latency not measured
 
-- Not yet set: `RENDER_DEPLOY_HOOK_APP`, `RENDER_DEPLOY_HOOK_MCP`, `DEPLOYED_APP_URL`, plus
-  `ANTHROPIC_API_KEY`, `VOYAGE_API_KEY`, `AGENT_MODEL`, `JUDGE_MODEL` for `eval.yml`.
-- Deploy hook URLs are dashboard-only (the API does not expose them). Alternative: repoint
-  `deploy.yml` at `scripts/render-deploy.sh` with a single `RENDER_API_KEY` secret, which also lets
-  the workflow poll real deploy status instead of curling `/health`.
+- §8.4 reports warm latency only (p50 26.9 s, p95 50.6 s, local). `evaluation/src/cold_start.ts`
+  measures first-request latency against the deployed URL after ≥16 min idle.
+- Action: `node evaluation/dist/cold_start.js --url https://westline-hr-agent.onrender.com`, then
+  paste the numbers into §8.4's latency subsection.
 
-### 4. Design system — decided, no action needed
+### 4. `eval.yml` timeout is adequate for a base run, not for the ablation sweep
+
+- Measured: the full `--runs 3 --ablations` sweep is **447 turns / 4 h 22 m**, which exceeds
+  `timeout-minutes: 180`. A base-only judged run is roughly an hour and fits comfortably.
+- Action: either raise the timeout above 300 for ablation runs, or run `eval.yml` without
+  `--ablations` and do the full sweep locally (which is how the 2026-09-12 results were produced).
+- Also still true: `eval.yml` commits its results, and Actions `default_workflow_permissions` is
+  **read**. A job-level `permissions: contents: write` cannot elevate above the repo default.
+
+### 5. Design system — decided, no action needed
 
 - Micah (2026-09-04): follow the Nimble editorial design system from `~/strategy-navigator`
-  (ADR 0012). Fraunces / Inter Tight / JetBrains Mono via Google Fonts; B&W only. The earlier PP
-  Editorial Old / PP Neue Montreal choice is superseded; the converted `.woff2` files in
-  `apps/web/public/fonts/` are unused and gitignored — delete them at will.
+  (ADR 0012). Fraunces / Inter Tight / JetBrains Mono via Google Fonts; B&W only. The converted
+  `.woff2` files in `apps/web/public/fonts/` are unused and gitignored — delete them at will.
 
 ## Resolved
+
+### The evaluation — resolved 2026-09-12
+
+Full run complete: 447 turns (3 runs × 29 items × 7 configurations), 0 errors, 4 h 22 m, ~$35.79
+measured agent spend. Results in `evaluation/results/latest.md`; narrative in
+`design-and-evaluation.md` §8.4. Judge calibration scored 10/10 by hand — exact 90%, within ±1 100%.
+`scripts/rebuild-report.mjs` regenerates the report from the saved envelopes without re-running the
+harness.
+
+Note on the earlier "eval throughput" entry, now deleted: the 2026-09-08 attempt managed 4 items in
+~37 minutes and the slowness was attributed to the Opus judge. That was wrong. The same command on
+the same code ran at 38 s/item on 2026-09-12; the difference was network conditions while
+travelling. The judge adds about three seconds per item.
+
+### `scripts/demo.sh` against a real model — resolved 2026-09-04
+
+Run against Sonnet 5 with Micah's key. Four failures, all fixed and recorded in `ai-tooling.md`:
+Claude 5 rejects `temperature`; `demo.sh` fed its scoring script by heredoc *and* stdin so it parsed
+nothing; task 2 drafted twice until a gated tool that already acted this turn began returning
+`ALREADY_EXECUTED`; task 2 cited nothing until the notice rule was forced through retrieval rather
+than read off `check_pto_balance`.
+
+### Deploy secrets and the deploy path — resolved 2026-09-04
+
+`deploy.yml` was repointed at the Render REST API via `scripts/render-deploy.sh` (commit `e149e1d`),
+which needs one `RENDER_API_KEY` instead of two dashboard-only hook URLs and reports the deploy's
+real outcome. Secrets set: `RENDER_API_KEY`, `DEPLOYED_APP_URL`, `ANTHROPIC_API_KEY`,
+`VOYAGE_API_KEY`, `AGENT_MODEL`, `JUDGE_MODEL`. CI-gated deploys have run green on `main`.
+
+Note: ADR 0010 still carries its original "deploy gating via render hooks" title; the hook mechanism
+it describes was replaced before it ever ran.
 
 ### `VOYAGE_API_KEY` — resolved 2026-09-04
 
 Key was valid but the account had no payment method, so Voyage capped it at 3 RPM / 10K TPM and the
-414-chunk index build died on 429s (three failed deploys). A card was added; standard limits took a
-few minutes to propagate. Diagnostic note: during propagation a *single* request returns 200 while
-bursts still 429 — that is the 3 RPM allowance, not a lifted cap. Test with five spaced requests.
+index build died on 429s (three failed deploys). A card was added; standard limits took a few minutes
+to propagate. Diagnostic note: during propagation a *single* request returns 200 while bursts still
+429 — that is the 3 RPM allowance, not a lifted cap. Test with five spaced requests. The pacing knobs
+(`VOYAGE_MIN_INTERVAL_MS`, `VOYAGE_BATCH_SIZE`) remain in `.env.example`, commented out; the
+provider defaults to no pacing.
 
 ### Render services — resolved 2026-09-04
 
@@ -57,10 +96,4 @@ endpoint, so `render.yaml` documents the shape rather than driving it).
 | `westline-mcp` | `srv-dadi5eqd0e5s73d375tg` | <https://westline-mcp.onrender.com> |
 
 The app's hostname keeps its creation-time subdomain despite the rename to `westline-app`.
-`/health` reports `ok`, both MCP servers `connected`, corpus hash `190aa9a6e9b2` on both sides.
 `scripts/render-deploy.sh trigger|status|logs <service-id>` drives deploys through the API.
-
-Still open on the deploy path: deploy hooks are not exposed by the API, so either copy both hook
-URLs from the dashboard into GitHub secrets, or repoint `deploy.yml` at the trigger-deploy endpoint
-with one `RENDER_API_KEY` secret.
-
