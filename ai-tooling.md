@@ -756,3 +756,57 @@ against the PRD's 70–90 ceiling; index rebuilt to 457 chunks.
 five cross-referenced documents change hash too, which is the snapshot doing its job);
 `library.test.ts` gains an assertion that a contractor sees §6 of `HOURS` and nothing else, and that
 a creator partner sees it named in `withheld_doc_ids` rather than hidden.
+
+## 2026-09-12 — Searching the handbook, and the one place the obvious implementation was wrong
+
+**What was asked.** Mid-way through the full evaluation run and the human review beside it: "we need
+a simple JavaScript search on the handbook. It's too difficult to find sections by browsing since
+the corpus is quite large." The pain is real and specific — verifying an eval case's ground truth
+means finding `HOURS` §6.2 by hand through a category, a document and forty headings, dozens of
+times an hour.
+
+**What was produced.** `searchLibrary` in `packages/rag/src/retrieve/search.ts`: a lexical,
+section-level scan reached through `mcp/policy-mcp/src/library.ts` and served at `GET /handbook?q=`,
+with a search field in the Handbook tab's contents rail. Every term must appear, headings outrank
+bodies, and the whole query appearing verbatim scores far above its words scattered, which is phrase
+search without quotation marks. Results link to `/handbook/:doc_id?section=§n`, so ADR 0015's
+deep-link and scroll machinery does the rest and the reader lands on the passage. 12 new tests.
+ADR 0018 records the decisions.
+
+**The thing worth writing down.** "Simple JavaScript search" has an obvious reading — ship the
+corpus to the browser, filter it there — and that reading is the one implementation this repo must
+not have. It would put the whole corpus, `CREATOR` included, in plaintext in every reader's browser
+and enforce audience nowhere. Taking the request at its word would have produced working, demoable,
+non-negotiable-violating code in twenty minutes. The request was for the capability; where it runs
+was never the ask.
+
+The subtler version of the same mistake is filtering *after* matching: search everything, then drop
+hits the viewer may not read. That looks safe and is not. A result count, a "3 matches in sections
+you can't open", even a score distribution is a report on the contents of a closed section. The
+filter runs before a single term is compared, and `sections_withheld` says how many sections were
+skipped and deliberately never says whether any of them matched.
+
+**What went wrong, and how it was caught.**
+
+1. **Snippets printed their own markdown.** The rail rendered `A **compressed week** (four days of
+   9.375 hours…` — asterisks and all — because snippets are text nodes, not markdown (corpus text is
+   not trusted as markup), and nothing stripped the emphasis. Invisible to the tests, which only
+   asserted the snippet *contained* the phrase; caught on the first look at the running app. Fixed
+   by reducing markdown to the words it wraps and joining table rows with `·`, with tests that now
+   assert no `**` and no newline survives into a snippet.
+2. **The match offset was measured against the wrong string.** The snippet window was located in the
+   raw body and then applied to the flattened text, with a comment cheerfully admitting it was
+   "close enough for a window this size". It was not wrong often enough to fail a test, which is
+   exactly why it was worth removing: the match is now located in the flattened text directly, and
+   the approximation is gone rather than documented.
+3. **A pre-existing test went red for an unrelated reason.** `server.start.test.ts` pins `INDEX_PATH`,
+   `DESK_PATH` and `WEB_DIST_DIR` but not `EVAL_RESULTS_PATH`, so its `/eval/latest` → 404 assertion
+   only passed on a machine that had never run `npm run eval`. The evaluation run in progress created
+   `evaluation/results/latest.json` and the test failed. Not caused by this change and not hidden
+   either: `EVAL_RESULTS_PATH` now joins the pinned block, one line, with the reason in a comment.
+
+**Verification.** 224 tests green, typecheck and lint clean. Checked in the browser at 1280px, 375px
+and collapsed-rail: anonymous gets nothing for a staff-only phrase and is told 268 sections were not
+searched; Jordan gets `HOURS` §1.4 for the same phrase; "meal window" ranks §6.2 "Meal windows on a
+shoot day" first; clicking a result opens the document at the cited passage, and on a phone it closes
+the contents overlay on the way. One request per settled query, confirmed in the network log.

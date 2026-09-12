@@ -1,8 +1,10 @@
 import {
   buildDocumentView,
   buildLibrary,
+  searchLibrary,
   type ApplicabilityRow,
   type DocumentView,
+  type LibrarySearch,
   type PolicyLibrary,
 } from '@westline/rag';
 import type { WorkforceClass } from '@westline/shared';
@@ -60,4 +62,19 @@ export function readPolicyDocument(
 function rowsFor(ctx: PolicyContext, cls: WorkforceClass | null): Record<string, ApplicabilityRow> {
   if (!cls) return {};
   return Object.fromEntries(ctx.applicability[cls].map((r) => [r.doc_id, r]));
+}
+
+/**
+ * Section search for the Handbook tab's search field (ADR 0018). Here for the same reason the
+ * listing is: audience filtering belongs to `policy-mcp` and nowhere else, and `searchLibrary`
+ * applies it before a single term is matched. Not an MCP tool -- the agent's tool list, and so the
+ * eval surface, is unchanged.
+ */
+export function searchPolicyLibrary(
+  ctx: PolicyContext,
+  acting_person_id: string | null,
+  query: string,
+  limit?: number,
+): LibrarySearch {
+  return searchLibrary(ctx.store, ctx.people.viewer(acting_person_id), query, { limit });
 }

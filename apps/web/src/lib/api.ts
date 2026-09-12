@@ -1,4 +1,4 @@
-import type { ChatEnvelope, Desk, DemoTask, HandbookDocument, Health, Library, Persona, TraceEvent } from './types';
+import type { ChatEnvelope, Desk, DemoTask, HandbookDocument, HandbookSearch, Health, Library, Persona, TraceEvent } from './types';
 
 async function getJson<T>(path: string): Promise<T> {
   const res = await fetch(path, { headers: { accept: 'application/json' } });
@@ -16,6 +16,9 @@ export const api = {
   handbook: (acting_person_id: string | null) => getJson<Library>(`/handbook${actingQuery(acting_person_id)}`),
   handbookDoc: (doc_id: string, acting_person_id: string | null) =>
     getJson<HandbookDocument>(`/handbook/${encodeURIComponent(doc_id)}${actingQuery(acting_person_id)}`),
+  /** Section search over the same listing. Audience filtering happens server-side, before matching. */
+  handbookSearch: (q: string, acting_person_id: string | null) =>
+    getJson<HandbookSearch>(`/handbook?q=${encodeURIComponent(q)}${acting_person_id ? `&acting_person_id=${encodeURIComponent(acting_person_id)}` : ''}`),
 };
 
 const actingQuery = (id: string | null) => (id ? `?acting_person_id=${encodeURIComponent(id)}` : '');

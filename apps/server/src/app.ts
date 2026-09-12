@@ -45,8 +45,12 @@ const confirmBody = {
 type ChatBody = { message: string; acting_person_id?: string | null; conversation_id?: string };
 type ConfirmBody = { conversation_id: string; turn_id: string; args_hash: string; decision: 'confirm' | 'cancel' };
 
-const query = (acting_person_id: string | undefined) =>
-  acting_person_id ? `?acting_person_id=${encodeURIComponent(acting_person_id)}` : '';
+const query = (acting_person_id: string | undefined, q?: string) => {
+  const parts: string[] = [];
+  if (acting_person_id) parts.push(`acting_person_id=${encodeURIComponent(acting_person_id)}`);
+  if (q?.trim()) parts.push(`q=${encodeURIComponent(q.trim())}`);
+  return parts.length > 0 ? `?${parts.join('&')}` : '';
+};
 
 /** PRD §8. Every body is JSON-schema validated by Fastify; the React app is served from apps/web/dist. */
 export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
@@ -153,7 +157,11 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   // and carries its own `?section=` state, so unknown params are ignored rather than rejected.
   const handbookQuery = {
     type: 'object',
-    properties: { acting_person_id: { type: 'string', pattern: '^W-\\d{4}$' } },
+    properties: {
+      acting_person_id: { type: 'string', pattern: '^W-\\d{4}$' },
+      // Handbook search (ADR 0018). Bounded so a pathological query cannot be handed to the scan.
+      q: { type: 'string', maxLength: 200 },
+    },
   } as const;
 
   const spaOr = async (req: FastifyRequest, reply: FastifyReply, load: () => Promise<unknown>) => {
@@ -170,8 +178,10 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
     }
   };
 
-  app.get<{ Querystring: { acting_person_id?: string } }>('/handbook', { schema: { querystring: handbookQuery } }, async (req, reply) =>
-    spaOr(req, reply, () => mcp.hostGet(`/handbook${query(req.query.acting_person_id)}`)),
+  // `?q=` returns search hits rather than the listing; the SPA is still served from this path, so
+  // the accept-header split in `spaOr` decides which of the two a request wanted.
+  app.get<{ Querystring: { acting_person_id?: string; q?: string } }>('/handbook', { schema: { querystring: handbookQuery } }, async (req, reply) =>
+    spaOr(req, reply, () => mcp.hostGet(`/handbook${query(req.query.acting_person_id, req.query.q)}`)),
   );
 
   app.get<{ Params: { doc_id: string }; Querystring: { acting_person_id?: string } }>(

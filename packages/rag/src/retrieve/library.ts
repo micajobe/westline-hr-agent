@@ -1,4 +1,4 @@
-import { effectiveAudience, parseSections } from '../ingest/headings.js';
+import { effectiveAudience, parseSections, sectionOwnBody } from '../ingest/headings.js';
 import { assignCategories } from '../ingest/categories.js';
 import type { IndexStore } from '../store/sqlite.js';
 import type {
@@ -82,7 +82,7 @@ export function buildDocumentView(
       withheld_section_count += 1;
       return { ...meta, text: null, withheld_reason: forbidden(doc_id, meta) };
     }
-    return { ...meta, text: ownBody(doc.markdown, s, sections[i + 1]), withheld_reason: null };
+    return { ...meta, text: sectionOwnBody(doc.markdown, s, sections[i + 1]), withheld_reason: null };
   });
 
   const docReadable = canRead(fm.audience, viewer);
@@ -137,12 +137,6 @@ function librarySection(s: Section, doc: LoadedDocument, viewer: Viewer): Librar
 /** Wording matched to `getPolicySection`, so the two refusals read the same to a user. */
 function forbidden(doc_id: string, s: LibrarySection): string {
   return `${doc_id} ${s.section_path} is tagged ${s.audience}; not available to this reader`;
-}
-
-/** A section's text minus its descendants: from its body to wherever the next heading starts. */
-function ownBody(markdown: string, s: Section, next: Section | undefined): string {
-  const end = next ? Math.min(s.char_end, next.heading_offset) : s.char_end;
-  return markdown.slice(s.char_start, Math.max(s.char_start, end)).trim();
 }
 
 /** The unnumbered lede under the `#` title -- usually the "who this binds" paragraph. */

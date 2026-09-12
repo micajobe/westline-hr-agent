@@ -66,3 +66,13 @@ export interface HandbookDocument {
   preamble: string | null; sections: DocumentSection[]; withheld_section_count: number;
   applicability: Applicability | null;
 }
+
+/** One section matched by the handbook search. Only readable sections are ever searched. */
+export interface SearchHit {
+  doc_id: string; doc_title: string; section_path: string; section_title: string;
+  level: number; score: number; snippet: string;
+}
+export interface HandbookSearch {
+  query: string; terms: string[]; hits: SearchHit[];
+  sections_searched: number; sections_withheld: number; truncated: boolean;
+}

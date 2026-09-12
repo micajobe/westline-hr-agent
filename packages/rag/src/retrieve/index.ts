@@ -4,3 +4,4 @@ export * from './rrf.js';
 export * from './retriever.js';
 export * from './section.js';
 export * from './library.js';
+export * from './search.js';

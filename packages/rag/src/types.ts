@@ -186,3 +186,28 @@ export interface DocumentView {
   sections: DocumentSection[];
   withheld_section_count: number;
 }
+
+/** One section matched by the Handbook search. Readable by definition -- closed sections are never searched. */
+export interface LibrarySearchHit {
+  doc_id: string;
+  doc_title: string;
+  section_path: string;
+  section_title: string;
+  level: number;
+  /** Term frequency with title matches weighted; comparable within one query only. */
+  score: number;
+  /** One flattened line of the section around the best match. */
+  snippet: string;
+}
+
+export interface LibrarySearch {
+  query: string;
+  /** The terms actually matched, for the caller to mark in `snippet`. */
+  terms: string[];
+  hits: LibrarySearchHit[];
+  sections_searched: number;
+  /** Sections outside this viewer's audience, which were skipped before matching. */
+  sections_withheld: number;
+  /** True when more sections matched than `limit` returned. */
+  truncated: boolean;
+}

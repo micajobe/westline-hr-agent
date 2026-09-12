@@ -9,9 +9,11 @@ import type {
   Applicability,
   DocumentSection,
   HandbookDocument,
+  HandbookSearch,
   Library,
   LibraryDocument,
   Persona,
+  SearchHit,
 } from '../lib/types';
 
 /** Policy tables are wide; give each its own scroll box so the reading column never shifts. */
@@ -50,6 +52,8 @@ export function HandbookPage({ persona }: { persona: Persona | null }) {
   const [collapsed, setCollapsed] = useState(false);
   const narrow = useNarrow();
   const [showContents, setShowContents] = useState(false);
+  const [query, setQuery] = useState('');
+  const search = useSectionSearch(query, actingId);
 
   // Choosing a document on a phone must reveal it, not leave the reader hidden behind the contents.
   useEffect(() => {
@@ -109,6 +113,10 @@ export function HandbookPage({ persona }: { persona: Persona | null }) {
             citedSection={citedSection}
             collapsed={narrow ? false : collapsed}
             onToggle={() => (narrow ? setShowContents(false) : setCollapsed((c) => !c))}
+            query={query}
+            onQuery={setQuery}
+            search={search}
+            onNavigate={() => narrow && setShowContents(false)}
           />
         )}
         {(!narrow || !showContents) && (
@@ -139,6 +147,10 @@ function ContentsRail({
   citedSection,
   collapsed,
   onToggle,
+  query,
+  onQuery,
+  search,
+  onNavigate,
 }: {
   library: Library | null;
   error: string | null;
@@ -146,7 +158,12 @@ function ContentsRail({
   citedSection: string | null;
   collapsed: boolean;
   onToggle: () => void;
+  query: string;
+  onQuery: (q: string) => void;
+  search: SearchState;
+  onNavigate: () => void;
 }) {
+  const searching = query.trim().length > 0;
   return (
     <aside className="flex min-h-0 flex-col border-r border-[var(--ink)]">
       <div className="flex shrink-0 items-center gap-2 border-b border-[var(--ink)] px-3 py-2">
@@ -159,7 +176,22 @@ function ContentsRail({
           <PanelToggle side="left" collapsed={collapsed} onToggle={onToggle} label="contents" />
         </div>
       </div>
-      {collapsed ? null : (
+      {!collapsed && (
+        <div className="shrink-0 border-b border-[var(--ink)] px-3 py-2">
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => onQuery(e.target.value)}
+            onKeyDown={(e) => e.key === 'Escape' && onQuery('')}
+            placeholder="Find a section…"
+            aria-label="Search the handbook"
+            className="w-full border-0 border-b border-[var(--paper-2)] bg-transparent py-1 text-[length:var(--t-body-sm)] outline-none focus:border-[var(--ink)]"
+          />
+        </div>
+      )}
+      {collapsed ? null : searching ? (
+        <SearchResults state={search} onNavigate={onNavigate} onClear={() => onQuery('')} />
+      ) : (
         <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
           {error && (
             <p className="mono-xs text-[var(--muted)]">
@@ -273,6 +305,174 @@ function ApplicabilityTag({ applies }: { applies: Applicability }) {
   if (applies.scope === 'none') return <Badge tone="muted">does not apply to you</Badge>;
   return <Badge tone="dashed">applies: {applies.sections?.join(', ') ?? 'part'}</Badge>;
 }
+
+// ---------- left rail: section search ----------
+
+interface SearchState {
+  results: HandbookSearch | null;
+  error: string | null;
+  pending: boolean;
+}
+
+/** Long enough to be a word, short enough that `pto` and `t4` still search. */
+const MIN_QUERY = 2;
+const DEBOUNCE_MS = 160;
+
+/**
+ * Section search against `GET /handbook?q=` (ADR 0018). Server-side because that is where the
+ * audience filter is: the client never holds the corpus, and a section this persona may not open is
+ * never matched, never snippeted, and never counted as a hit. Debounced so a typed word is one
+ * request rather than one per keystroke, and guarded so a slow earlier reply cannot land last.
+ */
+function useSectionSearch(query: string, actingId: string | null): SearchState {
+  const [state, setState] = useState<SearchState>({ results: null, error: null, pending: false });
+  const q = query.trim();
+
+  useEffect(() => {
+    if (q.length < MIN_QUERY) {
+      setState({ results: null, error: null, pending: false });
+      return;
+    }
+    let live = true;
+    setState((s) => ({ ...s, pending: true }));
+    const timer = setTimeout(() => {
+      api
+        .handbookSearch(q, actingId)
+        .then((r) => live && setState({ results: r, error: null, pending: false }))
+        .catch((e: Error) => live && setState({ results: null, error: e.message, pending: false }));
+    }, DEBOUNCE_MS);
+    return () => {
+      live = false;
+      clearTimeout(timer);
+    };
+  }, [q, actingId]);
+
+  return state;
+}
+
+function SearchResults({
+  state,
+  onNavigate,
+  onClear,
+}: {
+  state: SearchState;
+  onNavigate: () => void;
+  onClear: () => void;
+}) {
+  const { results, error, pending } = state;
+  return (
+    <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
+      <div className="mono-xs mb-3 flex items-baseline gap-2 text-[var(--muted)]">
+        <span className="truncate">
+          {error ? (
+            <>
+              {GLYPH.warn} {error}
+            </>
+          ) : pending || !results ? (
+            <>{GLYPH.off} searching…</>
+          ) : (
+            <>
+              {results.hits.length === 0 ? GLYPH.warn : GLYPH.on} {results.hits.length}
+              {results.truncated ? '+' : ''} section{results.hits.length === 1 ? '' : 's'}
+            </>
+          )}
+        </span>
+        <button type="button" onClick={onClear} className="link link-muted ml-auto shrink-0">
+          clear
+        </button>
+      </div>
+
+      {results && results.hits.length === 0 && !pending && (
+        <p className="text-[length:var(--t-body-sm)] leading-snug text-[var(--muted)]">
+          Nothing in the {results.sections_searched} sections open to this reader matches every word
+          of that. Try fewer words.
+        </p>
+      )}
+
+      <ul className="m-0 list-none p-0">
+        {results?.hits.map((hit) => (
+          <li key={`${hit.doc_id}${hit.section_path}`} className="rule-soft py-2 first:border-t-0">
+            <SearchResult hit={hit} terms={results.terms} onNavigate={onNavigate} />
+          </li>
+        ))}
+      </ul>
+
+      {/* Withheld is named, never hidden (ADR 0015): say what was not searched, but never whether
+          any of it matched — a count of hits inside closed sections would report their contents. */}
+      {results && results.sections_withheld > 0 && (
+        <p className="mono-xs mt-4 border-t border-[var(--paper-2)] pt-2 text-[var(--muted)]">
+          {GLYPH.warn} {results.sections_withheld} sections outside your audience were not searched
+        </p>
+      )}
+    </div>
+  );
+}
+
+function SearchResult({
+  hit,
+  terms,
+  onNavigate,
+}: {
+  hit: SearchHit;
+  terms: string[];
+  onNavigate: () => void;
+}) {
+  return (
+    <Link
+      to={handbookHref(hit.doc_id, hit.section_path)}
+      onClick={onNavigate}
+      className="block no-underline hover:bg-[var(--paper-2)]"
+    >
+      <span className="mono-xs block text-[var(--muted)]">
+        {hit.doc_id} {hit.section_path}
+      </span>
+      <span className="block text-[length:var(--t-body-sm)] leading-tight">
+        <Marked text={hit.section_title} terms={terms} />
+      </span>
+      <span className="mt-1 block text-[length:var(--t-body-sm)] leading-snug text-[var(--muted)]">
+        <Marked text={hit.snippet} terms={terms} />
+      </span>
+    </Link>
+  );
+}
+
+/**
+ * The matched terms underlined in a snippet. An ink hairline rather than a highlight: the palette is
+ * B&W (ADR 0012), so a marker colour is not available and an inverted block would shout. Rendered
+ * as text nodes, never as HTML — the snippet is corpus text and is not trusted as markup.
+ */
+function Marked({ text, terms }: { text: string; terms: string[] }) {
+  const parts = useMemo(() => splitOnTerms(text, terms), [text, terms]);
+  return (
+    <>
+      {parts.map((part, i) =>
+        part.hit ? (
+          <span key={i} className="border-b border-[var(--ink)] text-[var(--ink)]">
+            {part.text}
+          </span>
+        ) : (
+          <span key={i}>{part.text}</span>
+        ),
+      )}
+    </>
+  );
+}
+
+/** Split `text` on any of `terms`, case-insensitively, longest term first so `pto` inside a longer match does not win. */
+function splitOnTerms(text: string, terms: string[]): { text: string; hit: boolean }[] {
+  const ordered = [...terms].filter(Boolean).sort((a, b) => b.length - a.length);
+  if (ordered.length === 0) return [{ text, hit: false }];
+  const re = new RegExp(`(${ordered.map(escapeRe).join('|')})`, 'gi');
+  return text
+    .split(re)
+    .filter((piece) => piece.length > 0)
+    .map((piece) => ({
+      text: piece,
+      hit: ordered.some((t) => t.toLowerCase() === piece.toLowerCase()),
+    }));
+}
+
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 // ---------- main column: the categorised index ----------
 

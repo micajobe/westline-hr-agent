@@ -9,6 +9,7 @@ import {
   createPolicyServer,
   listPolicyLibrary,
   readPolicyDocument,
+  searchPolicyLibrary,
   type PolicyContext,
 } from '@westline/policy-mcp';
 
@@ -83,9 +84,14 @@ export async function startMcpHost(opts: McpHostOptions): Promise<McpHost> {
   // Read-only browse for the app's Handbook tab. Secret-protected like the MCP routes, and served
   // from here for the same reason /desk is: the index lives with policy-mcp, not with the app. The
   // acting person is a query parameter and audience filtering happens inside policy-mcp.
-  app.get<{ Querystring: { acting_person_id?: string } }>('/handbook', async (request, reply) => {
+  // `?q=` searches instead of listing. A sibling `/handbook/search` route would be indistinguishable
+  // from a document id at the app's `/handbook/:doc_id`, so the query parameter carries it.
+  app.get<{ Querystring: { acting_person_id?: string; q?: string } }>('/handbook', async (request, reply) => {
     if (!secretMatches(request, opts.secret)) return reply.code(401).send({ error: 'UNAUTHORIZED' });
-    return listPolicyLibrary(opts.policy, actingPersonId(request.query.acting_person_id));
+    const acting = actingPersonId(request.query.acting_person_id);
+    const q = request.query.q?.trim();
+    if (q) return searchPolicyLibrary(opts.policy, acting, q);
+    return listPolicyLibrary(opts.policy, acting);
   });
 
   app.get<{ Params: { doc_id: string }; Querystring: { acting_person_id?: string } }>(

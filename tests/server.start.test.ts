@@ -14,6 +14,9 @@ const ENV: NodeJS.ProcessEnv = {
   MOCK_DATA_DIR: MOCK_DIR,
   LOG_LEVEL: 'silent',
   WEB_DIST_DIR: 'does-not-exist',
+  // Pinned like every other path above: unset, this falls back to the real evaluation/results and
+  // the `/eval/latest` 404 below passes only on a machine that has never run `npm run eval`.
+  EVAL_RESULTS_PATH: 'does-not-exist/latest.json',
 };
 
 const J = 'W-1042';

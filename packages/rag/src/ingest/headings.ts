@@ -111,3 +111,18 @@ export function effectiveAudience<A extends string>(
   }
   return best?.audience ?? docAudience;
 }
+
+/**
+ * A section's own body: from its text to wherever the next heading starts, descendants excluded.
+ * `parseSections` gives a `##` section the text of its `###` children too, so anything that walks
+ * sections one by one -- the reading view, the section search -- needs this to avoid counting a
+ * paragraph once for the leaf that owns it and again for every ancestor above it.
+ */
+export function sectionOwnBody(
+  markdown: string,
+  section: Section,
+  next: Section | undefined,
+): string {
+  const end = next ? Math.min(section.char_end, next.heading_offset) : section.char_end;
+  return markdown.slice(section.char_start, Math.max(section.char_start, end)).trim();
+}
