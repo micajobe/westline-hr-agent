@@ -95,7 +95,7 @@ export function PersonaSelect({
 
   return (
     <div ref={root} className="flex items-center gap-3" onKeyDown={onKeyDown}>
-      <Label>Acting as</Label>
+      <Label>Role</Label>
       {/* The panel is anchored to the trigger, not to the row: the badge and scope to its right
           come and go with the persona, and anchoring to the row would drift the panel with them. */}
       <div className="relative min-w-0 w-full max-w-[300px]">
@@ -104,7 +104,7 @@ export function PersonaSelect({
           type="button"
           aria-haspopup="listbox"
           aria-expanded={open}
-          aria-label={`Acting as ${persona ? persona.name : 'no persona'}. Change persona.`}
+          aria-label={`Role: ${persona ? persona.name : 'no persona'}. Change persona.`}
           onClick={() => setOpen((o) => !o)}
           className="flex w-full items-center gap-2 border border-[var(--ink)] bg-[var(--paper)] px-2 py-1 text-left text-[length:var(--t-body-sm)] hover:bg-[var(--paper-2)]"
         >
@@ -123,7 +123,7 @@ export function PersonaSelect({
           <ul
             ref={list}
             role="listbox"
-            aria-label="Acting as"
+            aria-label="Role"
             className="absolute right-0 top-9 z-30 m-0 max-h-[60vh] w-[420px] list-none overflow-y-auto border border-[var(--ink)] bg-[var(--paper)] p-0"
           >
             {options.map((p, i) => {
