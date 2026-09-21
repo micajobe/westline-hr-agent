@@ -845,8 +845,12 @@ accepted and the schema accepted, so no error was traced, `verify` reported "0 f
 at the page could catch. The recovery now leaves a visible trace row so the next occurrence is
 counted rather than discovered.
 
-**Verification.** 230 tests green, typecheck and lint clean. Deployed proof after the push is below
-the fix in this entry once Render has picked it up.
+**Verification.** 230 tests green, typecheck and lint clean. Deployed as `c5687bc`; the drone
+question re-asked three times against the live app came back intact every time (`stop_reason:
+tool_use`, 10–11 facts, `salvaged: []`), which is the intermittency, not the fix firing. The recovery
+path is proven against the captured blob in the tests; the next live occurrence will show as an
+`answer_tagged_text` row in the trace rail with the answer rendered normally beneath it. Chats
+already saved in a browser from before the fix keep the blob they stored — re-ask, and they render.
 
 ## 2026-09-20 — The trace said "W-3010" while the script said it wouldn't
 
