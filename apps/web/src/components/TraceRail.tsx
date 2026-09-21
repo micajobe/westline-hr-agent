@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { TraceEvent } from '../lib/types';
+import { SERVER_OWNED_ARGS, type TraceEvent } from '../lib/types';
 import { Chip, Details, GLYPH, Json, Label, PanelToggle } from './primitives';
 
 export interface TraceTurn { turn_id: string; label: string; events: TraceEvent[]; live?: boolean }
@@ -83,12 +83,37 @@ function EventRow({ e, pendingGate }: { e: TraceEvent; pendingGate: boolean }) {
       {detail ? (
         <div className="mt-1 pl-[84px]">
           <Details summary={<span>details</span>}>
-            {e.args && <><Label>args</Label><Json value={e.args} /></>}
+            {e.args && <ArgsBlock args={e.args} />}
             {e.detail && <><Label className="mt-2">detail</Label><Json value={e.detail} /></>}
           </Details>
         </div>
       ) : null}
     </li>
+  );
+}
+
+/**
+ * Args, split by who wrote them. `acting_person_id` and `confirmation_token` are stripped from the
+ * schema the model sees and injected by the MCP client, but the trace records the args the tool
+ * actually received -- so one undifferentiated blob reads as if the model named the person. It
+ * never does, and the two labels are the proof.
+ */
+function ArgsBlock({ args }: { args: Record<string, unknown> }) {
+  const fromModel: Record<string, unknown> = {};
+  const fromServer: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(args)) (SERVER_OWNED_ARGS.includes(k) ? fromServer : fromModel)[k] = v;
+  const injected = Object.keys(fromServer).length > 0;
+  return (
+    <>
+      <Label>{injected ? 'args · from model' : 'args'}</Label>
+      <Json value={fromModel} />
+      {injected && (
+        <>
+          <Label className="mt-2">args · server-injected</Label>
+          <Json value={fromServer} />
+        </>
+      )}
+    </>
   );
 }
 

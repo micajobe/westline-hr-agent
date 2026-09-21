@@ -7,6 +7,13 @@ export interface TraceEvent {
   citations?: { doc_id: string; section_path: string }[];
   duration_ms?: number; detail?: Record<string, unknown>;
 }
+/**
+ * Arguments the MCP client owns: stripped from the model-facing schema and written in per call by
+ * `apps/server/src/mcp/client.ts`. The trace records the *effective* args, so the rail labels these
+ * separately -- otherwise `acting_person_id` reads as something the model chose.
+ */
+export const SERVER_OWNED_ARGS = ['acting_person_id', 'confirmation_token'];
+
 export interface Citation { chunk_id: string; doc_id: string; title: string; section_path: string; snippet: string }
 export interface PolicyFact { id: string; statement: string; citations: Citation[] }
 export interface Answer {

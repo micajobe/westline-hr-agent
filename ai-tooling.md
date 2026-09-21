@@ -847,3 +847,37 @@ counted rather than discovered.
 
 **Verification.** 230 tests green, typecheck and lint clean. Deployed proof after the push is below
 the fix in this entry once Render has picked it up.
+
+## 2026-09-20 — The trace said "W-3010" while the script said it wouldn't
+
+**What was asked.** A screenshot of the trace rail, paused on the first call of Dani Kowalczyk's
+drone question: `hr · lookup_person_profile`, args expanded, `{ "acting_person_id": "W-3010" }`.
+The demo script's line for that exact beat reads "Notice there's no person ID in the arguments."
+
+**What was found.** The code was right and the script was wrong. `acting_person_id` is stripped from
+the model-facing schema (`client.ts` `anthropicTools`) and injected per call (`client.ts` `call`),
+and `tests/server.start.test.ts` asserts both — that the model never sees the field, and that every
+`tool_call` trace event carries the caller's real ID. That second assertion is deliberate: the trace
+records the *effective* arguments, so it can prove identity was injected rather than merely claim
+it. The screenshot was the system working. What failed was the narration: the sentence described the
+schema but pointed at the screen, and on screen the two were one undifferentiated JSON blob, so
+`acting_person_id` read as something the model had chosen.
+
+**What was produced.** `TraceRail.tsx` splits the args panel by provenance — `args · from model`
+and `args · server-injected` — keyed off a `SERVER_OWNED_ARGS` list mirrored in `apps/web/src/lib/
+types.ts` (the web app carries its own copies of the shared types; the shared package targets Node).
+Single-block rendering is kept for events with no injected args, so nothing else in the rail gains a
+label it does not need. The trace payload is unchanged, so the server test still holds. The demo
+script's beat now points at both blocks: for `lookup_person_profile` the model's block is `{}`,
+which is a stronger claim than the one the old wording tried to make. Word budget table updated
+(beat D +5 spoken words, total ≈ 9:47 at 160 wpm).
+
+**What went wrong.** Not a code defect — a documentation defect that only existed relative to a
+rendering decision made somewhere else. The script was accurate when written against `client.ts` and
+became false against the UI, and nothing could have caught that but a human reading the sentence
+aloud with the screen in front of them. The fix was to make the UI state the thing the script had
+been asserting, rather than to soften the script or weaken the trace.
+
+**Verification.** 230 tests green, typecheck, lint and build clean. Confirmed in the running app as
+Dani with the drone question: the first `tool_call` row expands to an empty model block above a
+server-injected `acting_person_id` of `W-3010`. No console errors.
