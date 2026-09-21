@@ -9,5 +9,7 @@ export * from './agent/model.js';
 export * from './agent/schemas.js';
 export * from './agent/citations.js';
 export * from './agent/verify.js';
+export * from './agent/salvage.js';
+export { synthesize } from './agent/synthesize.js';
 export { PLAN_INSTRUCTIONS } from './agent/prompts/plan.js';
 export { systemPrompt } from './agent/prompts/system.js';

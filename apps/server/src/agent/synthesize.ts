@@ -4,6 +4,7 @@ import type { TraceRecorder } from '@westline/shared';
 import type { CitationRegistry } from './citations.js';
 import type { ModelClient, MessageParam } from './model.js';
 import { repairInstructions, synthesizeInstructions } from './prompts/synthesize.js';
+import { salvageTaggedAnswer } from './salvage.js';
 import { ANSWER_JSON_SCHEMA } from './schemas.js';
 import type { ActionTakenRecord } from './tools.js';
 
@@ -19,7 +20,12 @@ export async function synthesize(model: ModelClient, system: string, messages: M
   });
   const block = res.content.find((b) => b.type === 'tool_use');
   let raw = block && block.type === 'tool_use' ? block.input : {};
+  // The model sometimes writes the call as pseudo-XML text; the API then folds every field into
+  // answer_markdown. Recover the fields first, or the repair pass below fires on a false empty.
+  const salvage = salvageTaggedAnswer(raw);
+  raw = salvage.raw;
   let r = raw as Record<string, any>;
+  if (salvage.detected) trace.emit({ type: 'error', result_status: 'answer_tagged_text', result_summary: `emit_answer arrived as tagged text (stop_reason ${res.stop_reason}); recovered ${salvage.salvaged.length ? salvage.salvaged.join(', ') : 'nothing'}` });
   let repaired = false;
   // Repair pass: the model summarised in prose and skipped policy_facts even though chunks were
   // retrieved. One extra forced call that extracts the facts from its own answer against the
@@ -46,6 +52,6 @@ export async function synthesize(model: ModelClient, system: string, messages: M
     // Dev only: one file per turn under the DEBUG_SYNTH directory.
     try { mkdirSync(process.env.DEBUG_SYNTH, { recursive: true }); writeFileSync(join(process.env.DEBUG_SYNTH, `${trace.turn_id}.json`), JSON.stringify({ stop_reason: res.stop_reason, content_types: res.content.map((b) => b.type), raw, citable: citations.ids(), usage: res.usage }, null, 2)); } catch { /* dev only */ }
   }
-  trace.emit({ type: 'synthesis', duration_ms: Date.now() - started, result_summary: `${Array.isArray(r.policy_facts) ? r.policy_facts.length : 0} facts, ${Array.isArray(r.recommendations) ? r.recommendations.length : 0} recommendations · escalation ${r.escalation?.target ?? 'none'}`, detail: { repaired, escalation: r.escalation ?? null, facts: Array.isArray(r.policy_facts) ? r.policy_facts.length : 0, recommendations: Array.isArray(r.recommendations) ? r.recommendations.length : 0, actions_taken: actions.length, stop_reason: res.stop_reason, usage: res.usage ? { input_tokens: res.usage.input_tokens, output_tokens: res.usage.output_tokens } : undefined } });
+  trace.emit({ type: 'synthesis', duration_ms: Date.now() - started, result_summary: `${Array.isArray(r.policy_facts) ? r.policy_facts.length : 0} facts, ${Array.isArray(r.recommendations) ? r.recommendations.length : 0} recommendations · escalation ${r.escalation?.target ?? 'none'}`, detail: { repaired, salvaged: salvage.salvaged, escalation: r.escalation ?? null, facts: Array.isArray(r.policy_facts) ? r.policy_facts.length : 0, recommendations: Array.isArray(r.recommendations) ? r.recommendations.length : 0, actions_taken: actions.length, stop_reason: res.stop_reason, usage: res.usage ? { input_tokens: res.usage.input_tokens, output_tokens: res.usage.output_tokens } : undefined } });
   return raw;
 }

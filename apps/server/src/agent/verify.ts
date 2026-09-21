@@ -1,5 +1,6 @@
 import { AnswerSchema, PolicyFactSchema, RecommendationSchema, type Answer, type TraceRecorder } from '@westline/shared';
 import type { CitationRegistry } from './citations.js';
+import { salvageTaggedAnswer } from './salvage.js';
 
 const OBJECT_FIELDS = ['policy_facts', 'recommendations', 'applicability', 'actions_proposed', 'actions_taken', 'escalation', 'clarification', 'withheld_by_audience'] as const;
 
@@ -10,7 +11,8 @@ const OBJECT_FIELDS = ['policy_facts', 'recommendations', 'applicability', 'acti
  */
 export function coerceRaw(raw: unknown): Record<string, unknown> {
   if (!raw || typeof raw !== 'object') return {};
-  const out: Record<string, unknown> = { ...(raw as Record<string, unknown>) };
+  // Idempotent: synthesize already ran this; here it also covers callers that hand verify a raw object directly.
+  const out: Record<string, unknown> = { ...(salvageTaggedAnswer(raw).raw as Record<string, unknown>) };
   for (const k of OBJECT_FIELDS) {
     const v = out[k];
     if (typeof v === 'string') {

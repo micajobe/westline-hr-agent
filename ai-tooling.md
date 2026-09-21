@@ -810,3 +810,40 @@ and collapsed-rail: anonymous gets nothing for a staff-only phrase and is told 2
 searched; Jordan gets `HOURS` §1.4 for the same phrase; "meal window" ranks §6.2 "Meal windows on a
 shoot day" first; clicking a result opens the document at the cited passage, and on a phone it closes
 the contents overlay on the way. One request per settled query, confirmed in the network log.
+
+## 2026-09-20 — The answer that arrived as its own markup
+
+**What was asked.** A screenshot of the deployed app: Dani Kowalczyk's drone question rendered as a
+wall of text ending in `</answer_markdown>` followed by `<policy_facts> [ {"id":"f1", …`. No "What
+the policy says" section, no citation chips, nothing to click through to the handbook.
+
+**What was found.** Reproduced against the deployed API on the first try: `answer_markdown` was
+8,525 characters, `policy_facts` was empty, and the synthesis trace showed `stop_reason: "end_turn"`
+where a forced `emit_answer` call should give `tool_use`. The blob was the whole answer written as
+pseudo-XML — `<answer_markdown>…</answer_markdown><policy_facts>[…]</policy_facts>…</invoke>` — and
+the API's lenient parser had folded all of it into the first parameter. Every fact and every
+citation was present, in well-formed JSON, inside a string the UI was told was prose. A shorter
+question (Hana Ito, PTO notice) came back intact with six facts, so this is intermittent and skews
+to long multi-policy answers. The 90-second turn was two synthesis calls: the repair pass saw an
+empty `policy_facts` beside a non-empty summary and spent a second forced call that failed the same
+way.
+
+**What was produced.** `apps/server/src/agent/salvage.ts`: if `answer_markdown` contains
+`</answer_markdown>`, cut the prose off at the marker and pull each schema field back out of its
+tag, tolerating the malformed opener the capture actually contained (`<actions_proposed">`).
+`synthesize` runs it before the repair check, so the false empty no longer costs a second model
+call, and emits an `error` trace row (`answer_tagged_text`) naming the stop reason and the fields
+recovered; `coerceRaw` runs it too so any caller of `verify` is covered. `verify` still guards every
+recovered citation against the registry. The captured blob is a fixture
+(`tests/fixtures/tagged-answer.txt`); five tests cover recovery of all ten facts, an intact answer
+passing through by reference, a non-JSON field body, verify keeping the facts with real snippets,
+and synthesize making exactly one call.
+
+**What went wrong.** Nothing in the code path had failed — the model produced output the API
+accepted and the schema accepted, so no error was traced, `verify` reported "0 facts verified" as
+`ok`, and the UI rendered exactly what it was given. A silent degradation that only a human looking
+at the page could catch. The recovery now leaves a visible trace row so the next occurrence is
+counted rather than discovered.
+
+**Verification.** 230 tests green, typecheck and lint clean. Deployed proof after the push is below
+the fix in this entry once Render has picked it up.
