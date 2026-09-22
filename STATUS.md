@@ -68,8 +68,11 @@ Sonnet citing several *supporting* sections where gold names one; §8.4 lists th
 governing citation per fact, a "primary source" Choice, reranking). Same-config precision was 49%
 then 40% an hour apart, so ±9 points is single-run noise at n = 19.
 
-`evaluation/results/latest.*` carries run 2. To show the 2026-09-12 3-run headline on `/eval` again:
-`git checkout 0241638 -- evaluation/results/latest.json evaluation/results/latest.md`.
+`evaluation/results/latest.*` is now the 2026-09-12 3-run headline and its four ablation arms **plus**
+ablation 5 from run `2026-09-22T16-03-20`, built with
+`node scripts/rebuild-report.mjs 2026-09-12T14-40-36 2026-09-22T16-03-20` (first stamp supplies the
+base runs and run info; later stamps contribute ablation arms only). Rebuild with that command after
+any future harness run, or `/eval` stops matching the demo script's G beat.
 
 ## Not yet produced
 

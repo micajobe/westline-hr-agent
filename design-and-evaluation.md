@@ -459,7 +459,10 @@ candidates (ADR 0019 stretch item 1). What Jev buys as built is a cheap, sub-sec
 backstop for the case structural VERIFY cannot see -- a real chunk that does not say what the fact
 claims -- and the trace records every verdict so a threshold can be tuned on evidence.
 
-`evaluation/results/latest.*` carries run `16-03-20`; both runs' stamped files are committed.
+`evaluation/results/latest.*` keeps the 2026-09-12 3-run headline and merges this arm in as ablation 5
+(`scripts/rebuild-report.mjs 2026-09-12T14-40-36 2026-09-22T16-03-20`); on `/eval` its "off" row is
+therefore the 3-run base, not the same-day pair above. Both 2026-09-22 runs' stamped files are
+committed.
 
 #### Latency
 

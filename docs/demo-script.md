@@ -1,4 +1,4 @@
-# Demo video — teleprompter script (draft 2, 2026-09-12)
+# Demo video — teleprompter script (draft 7, 2026-09-22)
 
 Target 9:00 of the allowed 7–10. Spoken lines are plain paragraphs. Bracketed lines are not read:
 
@@ -40,20 +40,28 @@ spoken once and shown on screen; the screen carries the precision so the voice d
 | Beat | Time | Rubric items | Must-say |
 |---|---|---|---|
 | A Open + ID | 0:00–0:25 | submission | name, program, individual, ID |
-| B Problem + architecture | 0:25–1:40 | 10, 5, 4 | 3 workforce classes, 2 servers, 9 tools, Streamable HTTP, PLAN→ACT→SYNTHESIZE→VERIFY, no framework and why |
+| B Problem + architecture | 0:25–1:40 | 10, 5, 4 | 3 workforce classes, 2 servers, 9 tools, Streamable HTTP, PLAN→ACT→SYNTHESIZE→VERIFY, no framework and why, VERIFY's second model named (TypeSafe Jev) |
 | C Deployed + /health | 1:40–2:05 | 7, 6 (named) | both services, `/health` fields, cold-start sentence, `/chat` + demo buttons + `demo.sh` |
 | D Task 1 live | 2:05–4:40 | 3, 4 (named), 5 | each tool with args and result, 34 → 27 candidates, `withheld_by_audience`, multi-doc citations, verify; gate only if offered |
 | E Task 2 live | 4:40–6:20 | 4, 5, 6 | `check_pto_balance` fields, PTO §3.2 via `get_policy_section`, gate token rules, `sent: false` |
 | F Repo: MCP, RAG, CI/CD | 6:20–7:40 | 1, 2, 3, 5, 8 | discovery + injection code, chunking, sqlite-vec, k and RRF, `ci.yml`, `deploy.yml` gating |
-| G `/eval` | 7:40–8:40 | 9 | headline, weak numbers with cause, chunking ablation, chaos row, calibration |
+| G `/eval` | 7:40–8:40 | 9, 3 | headline, weak numbers with cause, **Jev citation check as the evidence for the cause**, chunking ablation, chaos row, calibration |
 | H Close | 8:40–9:00 | 7, 10 | inprocess fallback, where the docs are |
 
 ## 2. Pre-record checklist
 
 - [ ] Re-send the `quantic-grader` invitation if it has lapsed (sent 2026-09-08; expires at 7 days).
-- [ ] **Test count is 225** (`npx vitest run`, 2026-09-12, 17 files). README and
-      `design-and-evaluation.md` §2.8 say 179 and `STATUS.md` says 213; all three are stale and the
-      grader reads them. Fix the three numbers before recording so the video and the docs agree.
+- [ ] **Test count is 250** (`npx vitest run`, 2026-09-22, 20 files). Check README,
+      `design-and-evaluation.md` §2.8 and `STATUS.md` say the same before recording; the grader reads
+      them and the F beat says the number aloud.
+- [ ] **`/eval` must show the 3-run 2026-09-12 headline plus ablation 5.** `latest.json` is built by
+      `node scripts/rebuild-report.mjs 2026-09-12T14-40-36 2026-09-22T16-03-20` (first stamp = headline
+      and the four original arms, second = the semantic-verify arm). If anyone re-runs the harness
+      before recording, rebuild with that command or the G numbers stop matching the screen.
+- [ ] **Jev on Render, or skip the D take.** The optional Jev take in D needs `TYPESAFE_API_KEY` and
+      `SEMANTIC_VERIFY_PROVIDER=typesafe` set together on the `westline-app` Render service
+      (`BLOCKERS.md` item 0), then a redeploy and a dry run showing the mono line under VERIFY. Without
+      them the line never appears; G still introduces Jev either way.
 - [ ] `STATUS.md` "Remaining for Micah" item 3 still lists the cold-start run. Drop it.
 - [ ] **Task 1 may not propose a ticket.** In 3 of 3 eval runs of the identical message (`md-04`)
       the agent answered from policy with `escalation.target: none` and proposed nothing, and
@@ -96,7 +104,7 @@ carrying four different meanings.
 | D ticket ID | Only if a gate appears; otherwise skipped | See Task 1 note above |
 | E balance result | **Read aloud** | Required tool output; the numbers are the answer |
 | E draft ID | **Read aloud**, ID only | Proves the action happened and is on the desk |
-| F test count | **Read aloud** (230 as of the salvage fix) | Item eight asks for tests; the number is on screen too |
+| F test count | **Read aloud** (250 as of the Jev work) | Item eight asks for tests; the number is on screen too |
 
 ### Delivery notes
 
@@ -201,6 +209,11 @@ The confirmation gate has to pause a model turn
 and pick it up again in a completely different HTTP request,
 and frameworks want their loop to run to the end.
 Decision record six has the full argument.
+Two models, two jobs. Sonnet plans and writes.
+Verify hands every citation to a second, much smaller model —
+TypeSafe's Jev — which reads the passage and the claim
+and returns a probability that one supports the other. No prose.
+Code owns the threshold. I'll show you what it found.
 You'll see all four steps in the trace in a minute.
 ```
 
@@ -455,27 +468,22 @@ READ
 Off the row: "10 facts in, 10 kept, 0 removed" — or whatever it shows.
 
 
-OPTIONAL — only if SEMANTIC_VERIFY_PROVIDER=typesafe is on and the row shows a Jev line.
-Skip in silence if it does not; the take above already covers verify.
+OPTIONAL — only if the Render service has TYPESAFE_API_KEY set and the VERIFY row shows a
+mono line naming jev. Skip in silence if it does not; G introduces Jev regardless.
 
 DO
-Expand the VERIFY row. Point at the mono line under the summary.
+Point at the mono line under the VERIFY summary. Do not expand it.
 
 SCREEN
-The summary, e.g. "9 facts verified · Jev removed 1 citation (1 unsupported, 0 contradicted)",
-and beneath it the line "jev-1.13.0 · 14 pairs · 13 supported · 1 unsupported · 0 contradicted · 380 ms".
+A line like "jev-1.13.0 · 14 pairs · 14 supported · 0 unsupported · 0 contradicted · 210 ms".
 
 SAY
-There's a second check in here now.
-Every citation that survived goes to Jev — a small model that reads the passage
-and the claim and returns a probability, not a paragraph.
-Fourteen pairs, a few hundred milliseconds.
-It dropped one: a real section, correctly retrieved,
-that didn't actually say what the fact claimed.
-The structural check can't see that. This one can.
+And that's Jev, live. Every citation that survived,
+checked against the passage it points at,
+in a few hundred milliseconds.
 
 READ
-The counts off the line. Never a reason — there isn't one to read; it's a probability.
+The pair count and the supported count off the line. Nothing else.
 
 
 BRANCH
@@ -683,7 +691,7 @@ The Actions list. ci and deploy, both green.
 
 SAY
 Item eight. This runs on every push and every pull request:
-typecheck, lint, build, and two hundred and thirty tests —
+typecheck, lint, build, and two hundred and fifty tests —
 with no API keys at all, because CI uses a deterministic
 stub embedder.
 
@@ -759,15 +767,38 @@ Those two cells.
 SAY
 Two numbers I'd rather explain than have you find.
 Citation precision is forty-nine percent.
-The agent over-cites — it goes past the gold set —
-and groundedness stays high
-because what it cites does support the claim.
+The agent over-cites — it goes past the gold set.
+I wanted to know whether those extra citations were wrong,
+or just extra. So I didn't guess. I measured it.
 Tool selection is seventy-six.
 Four of the six persistent misses are gold expectations
 that assumed a search path; the agent takes a more precise route
 and gets marked down for it.
 One item is a genuine failure:
 it asks for clarification where it should have denied outright.
+
+
+DO
+Scroll to the ablation table headed "semantic verify". Point at the "on" row.
+
+SCREEN
+The two-row table: semantic_verify off, then on (typesafe).
+
+SAY
+This is the measurement. Item three, unsupported claims.
+Verify already drops any citation the model invented —
+a chunk that wasn't retrieved this turn.
+Then TypeSafe's Jev checks every citation that survived:
+does this passage support this claim, contradict it, or say nothing?
+A hundred and two pairs. It agreed with a hundred and one.
+It removed one, and nothing went unchecked.
+So the forty-nine percent isn't unsupported citations —
+it's supporting citations the gold set didn't name.
+That's an over-citation problem, and I know that now,
+because a second model read every passage.
+
+READ
+Off the row: the citations-removed cell, and the verify latency in milliseconds.
 
 
 DO
@@ -820,32 +851,38 @@ And everything I've said is written down:
 the design doc for every justification and the full result tables,
 a deployment doc for the topology,
 a tooling doc for how I used Claude Code and where it went wrong,
-and seventeen decision records.
+and eighteen decision records.
 Thanks for watching.
 ```
 
 ---
 
 
-## 4. Word budget (measured, draft 6)
+## 4. Word budget (measured, draft 7)
 
 Counted from `SAY` and `READ` lines only; `DO` and `SCREEN` are never spoken. Where a `BRANCH` has
-alternatives, the longest one is counted, so these are upper bounds on the branching beats.
+alternatives, the longest one is counted, so these are upper bounds on the branching beats. D includes
+the optional Jev take (28 words); skip it and D drops by that much.
 
 | Beat | Spoken | At 160 wpm | At 170 wpm |
 |---|---|---|---|
 | A | 42 | 0:15 | 0:14 |
-| B | 197 | 1:13 | 1:09 |
+| B | 247 | 1:32 | 1:27 |
 | C | 117 | 0:43 | 0:41 |
-| D | 663 | 4:08 | 3:54 |
+| D | 691 | 4:19 | 4:03 |
 | E | 314 | 1:57 | 1:50 |
 | F | 323 | 2:01 | 1:54 |
-| G | 293 | 1:49 | 1:43 |
+| G | 406 | 2:32 | 2:23 |
 | H | 74 | 0:27 | 0:26 |
-| **Total** | **2,023** | **≈ 12:38** | **≈ 11:54** |
+| **Total** | **2,214** | **≈ 13:50** | **≈ 13:01** |
 
-**Draft 6 rewrote every beat as DO / SCREEN / SAY / READ takes in spoken English, and it is over
-budget: ≈12:38 at 160 wpm against a 10:00 target.** Before cutting, two things make that number
+**Draft 7 adds Jev to B (+50 words), rewrites G's precision paragraph around the measurement (+113
+net) and trims the optional D take to 28. Net +191 words, about 1:10 at 160 wpm, on a script that was
+already over budget in draft 6.** If Jev stays in, something else comes out; candidates in order of
+least damage are below, plus two new ones: the optional D take (−28; it needs Render variables that
+are not set, and G carries Jev without it) and B's Jev clause cut to two lines, "Verify also hands
+every citation to a second model, TypeSafe's Jev, which returns a probability it supports the claim"
+(−30; G does the rest). Before cutting, two things make that number
 less reliable than it looks, in opposite directions:
 
 - **The old count was optimistic.** It scored `hr__lookup_person_profile` as one word. Saying it
@@ -878,3 +915,4 @@ live candidates.
 | No chain-of-thought | `plan` event carries `summary` and `expected_tools` only, beat D |
 | Deploy gated on CI | `deploy.yml` trigger and condition, beat F |
 | Metrics as numbers | `/eval` tables, beat G |
+| Citations checked for support by a second model | `/eval` ablation "semantic verify": 1 removed of 102, 187 ms, beat G; the mono line under VERIFY in beat D when Jev is on |
