@@ -74,6 +74,7 @@ function EventRow({ e, pendingGate }: { e: TraceEvent; pendingGate: boolean }) {
             {e.duration_ms != null && e.type !== 'tool_call' && <span className="mono shrink-0 text-[var(--muted)]">{e.duration_ms} ms</span>}
           </div>
           {isTool && right && e.type !== 'tool_call' && <div className={`mt-0.5 pl-[84px] text-[length:var(--t-body-sm)] leading-[1.4] ${attention ? 'font-medium' : 'text-[var(--ink-2)]'}`}>{right}</div>}
+          {e.type === 'verify' && semanticLine(e.detail) && <div className="mono mt-0.5 truncate pl-[84px] text-[var(--muted)]" title={semanticLine(e.detail) ?? undefined}>{semanticLine(e.detail)}</div>}
           {e.citations && e.citations.length > 0 && (
             <div className="mt-1.5 flex flex-wrap gap-1 pl-[84px]">{dedupe(e.citations).map((c) => <Chip key={`${c.doc_id}${c.section_path}`}>{c.doc_id} {c.section_path}</Chip>)}</div>
           )}
@@ -115,6 +116,13 @@ function ArgsBlock({ args }: { args: Record<string, unknown> }) {
       )}
     </>
   );
+}
+
+/** The semantic block of a verify event (ADR 0019) as one mono line: counts and latency, never prose. */
+function semanticLine(detail: Record<string, unknown> | undefined): string | null {
+  const s = detail?.semantic as { provider?: string; model?: string | null; pairs_checked?: number; supported?: number; unsupported?: number; contradicted?: number; unavailable?: number; latency_ms?: number } | undefined;
+  if (!s || typeof s.pairs_checked !== 'number') return null;
+  return `${s.model ?? s.provider} · ${s.pairs_checked} pairs · ${s.supported} supported · ${s.unsupported} unsupported · ${s.contradicted} contradicted${s.unavailable ? ` · ${s.unavailable} unavailable` : ''} · ${s.latency_ms} ms`;
 }
 
 function dedupe<T extends { doc_id: string; section_path: string }>(list: T[]): T[] {

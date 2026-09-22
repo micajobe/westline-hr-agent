@@ -1,3 +1,5 @@
+import { isSemanticVerifyProvider, type SemanticVerifyProviderId } from '@westline/semantic-verify';
+
 export type McpMode = 'http' | 'inprocess';
 
 export interface ServerConfig {
@@ -13,6 +15,12 @@ export interface ServerConfig {
   mcpSharedSecret: string;
   chaosDisableHrMcp: boolean;
   rerank: boolean;
+  /** Semantic citation verification inside VERIFY (ADR 0019). `off` keeps VERIFY structural only. */
+  semanticVerifyProvider: SemanticVerifyProviderId;
+  /** Minimum P(supports) for a citation to survive semantic verification. */
+  semanticVerifyThreshold: number;
+  typesafeApiKey: string | undefined;
+  typesafeModel: string;
   /** Where the built web app lives; served statically when present. */
   webDistDir: string;
   evalResultsPath: string;
@@ -27,6 +35,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
   if (mcpMode === 'http' && !env.MCP_BASE_URL) throw new Error('MCP_BASE_URL is required when MCP_MODE=http');
   const secret = env.MCP_SHARED_SECRET;
   if (!secret) throw new Error('MCP_SHARED_SECRET is required');
+  const semanticVerifyProvider = env.SEMANTIC_VERIFY_PROVIDER || 'off';
+  if (!isSemanticVerifyProvider(semanticVerifyProvider)) throw new Error(`SEMANTIC_VERIFY_PROVIDER must be typesafe, stub or off, got "${env.SEMANTIC_VERIFY_PROVIDER}"`);
+  if (semanticVerifyProvider === 'typesafe' && !env.TYPESAFE_API_KEY) throw new Error('TYPESAFE_API_KEY is required when SEMANTIC_VERIFY_PROVIDER=typesafe');
+  const semanticVerifyThreshold = Number(env.SEMANTIC_VERIFY_THRESHOLD ?? 0.8);
+  if (!Number.isFinite(semanticVerifyThreshold) || semanticVerifyThreshold < 0 || semanticVerifyThreshold > 1) throw new Error(`SEMANTIC_VERIFY_THRESHOLD must be between 0 and 1, got "${env.SEMANTIC_VERIFY_THRESHOLD}"`);
   return {
     port: Number(env.PORT ?? 3000),
     host: env.HOST ?? '0.0.0.0',
@@ -39,6 +52,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     mcpSharedSecret: secret,
     chaosDisableHrMcp: env.CHAOS_DISABLE_HR_MCP === 'true',
     rerank: env.RERANK === 'true',
+    semanticVerifyProvider,
+    semanticVerifyThreshold,
+    typesafeApiKey: env.TYPESAFE_API_KEY || undefined,
+    typesafeModel: env.TYPESAFE_MODEL || 'jev-latest',
     webDistDir: env.WEB_DIST_DIR ?? 'apps/web/dist',
     evalResultsPath: env.EVAL_RESULTS_PATH ?? 'evaluation/results/latest.json',
     conversationTtlMs: Number(env.CONVERSATION_TTL_MS ?? 30 * 60_000),

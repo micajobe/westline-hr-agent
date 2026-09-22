@@ -56,6 +56,16 @@ services:
         sync: false
       - key: RERANK
         value: "false"
+      # ADR 0019 — semantic citation verification. The key is entered in the dashboard; the server
+      # refuses to start with provider=typesafe and no key, so set both together.
+      - key: SEMANTIC_VERIFY_PROVIDER
+        value: typesafe
+      - key: SEMANTIC_VERIFY_THRESHOLD
+        value: "0.8"
+      - key: TYPESAFE_MODEL
+        value: jev-latest
+      - key: TYPESAFE_API_KEY
+        sync: false
       - key: CHAOS_DISABLE_HR_MCP
         value: "false"
       - key: LOG_LEVEL

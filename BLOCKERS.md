@@ -5,6 +5,16 @@ been built. Update/remove entries as they are resolved.
 
 ## Open
 
+### 0. Render: turn on semantic citation verification (2026-09-22)
+
+- Locally resolved: `TYPESAFE_API_KEY` is in `.env`, the `typesafe` provider ran end to end (26
+  verify events from `jev-1.13.0` in run `2026-09-22T15-21-27`), and the ablation is in §8.4.
+- **Render still needs it.** Add `TYPESAFE_API_KEY` (secret) and `SEMANTIC_VERIFY_PROVIDER=typesafe`
+  to the `westline-app` service (`srv-dadi2etg1s2s73bldagg`, hostname `westline-hr-agent.onrender.com`).
+  Set both together: the server refuses to start with the provider on and no key. `render.yaml`
+  declares the variables; the services are not Blueprint-driven, so this is a dashboard edit.
+- Merge `feat/semantic-citation-verification` to `main` first; deploys run from `main`.
+
 ### 1. GitHub: grader access expires around 2026-09-15
 
 - `quantic-grader` was invited 2026-09-08 with **read** permission (invite `332198617`). The

@@ -50,6 +50,10 @@ SQLite binding — ADR 0003). The blueprint sets 22; set it manually if you crea
 | `MCP_BASE_URL` | ✓ | | | The `westline-mcp` public URL, no trailing slash |
 | `MCP_SHARED_SECRET` | ✓ | ✓ | | `openssl rand -hex 32`; identical on both. Also signs confirmation tokens |
 | `RERANK` | ✓ | | | `false`; ablation only |
+| `SEMANTIC_VERIFY_PROVIDER` | ✓ | | | **Not yet set on Render.** `typesafe` to turn on Jev citation verification (ADR 0019); unset/`off` keeps VERIFY structural only. The server refuses to start with `typesafe` and no key |
+| `SEMANTIC_VERIFY_THRESHOLD` | ✓ | | | `0.8`; minimum P(supports) for a citation to survive |
+| `TYPESAFE_API_KEY` | ✓ | | | **Not yet set on Render.** Enter in the dashboard together with the provider |
+| `TYPESAFE_MODEL` | ✓ | | | `jev-latest` |
 | `CHAOS_DISABLE_HR_MCP` | ✓ | | | `false`; set `true` to demo graceful degradation (`/health` shows `hr: disabled`) |
 | `PORT` | ✓ | ✓ | | Render-provided |
 | `LOG_LEVEL` | ✓ | ✓ | | `info` |

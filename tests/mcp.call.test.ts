@@ -178,6 +178,9 @@ describe('policy-mcp: audience enforced before ranking', () => {
       expect(rule.chunk_id).toMatch(/#§/);
       expect(typeof rule.applies_to_class).toBe('boolean');
       expect(rule.rule.length).toBeGreaterThan(20);
+      // Additive (ADR 0019): the full chunk text rides along so VERIFY can judge the passage, not the snippet.
+      expect(typeof rule.text).toBe('string');
+      expect(rule.text.length).toBeGreaterThanOrEqual(rule.rule.length);
     }
     expect(r.rules.some((x: Any) => x.doc_id === 'PTO')).toBe(false);
     expect(r.applicability_note).toMatch(/creator_partner/);

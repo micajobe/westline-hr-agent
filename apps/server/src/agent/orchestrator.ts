@@ -2,6 +2,7 @@ import {
   TraceRecorder, emptyAnswer, mintConfirmationToken, newConversationId, newTurnId,
   type Answer, type ChatEnvelope, type ConfirmationRequest, type PeopleDirectory, type TraceEvent,
 } from '@westline/shared';
+import type { SemanticVerifier } from '@westline/semantic-verify';
 import type { McpToolClient } from '../mcp/client.js';
 import { CitationRegistry } from './citations.js';
 import { ConversationStore, type Conversation, type PendingGate, type SuspendedTurn } from './conversation.js';
@@ -11,7 +12,7 @@ import { systemPrompt } from './prompts/system.js';
 import type { Plan } from './schemas.js';
 import { synthesize } from './synthesize.js';
 import { executeTool, proposedArgsHash, type ActionTakenRecord } from './tools.js';
-import { verifyAnswer } from './verify.js';
+import { verifyAnswerSemantic } from './verify.js';
 
 export interface OrchestratorDeps {
   model: ModelClient;
@@ -21,6 +22,9 @@ export interface OrchestratorDeps {
   secret: string;
   maxIterations: number;
   today?: () => string;
+  /** Semantic citation verifier (ADR 0019). Absent = VERIFY is structural only. */
+  semantic?: SemanticVerifier | undefined;
+  semanticThreshold?: number | undefined;
 }
 
 export interface TurnRequest {
@@ -177,7 +181,7 @@ export class Orchestrator {
     } catch (err) {
       return this.modelFailure(conv, turn_id, state.trace, userMessage, err, state);
     }
-    const { answer } = verifyAnswer(raw, state.citations, state.trace);
+    const { answer } = await verifyAnswerSemantic(raw, state.citations, state.trace, { verifier: this.d.semantic, threshold: this.d.semanticThreshold });
     // Server-authoritative overlays: what actually executed, and what retrieval actually withheld.
     answer.actions_taken = state.actions.map((a) => ({ tool: a.tool, result_summary: a.result_summary, ref_id: a.ref_id }));
     answer.actions_proposed = [];

@@ -16,6 +16,7 @@ green and 213 tests passing without API keys.
 | M6 Deploy | done — both services live | CI-gated `deploy.yml` green on `main` through the Render REST API; live `/health` `ok`, both MCP servers `connected`, 9 tools |
 | M7 Eval harness | **done — full run complete** | 447 turns (3 runs × 29 items × 7 configs), 0 errors, 4 h 22 m, ~$35.79 measured agent spend |
 | M8 Documentation | done | README, design-and-evaluation.md **incl. §8.4 results**, deployed.md, 16 ADRs, ai-tooling.md |
+| M9 Semantic citation verification (Jev) | **built and measured on `feat/semantic-citation-verification`** | 250 tests green with no keys; ablation 5 run twice 2026-09-22 against `jev-1.13.0`. Final: 102 pairs judged, 101 supported, 1 removed, 0 unavailable, 192 ms per turn. Surviving citations already support their claims; precision against gold is an over-citation problem, not a support problem. ADR 0019; §8.4 |
 
 ## Evaluation results (2026-09-12)
 
@@ -48,6 +49,27 @@ network: the aborted run was made while travelling. The real lesson is narrower 
 `cli.ts:78` runs the judge *before* the per-item log line, so the printed `latency_ms` covers only
 the `/chat` call and judge cost is invisible in the log. That makes throughput hard to diagnose from
 the log alone, which is what sent the first diagnosis off course.
+
+## Semantic citation verification — measured twice (2026-09-22)
+
+ADR 0019 puts Jev (TypeSafe) inside VERIFY. Two runs of `npm run eval -- --target local --runs 1
+--ablation semantic-verify`, each 58 turns, 0 errors, ~35 min.
+
+| Run · VERIFY | Cit. precision | Cit. recall | Groundedness | Verify p50 | Pairs | Removed |
+|---|---|---|---|---|---|---|
+| 1 · structural only | 49% | 66% | 89% | — | — | — |
+| 1 · + Jev, HANDBOOK §2 as placeholder snippet | 62% | 69% | 96% | 183 ms | 112 | 12 (10 were the placeholder) |
+| 2 · structural only | 40% | 67% | 93% | — | — | — |
+| 2 · + Jev, HANDBOOK §2 rendered as text (`aa6611c`) | 49% | 65% | 93% | 192 ms | 102 | 1 |
+
+Run 1's gain was our bug: the applicability citation had no chunk text, so Jev judged a one-line
+snippet. Fixed, Jev agrees with 101 of 102 surviving citations. The remaining precision gap is
+Sonnet citing several *supporting* sections where gold names one; §8.4 lists the levers (single
+governing citation per fact, a "primary source" Choice, reranking). Same-config precision was 49%
+then 40% an hour apart, so ±9 points is single-run noise at n = 19.
+
+`evaluation/results/latest.*` carries run 2. To show the 2026-09-12 3-run headline on `/eval` again:
+`git checkout 0241638 -- evaluation/results/latest.json evaluation/results/latest.md`.
 
 ## Not yet produced
 

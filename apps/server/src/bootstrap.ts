@@ -1,4 +1,5 @@
 import { resolve } from 'node:path';
+import { createSemanticVerifier } from '@westline/semantic-verify';
 import { PeopleDirectory } from '@westline/shared';
 import type { FastifyInstance } from 'fastify';
 import { ConversationStore } from './agent/conversation.js';
@@ -53,6 +54,8 @@ export async function startServer(opts: StartOptions = {}): Promise<WestlineServ
   const people = PeopleDirectory.load(resolve(repoRoot, env.MOCK_DATA_DIR ?? 'mock_data', 'people.json'));
   const model = opts.model ?? (config.anthropicApiKey ? new AnthropicModel(config.anthropicApiKey, config.agentModel) : undefined);
   if (!model) log('ANTHROPIC_API_KEY not set: /chat will return 503 until it is');
+  const semantic = createSemanticVerifier({ provider: config.semanticVerifyProvider, apiKey: config.typesafeApiKey, model: config.typesafeModel });
+  log(`semantic citation verification: ${config.semanticVerifyProvider}${semantic ? ` (${semantic.model}, threshold ${config.semanticVerifyThreshold})` : ''}`);
 
   const orchestrator = new Orchestrator({
     model: model ?? unavailableModel(),
@@ -61,6 +64,8 @@ export async function startServer(opts: StartOptions = {}): Promise<WestlineServ
     store: new ConversationStore(config.conversationTtlMs),
     secret: config.mcpSharedSecret,
     maxIterations: config.maxIterations,
+    semantic,
+    semanticThreshold: config.semanticVerifyThreshold,
   });
 
   const app = await buildApp({ config, mcp, people, orchestrator, modelAvailable: Boolean(model), repoRoot });

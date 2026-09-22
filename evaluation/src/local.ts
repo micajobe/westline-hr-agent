@@ -13,7 +13,7 @@ export interface EvalConfig {
 const retrievalBearing = (i: EvalItem) => i.gold_citations.length > 0;
 const toolBearing = (i: EvalItem) => i.category === 'tool_workflow' || i.category === 'authorization_audience';
 
-export const BASE_CONFIG: EvalConfig = { name: 'base', label: { k: 6, mode: 'hybrid', chunking: 'heading-aware', hr_mcp: 'up' }, env: {}, selects: () => true };
+export const BASE_CONFIG: EvalConfig = { name: 'base', label: { k: 6, mode: 'hybrid', chunking: 'heading-aware', hr_mcp: 'up', semantic_verify: 'off' }, env: { SEMANTIC_VERIFY_PROVIDER: 'off' }, selects: () => true };
 
 export const ABLATION_CONFIGS: EvalConfig[] = [
   { name: 'k3', ablation: 'retrieval k', label: { k: 3 }, env: { RETRIEVAL_K_OVERRIDE: '3' }, selects: retrievalBearing },
@@ -22,6 +22,10 @@ export const ABLATION_CONFIGS: EvalConfig[] = [
   { name: 'mode-vector', ablation: 'retrieval mode', label: { mode: 'vector' }, env: { RETRIEVAL_MODE_OVERRIDE: 'vector' }, selects: retrievalBearing },
   { name: 'mode-bm25', ablation: 'retrieval mode', label: { mode: 'bm25' }, env: { RETRIEVAL_MODE_OVERRIDE: 'bm25' }, selects: retrievalBearing },
   { name: 'chaos-hr', ablation: 'tool availability', label: { hr_mcp: 'down (CHAOS_DISABLE_HR_MCP)' }, env: { CHAOS_DISABLE_HR_MCP: 'true' }, selects: toolBearing },
+  // ADR 0019: semantic citation verification on (Jev) vs the base run's structural-only VERIFY. Every
+  // item, because latency and answer match matter on all of them; precision/recall are null where an
+  // item has no gold citations. Needs TYPESAFE_API_KEY. Set SEMANTIC_VERIFY_EVAL_PROVIDER=stub to dry-run.
+  { name: 'semantic-verify', ablation: 'semantic verify', label: { semantic_verify: `on (${process.env.SEMANTIC_VERIFY_EVAL_PROVIDER ?? 'typesafe'})` }, env: { SEMANTIC_VERIFY_PROVIDER: process.env.SEMANTIC_VERIFY_EVAL_PROVIDER ?? 'typesafe' }, selects: () => true },
 ];
 
 /**

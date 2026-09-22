@@ -41,6 +41,20 @@ stateless Streamable HTTP behind a shared-secret header — as a separate Render
 (`MCP_MODE=http`), or on a loopback port inside the app process locally (`MCP_MODE=inprocess`); the
 client code path is identical.
 
+### Semantic citation verification (ADR 0019)
+
+VERIFY has two halves. The structural half checks that every cited chunk was retrieved this turn and
+drops facts with no surviving citation. With `SEMANTIC_VERIFY_PROVIDER=typesafe`, a second half asks
+TypeSafe's Jev -- a System One model that returns calibrated probabilities, not prose -- one Choice per
+(fact, citation) pair: does the full chunk text *support*, *contradict*, or *say nothing about* the
+claim? Citations below `SEMANTIC_VERIFY_THRESHOLD` (0.8) or judged contradicting are removed, and the
+`verify` trace event carries a `semantic` block with per-pair probabilities. Jev is a dependency of
+`apps/server` (`packages/semantic-verify`), not an MCP tool; if it is down or slow, VERIFY falls back
+to the structural result for that fact. The default is `off`; `stub` is a key-free lexical test double
+used by CI. Measured (ablation 5, 2026-09-22): Jev agreed with 101 of 102 citations that survived
+structural VERIFY, removed one, and cost 192 ms per turn; the low citation precision against gold is
+over-citation of supporting sections, not unsupported ones (`design-and-evaluation.md` §8.4).
+
 ## Quick start
 
 ```bash
@@ -72,13 +86,14 @@ ticket and draft on `/desk`. The same two tasks are the "Run demo task 01 / 02" 
 
 ```bash
 npm run eval -- --target local --runs 3 --ablations   # boots the app per configuration
+npm run eval -- --target local --runs 1 --ablation semantic-verify   # VERIFY structural vs + Jev (needs TYPESAFE_API_KEY)
 npm run eval -- --target deployed --runs 3            # base configuration against DEPLOYED_APP_URL
 node evaluation/dist/cold_start.js --url <deployed>   # ≥16 min idle, first-request latency ×3
 ```
 
-29 items in six categories, an Opus judge at temperature 0 for groundedness and answer match,
+29 items in six categories, an Opus judge (tool-forced JSON) for groundedness and answer match,
 deterministic citation precision/recall, tool selection, workflow completion, behaviour accuracy,
-action safety, warm/cold latency, and four ablations. Results land in `evaluation/results/latest.json`
+action safety, warm/cold latency, and five ablations. Results land in `evaluation/results/latest.json`
 and render at `/eval`. Human calibration scores go in `evaluation/human_scores.json`.
 
 ## Tests and CI
@@ -97,6 +112,7 @@ corpus/            15 policy documents (11 markdown, 2 HTML, 2 PDF) with audienc
 mock_data/         29 people, PTO ledger, benefits, creator records, markets, PTO config, desk seed
 packages/shared/   domain vocabulary, trace schema, answer schema, args hash, gate tokens, people directory
 packages/rag/      loaders and normalisers, heading-aware chunker, embeddings, sqlite-vec + BM25 store, retriever
+packages/semantic-verify/  Jev (TypeSafe) citation verifier for VERIFY, plus the key-free stub used by tests
 mcp/policy-mcp/    search_policy_documents · get_policy_section · get_policy_applicability · check_policy_compliance
 mcp/hr-data-mcp/   lookup_person_profile · check_pto_balance · lookup_benefits_status · create_mock_hr_ticket · draft_hr_email
 mcp/host/          Fastify host: /mcp/policy, /mcp/hr, /health, /desk; MCP_SHARED_SECRET check

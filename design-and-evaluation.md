@@ -120,7 +120,13 @@ no tool implementation in either mode.
   chunk id the model is allowed to cite this turn.
 - **Guardrails.** VERIFY drops any `policy_fact` whose citations are not in that registry and any
   recommendation whose basis facts did not survive, replaces citation metadata with the tool's own,
-  and emits a `verify` trace event with counts. Facts and recommendations are separate fields in the
+  and emits a `verify` trace event with counts. With `SEMANTIC_VERIFY_PROVIDER=typesafe` it then asks
+  Jev one Choice per surviving (fact, citation) pair -- *supports* / *contradicts* / *says nothing* --
+  over the full chunk text, and drops citations judged contradicting or below the 0.8 threshold
+  (ADR 0019). Structural verification catches the chunk the model invented; semantic verification
+  catches the real chunk that does not back the claim, which is what the 49% citation precision in
+  §8.4 was made of. Code owns the threshold and the rules; Jev reports a relation and a probability,
+  and a failure falls back to the structural result for that fact. Facts and recommendations are separate fields in the
   §7.3 schema and separate blocks in the UI ("What the policy says" vs "guidance, not policy").
   Out-of-scope questions get a redirect with no policy claims; the PERF document exists as bait for
   "will I get a raise" and says in §1 that it does not describe outcomes.
@@ -248,6 +254,11 @@ type TraceEvent = {
 A resumed turn continues the same `turn_id` and sequence, so the rail reads as one story:
 `intent → plan → call/result… → gate → gate_resolved → call/result → synthesis → verify`.
 
+When a semantic verifier is configured (ADR 0019) the `verify` event's `detail` carries a `semantic`
+block: `{ provider, model, threshold, pairs_checked, supported, unsupported, contradicted,
+degraded_input, unavailable, latency_ms, verdicts: [{ fact_id, chunk_id, verdict, p_supports,
+confidence }] }`. Probabilities and counts only -- never the model's prose, because Jev produces none.
+
 ## 6. Safety design
 
 1. Nothing is ever sent. `draft_hr_email` returns `sent: false` and writes to a mock desk.
@@ -310,6 +321,9 @@ pre-selected for human calibration.
 2. heading-aware vs fixed 400-token window → citation precision (`CHUNK_STRATEGY=fixed`, separate index)
 3. hybrid vs vector vs BM25 → citation recall (`RETRIEVAL_MODE_OVERRIDE`)
 4. `CHAOS_DISABLE_HR_MCP=true` → workflow completion, escalation accuracy
+5. semantic citation verification off vs on (`SEMANTIC_VERIFY_PROVIDER=typesafe`, ADR 0019) →
+   citation precision, citation recall, groundedness, answer match, warm latency p50/p95, and the
+   verify step's own latency. Run alone with `--ablation semantic-verify`; needs `TYPESAFE_API_KEY`.
 The `RERANK=true` row is not implemented (PRD §16 cut order item 2); the retriever reports `rerank: false`.
 
 ### 8.4 Results
@@ -407,6 +421,46 @@ policy-only answers and escalation rather than failing or inventing employee dat
 halves, which is correct: without the data tools it cannot give the specific answer. The failure
 mode is graceful, and `TOOL_UNAVAILABLE` surfaces in the trace rather than as an exception.
 
+**Semantic citation verification** (ADR 0019) -- two runs on 2026-09-22, each 1 run × 29 items × 2
+configurations (58 turns, 0 errors), agent `claude-sonnet-5`, judge `claude-opus-5`, verifier
+`jev-1.13.0` at threshold 0.8. Precision and recall are over the 19 items with gold citations;
+latency over the 19 latency items. The first run found a bug in our own plumbing; the second is the
+measurement.
+
+| Run · VERIFY | Cit. precision | Cit. recall | Groundedness | Answer match | Warm p50 | Warm p95 | Verify p50 | Pairs judged | Removed |
+|---|---|---|---|---|---|---|---|---|---|
+| `15-21-27` · structural only | 49% | 66% | 89% | 88% | 30.3 s | 61.6 s | — | — | — |
+| `15-21-27` · + Jev (placeholder text for HANDBOOK §2) | 62% | 69% | 96% | 90% | 30.6 s | 60.5 s | 183 ms | 112 | 12 |
+| `16-03-20` · structural only | 40% | 67% | 93% | 90% | 31.3 s | 64.6 s | — | — | — |
+| **`16-03-20` · + Jev (matrix rendered as text, commit `aa6611c`)** | 49% | 65% | 93% | 90% | 28.9 s | 50.4 s | **192 ms** | **102** | **1** |
+
+*Run 1.* Jev judged 112 pairs: 100 supported, 12 unsupported, 0 contradicted, 0 unavailable. Ten of
+the twelve removals were `HANDBOOK#§2#s`, the synthetic applicability citation, whose registry entry
+had no chunk text because `get_policy_applicability` returns matrix rows rather than a passage. Jev
+was judging the one-line placeholder snippet (`degraded_input` 11 of 112) and said, correctly of
+that snippet, that it says nothing about "as staff, PTO applies to you in full". The judge finds no
+text for a synthetic id either, so those facts were already scoring 0; removing them is why
+groundedness rose with precision. The 13-point gain was mostly our bug, not Jev's judgment.
+
+*Run 2*, after rendering the matrix rows for the answered class as passage text: Jev judged 102 pairs,
+**101 supported, 1 unsupported** (`SAFETY §9` at P(supports) 0.52), 0 contradicted, 0 unavailable,
+0 degraded. All twelve `HANDBOOK#§2#s` pairs came back *supports* at 0.98 or above. Verify cost
+192 ms at the median, 314 ms at worst.
+
+*Reading.* On this corpus and this agent, the citations that survive structural VERIFY already
+support their claims: Jev agrees with 99 of 100 of them. The 40 → 49% precision gap in run 2 cannot
+be Jev's doing -- it removed one citation -- and the same configuration scored 49% and 40% in two
+runs an hour apart, so ±9 points is the single-run noise band at n = 19. Citation precision against
+gold is low because Sonnet cites three or four *supporting* sections where the gold set names one or
+two, and a verifier that asks "does this passage support the claim" is right to keep those. Moving
+that number is an upstream or a different-question job: cite the single governing section per fact,
+ask Jev which passage is the *primary* source and keep only it, or rerank before Sonnet sees the
+candidates (ADR 0019 stretch item 1). What Jev buys as built is a cheap, sub-second, calibrated
+backstop for the case structural VERIFY cannot see -- a real chunk that does not say what the fact
+claims -- and the trace records every verdict so a threshold can be tuned on evidence.
+
+`evaluation/results/latest.*` carries run `16-03-20`; both runs' stamped files are committed.
+
 #### Latency
 
 Warm **p50 26.9 s, p95 50.6 s** over 57 latency-item runs, base configuration, local target. Cold
@@ -459,7 +513,9 @@ reported when that change is made.
   substance.
 - **Citation precision is 49% overall.** The agent over-cites: it attaches supporting chunks beyond
   the gold set. Groundedness stays high because what it cites does support the claims, but
-  precision against gold citations suffers.
+  precision against gold citations suffers. ADR 0019 adds semantic verification of every citation
+  in response; ablation 5 shows Jev agreeing with 101 of 102 surviving citations, so the fix for this
+  number is upstream (fewer, primary citations), not a stricter verifier.
 
 ### 8.5 Known limitations
 

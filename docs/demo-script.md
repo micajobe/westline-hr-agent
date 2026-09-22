@@ -2,11 +2,11 @@
 
 Target 9:00 of the allowed 7–10. Spoken lines are plain paragraphs. Bracketed lines are not read:
 
-- **[CLICK: …]** something to click or type before the next spoken line
-- **[SHOW: …]** what should be on screen while the line is read
-- **[POINT: …]** move the cursor to it while speaking
-- **[WAIT]** let the model run; the following lines are meant to be spoken over the wait
-- `⟵ screen` say the value the live run shows, not the one written here
+- `DO` something to click or switch, in silence, before the next spoken line
+- `SCREEN` what is in front of you while that line is read
+- `SAY` one uninterrupted take — nothing opens or switches inside it
+- `READ` a value read off the screen: say what the live run shows, not what is written here
+- `BRANCH` / `IF` check what actually rendered, then say the matching line
 
 ## 0. What the top band asks for, and what the past feedback changes
 
@@ -72,7 +72,7 @@ spoken once and shown on screen; the screen carries the precision so the voice d
       then `curl https://westline-hr-agent.onrender.com/health` until `"status":"ok"`. Don't then
       leave them idle 15 minutes.
 - [ ] One full dry run of both demo buttons. Write down the actual tool order, citations, balance and
-      ticket/draft IDs. Fill every `⟵ screen` line from that run.
+      ticket/draft IDs. Check every `READ` line against that run.
 - [ ] Decide whether `/desk` shows one ticket or two after the dry run, and say so if two.
 - [ ] Browser tabs in order: (1) `/health`, (2) chat, (3) `/desk`, (4) `/eval`, (5) GitHub Actions,
       (6) `docs/architecture.html` opened from disk (`open docs/architecture.html`); press F for
@@ -81,6 +81,10 @@ spoken once and shown on screen; the screen carries the precision so the voice d
       `.github/workflows/ci.yml` (39–40), `.github/workflows/deploy.yml` (12, 27).
 
 ### Screen cues: read aloud or visual only
+
+Decided once, here; the script carries the decision as a `READ` marker (say it) or as a `DO` line
+saying "point at it, do not read aloud". The old inline `⟵ screen` markers are gone — one glyph was
+carrying four different meanings.
 
 | Cue | Decision | Why |
 |---|---|---|
@@ -92,7 +96,7 @@ spoken once and shown on screen; the screen carries the precision so the voice d
 | D ticket ID | Only if a gate appears; otherwise skipped | See Task 1 note above |
 | E balance result | **Read aloud** | Required tool output; the numbers are the answer |
 | E draft ID | **Read aloud**, ID only | Proves the action happened and is on the desk |
-| F test count | **Read aloud** (225, now in the script) | Item eight asks for tests; the number is on screen too |
+| F test count | **Read aloud** (230 as of the salvage fix) | Item eight asks for tests; the number is on screen too |
 
 ### Delivery notes
 
@@ -102,320 +106,764 @@ spoken once and shown on screen; the screen carries the precision so the voice d
 - Pronounce `sqlite-vec` as "SQLite vec", `RRF` as "reciprocal rank fusion" (the script already
   spells it out), `HMAC` as "H-mac".
 
+### How to read the script
+
+Each beat is one fenced block. Markers sit on their own line so they arrive before the words do on
+a scrolling prompter.
+
+| Marker | Means |
+|---|---|
+| `DO` | You click, scroll or switch. In silence — cut the gap in Descript. |
+| `SCREEN` | What is in front of you before you start talking. You never find out mid-sentence. |
+| `SAY` | One uninterrupted take. Nothing opens, expands or switches inside a `SAY`. |
+| `READ` | A value read off the screen. Same take — you are looking, not switching. |
+| `BRANCH` / `IF` | Check what actually rendered, then say the matching line. |
+
+Naming things aloud: the screen is already showing the identifier, so say what the tool is *for*.
+Pronounce a name only where the name is the evidence — `acting_person_id` in D, and the structured
+error codes in E.
+
 ---
 
 ## 3. Script
 
 ### A — Open (0:00–0:25)
 
-**[CAMERA on, full frame. Hold government ID beside face for a slow three-count.]**
+```
 
-Hi, I'm Micah Slavens. This is my individual project for AI Engineering Techniques and Architectures
-in the Quantic MSAIE. It's called Westline HR Agent, and everything you're about to see runs on the
-deployed Render instance, not on my laptop.
+DO
+Camera on, full frame.
+Hold your ID beside your face for a slow three-count.
+
+SCREEN
+You, full frame.
+
+SAY
+Hi, I'm Micah Slavens.
+This is my individual project for AI Engineering Techniques
+and Architectures, in the Quantic MSAIE.
+It's called Westline HR Agent —
+and everything you're about to see is running on the deployed
+Render instance. Not on my laptop.
+```
 
 ### B — Problem and architecture (0:25–1:40)
 
-**[CLICK: browser tab 6, `docs/architecture.html` opened from disk. Press F for full view. It is the
-Mermaid flowchart from `design-and-evaluation.md` §1, exported as SVG and inlined.]**
+```
 
-Westline is a fictional media company with three kinds of workers: staff, contractors and creator
-partners, each under different rules. So "can I expense this?" has three right answers depending on
-who's asking. That drove the design. The agent works out who's asking and which policies bind them
-*before* it retrieves anything.
+DO
+Tab 6, docs/architecture.html. Press F for full view.
 
-**[POINT: left to right across the diagram as each part is named.]**
+SCREEN
+The architecture flowchart, full frame.
 
-The architecture, rubric item ten. A React chat app. A Fastify server that runs the agent loop and
-holds the MCP client. And a second service hosting two MCP servers over Streamable HTTP: `policy-mcp`
-with the retrieval index and four tools, `hr-data-mcp` with the mock employee data and five tools,
-two of them gated behind a confirmation. The rubric asks for five tools on one server. There are
-nine on two.
+SAY
+Westline is a fictional media company,
+and it has three kinds of workers —
+staff, contractors, and creator partners.
+Different rules for each.
+Which means "can I expense this?" has three right answers,
+depending on who's asking.
+That drove the whole design:
+the agent works out who's asking, and which policies bind them,
+before it retrieves anything.
 
-The agent loop is hand-written, four functions: PLAN, ACT, SYNTHESIZE, VERIFY. No framework, because
-the confirmation gate has to pause a model turn and resume it in a *later* HTTP request, and
-frameworks want their loop to run to completion. Decision record six has the full argument. You'll
-see each of the four steps in the trace in a moment.
+
+DO
+Nothing. Trace the diagram left to right with the cursor as you talk.
+
+SCREEN
+Same diagram.
+
+SAY
+So — item ten, the architecture.
+A React chat app.
+A Fastify server that runs the agent loop and holds the MCP client.
+And a second service hosting two MCP servers over Streamable HTTP:
+one with the retrieval index and four policy tools,
+one with the mock employee data and five HR tools —
+two of those sitting behind a confirmation gate.
+The rubric asks for five tools on one server.
+There are nine, on two.
+
+
+DO
+Nothing. Same screen.
+
+SCREEN
+Same diagram.
+
+SAY
+The loop is hand-written. Four functions:
+plan, act, synthesize, verify.
+No framework — and that's deliberate.
+The confirmation gate has to pause a model turn
+and pick it up again in a completely different HTTP request,
+and frameworks want their loop to run to the end.
+Decision record six has the full argument.
+You'll see all four steps in the trace in a minute.
+```
 
 ### C — Deployed and healthy (1:40–2:05)
 
-**[CLICK: browser tab 1, `https://westline-hr-agent.onrender.com/health`. SHOW: the JSON.]**
+```
 
-Rubric item seven. Two free Render services, `westline-hr-agent` and `westline-mcp`. This is the
-app's health route.
+DO
+Tab 1, the /health route. Let the JSON render.
 
-**[POINT: `status`, then `mcp.policy`, `mcp.hr`, then the tool count.]**
+SCREEN
+The health JSON.
 
-Status `ok`. Both MCP servers `connected`. Nine tools discovered. That's a live check, not a cached
-flag: health re-runs tool discovery on every call with a three-second timeout. Free Render instances
-sleep after fifteen minutes and take up to a minute to wake, so I warmed both services before
-recording; the behaviour is written up in `deployed.md`. This route, `/chat` and the two demo
-buttons you're about to see are rubric item six, and `scripts/demo.sh` replays both tasks against
-any URL for a grader.
+SAY
+Item seven. Two free Render services — the app, and the MCP service.
+This is the app's health route.
+
+
+DO
+Nothing. Point at status, then the two MCP entries, then the tool count.
+
+SCREEN
+Same JSON.
+
+SAY
+Status, ok. Both MCP servers, connected. Nine tools discovered.
+And that's a live check, not a cached flag —
+health re-runs tool discovery every time it's called,
+with a three-second timeout.
+Free Render instances go to sleep after fifteen minutes
+and take up to a minute to wake up,
+so I warmed both of these before recording.
+That's all written up.
+This route, the chat endpoint, and the two demo buttons
+you're about to see — that's item six.
+And there's a script that replays both tasks against any URL,
+if a grader wants to run it themselves.
+```
+
 
 ### D — Task 1: a creator partner, a drone, and four policies (2:05–4:40)
 
-**[CLICK: tab 2, chat. CLICK: persona switcher → Dani Kowalczyk. SHOW: persona line reads
-creator_partner, Kelowna.]**
+Two rules for this beat.
 
-Task one. Dani Kowalczyk is a creator partner in Kelowna.
+**Voice.** The rail is showing the identifier while you talk, so the grader reads it. Say what the
+tool is *for*. Pronounce a name aloud only where the name is the evidence — that is
+`acting_person_id`, and nothing else in D.
 
-**[CLICK: "Run demo task 01". WAIT. Speak the next lines over the trace rail as it fills.]**
+**Takes.** Nothing opens, expands or switches inside a `SAY`. Every view change happens in the `DO`
+above it, in silence; `SCREEN` tells you what you are looking at before you start talking, so you
+never have to find out mid-sentence. Cut the gaps in Descript. A `READ` is the same take — you are
+looking at a number, not changing the view.
 
-The question: "I bought a drone for the sponsored Big White shoot next month. Can I expense it, and
-does the sponsor tag need to be disclosed on the video?" That's the multi-document question rubric
-item three asks for. A right answer needs four documents, and needs to know that most of the expense
-policy doesn't apply to Dani at all.
+```
 
-**[POINT: first two events in the rail, `intent` then `plan`.]**
+DO
+Tab 2, chat. Persona switcher -> Dani Kowalczyk.
+Wait for the persona line to settle.
 
-Watch the rail. This is rubric item four's trace: tools, arguments, results, sources, no
-chain-of-thought. `intent` is `workflow`, one of five PLAN can choose; two of them, `sensitive` and
-`out_of_scope`, never reach a tool. `plan` lists the expected tools, which the evaluation later
-scores against what actually ran.
+SCREEN
+Chat, empty. Persona line: creator_partner · Kelowna.
 
-**[CLICK: `+ details` on the first `tool_call` row. POINT: the two args blocks in turn.]**
+SAY
+Task one. Dani Kowalczyk — she's a creator partner up in Kelowna.
 
-First call, `hr__lookup_person_profile`. Expand the args: two blocks. From the model, an empty
-object — it named nobody. Server-injected, `acting_person_id`: stripped from the schema the model
-sees, written in per call, so identity can't be spoofed by a prompt. Result: `workforce_class`
-creator partner.
 
-**[POINT: `policy__get_policy_applicability` row.]**
+DO
+Click "Run demo task 01".
+Wait for the question to appear in the transcript. Say nothing.
 
-Second, `policy__get_policy_applicability` for a creator partner. It reads the handbook's
-applicability matrix and returns, per document, `full`, `partial` or `none`. Six documents bind
-Dani in full. Expense binds only at section seven. PTO doesn't bind at all. `⟵ screen: read
-"6 full, 4 partial, 5 none" from the result summary`
+SCREEN
+Her question in the transcript. Rail starting to fill on the right.
 
-**[POINT: the first `policy__search_policy_documents` row. Expand the result. There will be two or
-three searches; narrate the first, then point at the others as "the same again for disclosure".]**
+SAY
+Here's what she's asking:
+  "I bought a drone for the sponsored Big White shoot next month.
+   Can I expense it, and does the sponsor tag need to be disclosed
+   on the video?"
+That's the multi-document question — rubric item three.
+Answering it properly takes four separate policies,
+and it takes knowing that most of the expense policy
+doesn't apply to Dani at all.
 
-Third, `policy__search_policy_documents`, and it runs two or three of these, one per policy area.
-`⟵ screen the query, e.g. "equipment purchase reimbursement creator partner drone gear", scoped to
-CREATOR and EXPENSE` Look at the retrieval block: hybrid, k six, 34 candidates considered, 27 after
-the audience filter. `⟵ screen the two counts` And `withheld_by_audience` is `true`, withheld
-document `EXPENSE`. The audience filter runs inside the policy server, before ranking, so restricted
-text never reaches the model, and the diff comes back so the agent can say something was withheld.
 
-**[POINT: whichever appears: a `policy__get_policy_section` row, a `policy__check_policy_compliance`
-row, or neither. Say the matching line; skip if neither.]**
+DO
+Nothing. Let the rail keep filling.
 
-`⟵ if get_policy_section:` It also pulls a whole section with `policy__get_policy_section`, because a
-snippet isn't the whole rule. `⟵ if check_policy_compliance:` And `policy__check_policy_compliance`
-gathers rules across policy areas with chunk IDs. It's evidence only, never a verdict; the judgement
-stays with the model, where it's cited.
+SCREEN
+INTENT and PLAN rows at the top of the rail. Point at them as you go.
 
-**[WAIT for the answer to render. POINT: the two answer blocks.]**
+SAY
+Watch the rail on the right. That's item four —
+every tool, every argument, every result, every source.
+No reasoning, ever.
+It's classified this as a workflow question. There are five options,
+and two of them — sensitive, and out of scope — never touch a tool.
+Then it writes down which tools it expects to need,
+and the evaluation scores that against what actually ran.
 
-The answer. Two blocks, two separate schema fields. "What the policy says" is `policy_facts`, each
-cited. "Guidance, not policy" is recommendations, each pointing at a fact above it. `⟵ screen for
-the actual facts; these four have appeared in every run:` The drone isn't reimbursable, expense 7.2
-and creator 7.1. Disclosure is required: an on-screen label in the first five seconds, editorial
-4.2, and a sponsored tag in the first two caption lines, editorial 4.3. `⟵ screen for the drone
-rule: SAFETY 8.6 or 5.4` And the drone itself needs certification and Field Safety approval under
-the safety policy.
 
-**[POINT: the withheld notice in the answer, then CLICK one citation card, let it open, close it.]**
+DO
+Click "+ details" on the first CALL row. Both args blocks open.
 
-The answer also says what was withheld: only expense section seven was retrievable for Dani's class.
-Every citation opens to its chunk.
+SCREEN
+hr · lookup_person_profile, expanded.
+ARGS · FROM MODEL {} on top, ARGS · SERVER-INJECTED below it.
+Point top block, then bottom, as you reach them.
 
-**[POINT: `verify` event.]**
+SAY
+First thing it does is ask who it's talking to.
+Now look at the arguments — two blocks.
+The top one is everything the model wrote. It's empty.
+It didn't name anybody, and it couldn't have:
+that field is cut out of the tool description the model ever sees.
+The bottom block is what the server put in — Dani's ID —
+and that goes in fresh on every single call.
+So you can't talk this agent into being someone else.
+Comes back: creator partner.
 
-And `verify`, the last step, drops any fact whose citation wasn't retrieved this turn. `⟵ screen:
-"10 facts in, 10 kept, 0 removed", or whatever it shows`
 
-**[IF a confirmation card appears (it did not in 3 of 3 eval runs; treat as a bonus): SHOW it. Say:]**
+DO
+Collapse that row. Find the applicability CALL and its RESULT.
 
-The agent also proposed a ticket to Creator Partnerships, `hr__create_mock_hr_ticket`, and didn't
-run it. The `gate` event fired, the loop froze, and this card shows the exact arguments. I'll walk
-through the gate in task two.
+SCREEN
+policy · get_policy_applicability, with its result summary visible.
 
-**[IF a confirmation card appears: CLICK Confirm, WAIT, then move on without visiting `/desk`; task
-two covers the desk. IF NOT: say this one line and move on.]**
+SAY
+Next it asks which policies actually bind a creator partner.
+The handbook has an applicability matrix, and this reads it —
+document by document: binds in full, binds in part, doesn't bind.
 
-No action proposed here: the policy text answers it, and the escalation target is `none`. The gate
-comes in task two.
+READ
+Off the result summary: "6 full, 4 partial, 5 none."
+
+SAY
+So six of them bind Dani completely.
+Expense only bites at section seven.
+PTO doesn't touch her at all.
+
+
+DO
+Expand the first policy__search_policy_documents result,
+and the RETRIEVAL row under it. Get both open before you speak.
+
+SCREEN
+The query string, and the retrieval block with both counts.
+There are two or three searches — you are narrating the first.
+Point at the query. Do NOT read it aloud.
+
+SAY
+Then it searches — two or three times, one per policy area.
+And here's the part I'd point at.
+Hybrid retrieval, top six.
+
+READ
+The two counts: thirty-four chunks in the running, twenty-seven
+after the audience filter.
+
+SAY
+That gap is the whole story.
+The filter runs inside the policy server, before anything gets ranked —
+so text Dani isn't cleared to see never reaches the model at all.
+And it tells you it happened: one document withheld, the expense policy.
+It can say something was held back without knowing what was in it.
+
+
+DO
+Point at the other search rows. No expanding.
+
+SCREEN
+The remaining search rows.
+
+SAY
+Same thing again, for disclosure.
+
+
+BRANCH
+Check which row is actually there before you start. Say one line or none.
+
+IF policy__get_policy_section is in the rail --
+SAY
+It's also pulling a whole section, not just the snippet,
+because a snippet isn't the rule.
+
+IF policy__check_policy_compliance is in the rail --
+SAY
+And this one gathers the relevant rules across policy areas
+and hands them back with their chunk IDs.
+It's evidence, not a verdict —
+the judgement stays with the model, where it has to be cited.
+
+IF NEITHER -- say nothing. Move on.
+
+
+DO
+Wait for the answer to finish rendering. Say nothing while it streams.
+
+SCREEN
+The full answer. "What the policy says" above, guidance below.
+
+SAY
+And the answer comes back in two pieces —
+two different fields, not one blob of text.
+Up top, what the policy says. Every line cited.
+Below it, guidance — and each one points back
+at the fact it's resting on.
+
+READ
+The facts off the screen. These four appear in every run:
+  - the drone isn't reimbursable — expense 7.2, creator 7.1
+  - she has to disclose: label on screen in the first five seconds,
+    editorial 4.2
+  - and a sponsored tag in the first two lines of the caption,
+    editorial 4.3
+  - and the drone itself needs certification and a Field Safety
+    sign-off — that's the safety policy
+    (SAFETY 8.6 or 5.4 — read whichever is on screen)
+
+
+DO
+Scroll to the withheld notice. Do not click anything yet.
+
+SCREEN
+The withheld block at the foot of the answer.
+
+SAY
+It also tells her what she didn't get:
+only section seven of the expense policy was hers to see.
+
+
+DO
+Click one citation card. Let it open. Close it. Silence throughout.
+
+SCREEN
+Back on the answer.
+
+SAY
+And every citation opens to the actual text.
+
+
+DO
+Find the VERIFY row in the rail.
+
+SCREEN
+The VERIFY row and its summary.
+
+SAY
+Last step — it goes back through and throws out
+any claim whose source wasn't actually retrieved this turn.
+
+READ
+Off the row: "10 facts in, 10 kept, 0 removed" — or whatever it shows.
+
+
+OPTIONAL — only if SEMANTIC_VERIFY_PROVIDER=typesafe is on and the row shows a Jev line.
+Skip in silence if it does not; the take above already covers verify.
+
+DO
+Expand the VERIFY row. Point at the mono line under the summary.
+
+SCREEN
+The summary, e.g. "9 facts verified · Jev removed 1 citation (1 unsupported, 0 contradicted)",
+and beneath it the line "jev-1.13.0 · 14 pairs · 13 supported · 1 unsupported · 0 contradicted · 380 ms".
+
+SAY
+There's a second check in here now.
+Every citation that survived goes to Jev — a small model that reads the passage
+and the claim and returns a probability, not a paragraph.
+Fourteen pairs, a few hundred milliseconds.
+It dropped one: a real section, correctly retrieved,
+that didn't actually say what the fact claimed.
+The structural check can't see that. This one can.
+
+READ
+The counts off the line. Never a reason — there isn't one to read; it's a probability.
+
+
+BRANCH
+Confirmation card: did not appear in 3 of 3 eval runs. Bonus if it does.
+Check before you speak.
+
+IF a card appeared --
+SCREEN
+The confirmation card, arguments visible.
+
+SAY
+It also wants to open a ticket with Creator Partnerships —
+and it hasn't. It stopped and asked.
+The loop froze mid-turn, and this card is the exact arguments
+it's proposing. I'll take you through that properly in task two.
+
+DO
+Click Confirm. Wait. Move on — don't visit /desk, task two covers it.
+
+IF no card --
+SAY
+Nothing to approve here — the policy text answers it outright,
+and it's not escalating to anyone. The gate comes in task two.
+```
 
 ### E — Task 2: a PTO request and a gated draft to the manager (4:40–6:20)
 
-**[CLICK: tab 2. CLICK: persona → Jordan Reyes. SHOW: staff, Calgary, manager Priya Nair. "Nair"
-rhymes with "fire".]**
+```
 
-Task two. Jordan Reyes, staff, Calgary. Jordan's manager is Priya Nair.
+DO
+Tab 2. Persona -> Jordan Reyes. Wait for the line to settle.
+("Nair" rhymes with "fire".)
 
-**[CLICK: "Run demo task 02". WAIT. Speak over the rail.]**
+SCREEN
+Chat, empty. Persona line: staff · Calgary. Manager, Priya Nair.
 
-"Can I take October 14 to 16 off? If it works, draft the note to Priya." This is the workflow that
-runs on structured mock data end to end.
+SAY
+Task two. Jordan Reyes — staff, Calgary.
+Jordan's manager is Priya Nair.
 
-**[POINT: `hr__check_pto_balance` row. Expand the result.]**
 
-Profile lookup first, identity injected again, then applicability, which for staff is fourteen
-documents in full. Then `hr__check_pto_balance` with `person_id`, `start_date` 2026-10-14 and
-`end_date` 2026-10-16. The design is in the result fields: `balance`, `request_fits`,
-`notice_required`, `notice_met`, `blackout_collision`. `⟵ screen: "balance 11/18 · 3 requested ·
-fits true · notice 14d (met)"` Eleven days left of eighteen, three requested, it fits, fourteen
-days' notice required and met.
+DO
+Click "Run demo task 02". Wait for the question to land. Say nothing.
 
-**[POINT: `policy__get_policy_section` row. If the run searched instead, point at that row and say
-"searches for" in place of "fetches".]**
+SCREEN
+The question in the transcript. Rail filling.
 
-Then it fetches PTO section 3.2 directly with `policy__get_policy_section`, "Requests of three to
-five days", which is the citable notice rule. The data tool gives the numbers, the policy tool gives
-the rule, and the answer needs both.
+SAY
+"Can I take October 14 to 16 off?
+ If it works, draft the note to Priya."
+This is the one that runs on structured data, end to end.
 
-**[SHOW: gate card for `hr__draft_hr_email`. POINT: recipient role, purpose, key points.]**
 
-And here's the gate. `hr__draft_hr_email`, recipient role `manager`, purpose "PTO request for
-October 14 to 16", key points listing the three days and the notice date, all visible before
-anything runs. To be exact about the token: it's bound to a hash of these
-arguments, lives ten minutes, and is consumed on first use. A replay, a forgery, an expiry or
-different arguments all come back `CONFIRMATION_REQUIRED` and run nothing. And scope is checked
-*before* the gate, so an out-of-scope request is `FORBIDDEN` even with a valid token.
+DO
+Let the first rows land. Expand the PTO balance result before you speak.
 
-**[CLICK: Confirm. WAIT. POINT: `sent: false` in the result. CLICK: tab 3, `/desk`. POINT: the draft.]**
+SCREEN
+Profile lookup, applicability, then the balance result expanded.
 
-The draft. `sent: false`. Nothing in this system ever sends anything. It writes to a mock desk, and
-here it is with its ID. `⟵ screen`
+SAY
+Profile lookup first — identity injected again, same as before.
+Then applicability, which for staff is fourteen documents in full.
+Then it checks the balance, for those exact dates.
+And look at what comes back — it isn't a number.
+It's five separate fields:
+the balance, whether the request fits,
+how much notice is required, whether that notice was met,
+and whether it runs into a blackout.
+That's the design. The tool decides, and it says why.
+
+READ
+Off the result: "balance 11/18 · 3 requested · fits true · notice 14d (met)"
+Eleven days left out of eighteen. Three requested. It fits.
+Fourteen days' notice required — and met.
+
+
+BRANCH
+Check which row is actually there before you speak.
+
+IF policy__get_policy_section is in the rail --
+SAY
+Then it goes and fetches the section itself —
+"requests of three to five days" — which is the citable rule.
+
+IF it searched instead --
+SAY
+Then it goes and searches out the rule itself —
+"requests of three to five days" — which is what it has to cite.
+
+
+DO
+Nothing. Same screen.
+
+SCREEN
+Same rows.
+
+SAY
+The data tool gives you the numbers.
+The policy tool gives you the rule.
+The answer needs both.
+
+
+DO
+Wait for the gate card to appear. Do NOT click it yet.
+
+SCREEN
+The confirmation card: recipient role, purpose, key points, all visible.
+
+SAY
+And here's the gate.
+It wants to draft an email to Jordan's manager.
+The recipient, the purpose, and the points it's going to make —
+all of it on screen before anything runs.
+The token behind this is bound to a hash of exactly these arguments.
+It lives ten minutes, and it's used up the first time it's used.
+Replay it, forge it, let it expire, change one argument —
+all four come back "confirmation required", and nothing runs.
+And scope is checked before the gate,
+so an out-of-scope request is forbidden even with a good token.
+
+
+DO
+Click Confirm. Wait for the result. Say nothing.
+
+SCREEN
+The result, with sent: false.
+
+SAY
+There it is — sent, false.
+Nothing in this system ever sends anything.
+It writes to a mock desk.
+
+
+DO
+Tab 3, /desk. Point at the draft.
+
+SCREEN
+The desk. The draft, with its ID.
+
+READ
+And here it is, with its ID.
+```
 
 ### F — Repo tour: MCP client, retrieval, CI/CD (6:20–7:40)
 
-**[CLICK: editor, `apps/server/src/mcp/client.ts`. SCROLL to line 142 (`listTools`), then 157–163
-(`SERVER_OWNED_ARGS` stripped from the model-facing schema), then 217–227 (`call()` injects
-`acting_person_id` and the token).]**
+```
 
-Rubric item five. This file is the only road from the agent to any tool; the server never imports
-tool code. On startup it calls `list_tools` on both servers, prefixes the names `policy__` and
-`hr__`, and routes by prefix. Here's where it strips `acting_person_id` and `confirmation_token` from
-the model-facing schema and injects them per call, and a test proves a model-supplied identity is
-overridden. Transport is Streamable HTTP behind a shared-secret header.
+DO
+Editor. Open apps/server/src/mcp/client.ts.
+Scroll to listTools (~142) and stop there.
 
-**[CLICK: design doc, §2.2. SHOW: chunking paragraph. No need to open the RAG source.]**
+SCREEN
+client.ts, the discovery function.
 
-Rubric items two and three. Fifteen documents in three formats: eleven markdown, two HTML, two PDF.
-Everything's normalised to markdown and chunked by heading, one chunk per section, 457 chunks,
-hash-snapshotted so chunking is deterministic. Embeddings are Voyage 3 Lite. The store is
-`sqlite-vec` through Node's built-in SQLite, one file holding vectors, chunks and the BM25 index
-together. Retrieval is hybrid, BM25 plus vector fused with reciprocal rank fusion, k of six, with
-audience as a metadata column on the vector table so the filter runs before ranking.
+SAY
+Item five.
+This file is the only road from the agent to any tool.
+The server never imports tool code — not once.
+On startup it asks both servers what they've got,
+prefixes the names so it knows which is which,
+and routes on the prefix.
 
-**[CLICK: browser tab 5, GitHub Actions, green `ci` and `deploy` runs. Then editor `ci.yml`,
-lines 39–40, the Test step.]**
 
-Rubric item eight. `ci.yml` runs on every push and pull request: typecheck, lint, build, then
-two hundred twenty-five tests with no API keys, because CI uses a deterministic stub embedder. That
-includes the app-start test asserting both servers connected on `/health`, the discovery test
-asserting exactly nine tools, MCP call tests across all four scopes, and five gate tests: refuse,
-run once, refuse replay, forged, mismatched.
+DO
+Scroll to 157–163, pause. Then 217–227, pause.
 
-**[CLICK: editor `deploy.yml`. POINT: line 12, the `workflow_run` trigger, then line 27, the
-`if: conclusion == 'success'` guard.]**
+SCREEN
+The strip, then the inject.
 
-`deploy.yml` only fires when a `ci` run on `main` completes successfully. Render's own auto-deploy is
-off on both services, so this workflow is the only thing that can deploy. Item one is on screen too:
-Node pinned in `.nvmrc`, secrets only from environment, `.env.example` kept current.
+SAY
+And this is the bit from task one.
+Here it cuts acting person ID and the confirmation token
+out of the schema the model ever sees.
+And down here it writes them back in, per call.
+There's a test that hands it a model-supplied identity
+and proves it gets overridden.
+Transport is Streamable HTTP, behind a shared-secret header.
+
+
+DO
+Open the design doc at §2.2. Don't open the RAG source.
+
+SCREEN
+The chunking paragraph.
+
+SAY
+Items two and three.
+Fifteen documents, three formats — markdown, HTML and PDF.
+All of it normalised to markdown and chunked by heading,
+one chunk per section. Four hundred and fifty-seven of them,
+hash-snapshotted, so the chunking is deterministic.
+Embeddings are Voyage 3 Lite.
+The store is SQLite vec, through Node's built-in SQLite —
+one file holding the vectors, the chunks and the keyword index together.
+Retrieval is hybrid — keyword and vector, fused, top six.
+And audience is a column on the vector table,
+which is how the filter runs before the ranking.
+
+
+DO
+Tab 5, GitHub Actions.
+
+SCREEN
+The Actions list. ci and deploy, both green.
+
+SAY
+Item eight. This runs on every push and every pull request:
+typecheck, lint, build, and two hundred and thirty tests —
+with no API keys at all, because CI uses a deterministic
+stub embedder.
+
+
+DO
+Editor, ci.yml, lines 39–40, the Test step.
+
+SCREEN
+The test step.
+
+SAY
+That includes the start-up test that asserts both servers connected,
+the discovery test that asserts exactly nine tools,
+call tests across all four scopes,
+and five gate tests: refuse, run once, refuse the replay,
+refuse a forgery, refuse mismatched arguments.
+
+
+DO
+Editor, deploy.yml. Point at line 12, then line 27.
+
+SCREEN
+The workflow_run trigger, then the success guard.
+
+SAY
+And deploy only fires when CI passes on main.
+Render's own auto-deploy is switched off on both services,
+so this is the only thing that can push to production.
+Item one is on screen too — Node's pinned,
+secrets come from the environment only,
+and the example env file is current.
+```
 
 ### G — Evaluation (7:40–8:40)
 
-**[CLICK: tab 4, `/eval`. POINT: headline table.]**
+```
 
-Rubric item nine. Twenty-nine items in six categories, each with a gold answer, gold citations,
-expected tools and an expected behaviour. Seed 42, three runs. Claude 5 rejects the temperature
-parameter, so determinism comes from tool-forced structured output and fixed prompts rather than a
-sampling knob. Sonnet 5 is the agent, Opus 5 the judge, and I hand-scored ten items blind to check
-the judge.
+DO
+Tab 4, /eval. Let the headline table render.
 
-Headline, 447 turns, zero errors: groundedness 92 percent, workflow completion 97, escalation
-accuracy 94, action safety 100, meaning no gated tool ever ran without a valid token. Warm latency
-p50 27 seconds, p95 51.
+SCREEN
+The headline table.
 
-**[POINT: citation precision and tool selection cells. DELIVERY: flat and unbothered, a reading of
-the data, not an apology.]**
+SAY
+Item nine.
+Twenty-nine items across six categories.
+Every one has a gold answer, gold citations,
+the tools it should have used, and how it should have behaved.
+Seed 42, three runs.
+Claude 5 won't take a temperature parameter,
+so determinism comes from forced structured output and fixed prompts
+instead of a sampling knob.
+Sonnet 5 is the agent, Opus 5 is the judge,
+and I hand-scored ten items blind to check the judge.
 
-Two numbers I'd rather explain than have you find. Citation precision is 49 percent: the agent
-over-cites beyond the gold set, and groundedness stays high because what it cites does support the
-claim. Tool selection is 76, and four of the six persistent misses are gold expectations that
-assumed a search path; the agent takes a more precise route and gets marked down for it. One item,
-`au-02`, is a real failure: it asks for clarification where it should deny.
+READ
+Off the headline: four hundred and forty-seven turns, zero errors.
+Groundedness, ninety-two percent.
+Workflow completion, ninety-seven.
+Escalation accuracy, ninety-four.
+Action safety, a hundred — meaning no gated tool ever ran
+without a valid token.
+Warm latency, twenty-seven seconds at the median, fifty-one at p95.
 
-**[POINT: ablation table, chunking row, then the chaos row.]**
 
-Ablations. Heading-aware chunking beats fixed 400-token windows by ten points of citation precision
-and nineteen seconds of p95 latency. That's the clearest result and the evidence behind the chunking
-decision. k of six and hybrid retrieval both hold up against their alternatives, but narrowly, and
-the tables say so. And with the HR server switched off, the agent still completes 87 percent of
-workflows. It drops to policy-only answers and escalates. It doesn't invent employee data.
+DO
+Point at citation precision, then tool selection.
+Delivery: flat. A reading of the data, not an apology.
 
-**[POINT: calibration table.]**
+SCREEN
+Those two cells.
 
-Calibration against my blind scores: 90 percent exact, 100 within one.
+SAY
+Two numbers I'd rather explain than have you find.
+Citation precision is forty-nine percent.
+The agent over-cites — it goes past the gold set —
+and groundedness stays high
+because what it cites does support the claim.
+Tool selection is seventy-six.
+Four of the six persistent misses are gold expectations
+that assumed a search path; the agent takes a more precise route
+and gets marked down for it.
+One item is a genuine failure:
+it asks for clarification where it should have denied outright.
+
+
+DO
+Scroll to the ablation table. Point at the chunking row, then chaos.
+
+SCREEN
+The ablation table.
+
+SAY
+Ablations.
+Heading-aware chunking beats fixed four-hundred-token windows
+by ten points of citation precision,
+and nineteen seconds off p95.
+That's the clearest result in here,
+and it's the evidence behind the chunking decision.
+Top-six and hybrid both hold up against the alternatives,
+but narrowly — and the tables say so.
+And with the HR server switched off entirely,
+it still completes eighty-seven percent of workflows.
+It falls back to policy-only answers, and escalates.
+It does not invent employee data.
+
+
+DO
+Point at the calibration table.
+
+SCREEN
+The calibration table.
+
+SAY
+And against my own blind scores:
+ninety percent exact, a hundred percent within one.
+```
 
 ### H — Close (8:40–9:00)
 
-**[CLICK: README tab or design doc header. CAMERA if using picture-in-picture.]**
+```
 
-If the MCP service ever went away, the app runs alone with one environment variable, `MCP_MODE` set
-to `inprocess`, same client code over the same HTTP path. Everything I've said is written down:
-`design-and-evaluation.md` for every justification and the full result tables, `deployed.md` for the
-topology, `ai-tooling.md` for how I used Claude Code and where it went wrong, and seventeen decision
-records under `docs/adr`. Thanks for watching.
+DO
+README, or the design doc header. Camera if you're using PiP.
+
+SCREEN
+The doc, or you.
+
+SAY
+One last thing — if the MCP service ever went away,
+the app runs on its own, with a single environment variable flipped.
+Same client code, same HTTP path.
+And everything I've said is written down:
+the design doc for every justification and the full result tables,
+a deployment doc for the topology,
+a tooling doc for how I used Claude Code and where it went wrong,
+and seventeen decision records.
+Thanks for watching.
+```
 
 ---
 
-## 4. Word budget (measured, draft 5)
 
-Raw count excludes stage directions but includes backticked identifiers, `⟵ screen` markers and,
-in D, both branches of each conditional line. The "spoken" column removes the markers and the
-unread branches; that is the number to plan against.
+## 4. Word budget (measured, draft 6)
 
-| Beat | Raw | Spoken (est.) | At 160 wpm | At 170 wpm |
-|---|---|---|---|---|
-| A | 40 | 40 | 0:15 | 0:14 |
-| B | 183 | 180 | 1:08 | 1:04 |
-| C | 100 | 100 | 0:38 | 0:35 |
-| D | 551 | ~420 | 2:38 | 2:28 |
-| E | 258 | ~235 | 1:28 | 1:23 |
-| F | 272 | 270 | 1:41 | 1:35 |
-| G | 247 | 247 | 1:33 | 1:27 |
-| H | 68 | 68 | 0:26 | 0:24 |
-| **Total** | **1,722** | **≈ 1,560** | **≈ 9:47** | **≈ 9:12** |
+Counted from `SAY` and `READ` lines only; `DO` and `SCREEN` are never spoken. Where a `BRANCH` has
+alternatives, the longest one is counted, so these are upper bounds on the branching beats.
 
-Draft 5a moved D's `lookup_person_profile` beat onto the rail's two args blocks (+5 spoken
-words), because the old wording claimed there was no person ID on screen when there is one — the
-server-injected one.
+| Beat | Spoken | At 160 wpm | At 170 wpm |
+|---|---|---|---|
+| A | 42 | 0:15 | 0:14 |
+| B | 197 | 1:13 | 1:09 |
+| C | 117 | 0:43 | 0:41 |
+| D | 663 | 4:08 | 3:54 |
+| E | 314 | 1:57 | 1:50 |
+| F | 323 | 2:01 | 1:54 |
+| G | 293 | 1:49 | 1:43 |
+| H | 74 | 0:27 | 0:26 |
+| **Total** | **2,023** | **≈ 12:38** | **≈ 11:54** |
 
-Draft 5 added ~35 spoken words over draft 4: naming rubric items four and six aloud (C and D),
-and the applicability line in E. If a dry run lands over 10:00, the first cut is now the E
-applicability clause ("then applicability, which for staff is fourteen documents in full", −12) and
-the second is the C sentence naming `demo.sh` (−20); item six stays named via `/health` and the
-demo buttons.
+**Draft 6 rewrote every beat as DO / SCREEN / SAY / READ takes in spoken English, and it is over
+budget: ≈12:38 at 160 wpm against a 10:00 target.** Before cutting, two things make that number
+less reliable than it looks, in opposite directions:
 
-**Cut the model waits in post.** Four agent turns (two tasks, each with a gate resume) at a p50 of
-~27 s is about 2 minutes of waiting. The narration in D and E is written to run over those waits;
-where speech runs out before the model does, cut the gap to 2–3 seconds. A jump during a spinner is
-normal in a screen recording and needs no announcement. With waits cut, runtime ≈ speech time.
+- **The old count was optimistic.** It scored `hr__lookup_person_profile` as one word. Saying it
+  aloud is closer to two seconds. Several beats did that, so the old ≈9:45 was never real.
+- **The new count is pessimistic.** Numbers are now written the way you say them — "four hundred
+  and fifty-seven" counts as four words and "457" counted as one, but they take the same time to
+  speak. F and G are full of these.
 
-**Already cut in draft 4** (restore any of these if a dry run lands under 8:45, in this order):
+So do not cut against this table. **Read D aloud once with a stopwatch**, divide 663 by the minutes
+it actually took, and use that as your wpm for the rest. Only then decide what goes.
 
-1. G, the calibration insight: "The one disagreement is the useful one: a fact can be fully grounded
-   and still not answer the question, and a per-fact score can't see that. That's why the human pass
-   stays." (+35 words)
-2. E, after the balance result: "Scope is enforced inside this server, not in the prompt. Jordan reads
-   Jordan's balance, a manager reads a direct report's, anyone else gets a structured `FORBIDDEN`
-   naming the `required_scope`." (+35 words)
-3. F, after "457 chunks": "Why by heading? Because policy is cited by section, and a citation is only
-   checkable if the chunk boundary is the section boundary." (+25 words)
-4. D, after "PTO is `none`": "That's what stops the agent quoting staff rules at a contractor." (+12)
-5. The `NOT_APPLICABLE` beat after E: switch persona to Dani, type "How much PTO do I have?", say
-   "Same question from a creator partner. The balance tool returns `NOT_APPLICABLE`, and the agent
-   points to the creator agreement's availability windows instead of inventing a balance." (~35 s
-   including the model turn)
+If it does have to come down, cut spoken words, not structure — the `SCREEN` lines cost nothing to
+read and are the reason you know what you opened. In order of least damage: F's five gate-test names
+(−12), D's "same thing again, for disclosure" beat (−6), G's ablation caveat "but narrowly — and the
+tables say so" (−9), and folding D's citation-card line into the withheld line (−9). The E
+applicability clause and the C `demo.sh` sentence, named as first cuts in draft 5, are both still
+live candidates.
 
-**Last-resort cut** if a dry run lands over 10:00 even with waits removed: B's framework sentence
-(−35 words). It is the answer to "agent framework or manual orchestration approach" in rubric item
-ten, so cut it only if nothing else will do.
 
 ## 5. What the grader can verify from the screen alone
 

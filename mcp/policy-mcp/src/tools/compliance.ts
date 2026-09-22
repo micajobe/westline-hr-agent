@@ -17,6 +17,8 @@ export interface ComplianceRule {
   section_title: string;
   chunk_id: string;
   snippet: string;
+  /** Full chunk text (additive, ADR 0019): VERIFY judges the passage, not the snippet. */
+  text: string;
   applies_to_class: boolean;
   applies_note?: string;
 }
@@ -74,6 +76,7 @@ export async function checkPolicyCompliance(ctx: PolicyContext, args: Compliance
         section_title: hit.section_title,
         chunk_id: hit.chunk_id,
         snippet: hit.snippet,
+        text: hit.text,
         applies_to_class: applies,
         ...(cls && !applies
           ? { applies_note: `${hit.doc_id} ${hit.section_path} does not bind ${cls} per HANDBOOK §2` }

@@ -8,7 +8,7 @@ import { runItem } from './runner.js';
 import { EVAL_DIR, loadEvalSet } from './set.js';
 import type { EvalItem, ItemRun } from './types.js';
 
-interface Args { target: 'local' | 'deployed'; url?: string; runs: number; judge: boolean; ablations: boolean; items?: Set<string>; out: string; confirmGates: boolean; timeoutMs?: number }
+interface Args { target: 'local' | 'deployed'; url?: string; runs: number; judge: boolean; ablations: boolean; only?: Set<string>; items?: Set<string>; out: string; confirmGates: boolean; timeoutMs?: number }
 
 function parseArgs(argv: string[]): Args {
   const a: Args = { target: 'local', runs: 1, judge: true, ablations: false, out: join(EVAL_DIR, 'results'), confirmGates: true };
@@ -20,14 +20,16 @@ function parseArgs(argv: string[]): Args {
     else if (k === '--runs') { a.runs = Number(v); i++; }
     else if (k === '--no-judge') a.judge = false;
     else if (k === '--ablations') a.ablations = true;
+    else if (k === '--ablation') { a.ablations = true; a.only = new Set(v!.split(',')); i++; }
     else if (k === '--items') { a.items = new Set(v!.split(',')); i++; }
     else if (k === '--out') { a.out = v!; i++; }
     else if (k === '--no-confirm') a.confirmGates = false;
     else if (k === '--timeout') { a.timeoutMs = Number(v); i++; }
-    else if (k === '--help') { console.log('npm run eval -- [--target local|deployed] [--url URL] [--runs N] [--no-judge] [--ablations] [--items id,id] [--no-confirm] [--out DIR]'); process.exit(0); }
+    else if (k === '--help') { console.log('npm run eval -- [--target local|deployed] [--url URL] [--runs N] [--no-judge] [--ablations | --ablation name,name] [--items id,id] [--no-confirm] [--out DIR]'); process.exit(0); }
   }
   if (a.target !== 'local' && a.target !== 'deployed') throw new Error(`--target must be local or deployed`);
   if (a.target === 'deployed' && !(a.url ?? process.env.DEPLOYED_APP_URL)) throw new Error('--url or DEPLOYED_APP_URL is required for --target deployed');
+  if (a.only) for (const n of a.only) if (!ABLATION_CONFIGS.some((c) => c.name === n)) throw new Error(`unknown ablation "${n}"; known: ${ABLATION_CONFIGS.map((c) => c.name).join(', ')}`);
   return a;
 }
 
@@ -35,7 +37,7 @@ function parseArgs(argv: string[]): Args {
  * `npm run eval -- --target local|deployed --runs N [--ablations] [--no-judge]`
  *
  * Runs every item N times against the base configuration (and, with --ablations, each PRD §12.3
- * arm against its subset), judges groundedness and answer match with JUDGE_MODEL at temperature 0,
+ * arm against its subset; --ablation name,name selects arms, e.g. `--ablation semantic-verify`), judges groundedness and answer match with JUDGE_MODEL (tool-forced JSON; no temperature — Claude 5 rejects it),
  * and writes evaluation/results/{latest.json,latest.md,<stamp>.*,runs/<stamp>/*.json}.
  */
 async function main(): Promise<number> {
@@ -50,7 +52,7 @@ async function main(): Promise<number> {
   const judge = args.judge ? new Judge(requireEnv('ANTHROPIC_API_KEY'), judgeModel) : undefined;
   const chunks = new ChunkResolver(process.cwd());
 
-  const configs: EvalConfig[] = [BASE_CONFIG, ...(args.ablations && args.target === 'local' ? ABLATION_CONFIGS : [])];
+  const configs: EvalConfig[] = [BASE_CONFIG, ...(args.ablations && args.target === 'local' ? ABLATION_CONFIGS.filter((c) => !args.only || args.only.has(c.name)) : [])];
   if (args.ablations && args.target === 'deployed') log('ablations need env control; skipping them against the deployed target');
 
   const runs: ItemRun[] = [];
@@ -91,7 +93,7 @@ async function main(): Promise<number> {
 
   const info = {
     timestamp: new Date().toISOString(), commit, target: args.target, runs: args.runs, items: items.length, agent_model: agentModel, judge_model: judge ? judgeModel : 'skipped', judged: Boolean(judge),
-    note: `${args.runs} run(s) per configuration at temperature 0; means over runs. ${configs.length > 1 ? `Ablations: ${configs.filter((c) => c.ablation).map((c) => c.name).join(', ')}.` : 'Base configuration only.'}${judge ? '' : ' Judge skipped: groundedness and answer match are null.'}`,
+    note: `${args.runs} run(s) per configuration; means over runs. Claude 5 rejects the temperature parameter, so determinism rests on tool-forced structured output and fixed prompts (see apps/server/src/agent/model.ts). ${configs.length > 1 ? `Ablations: ${configs.filter((c) => c.ablation).map((c) => c.name).join(', ')}.` : 'Base configuration only.'}${judge ? '' : ' Judge skipped: groundedness and answer match are null.'}`,
   };
   const results = buildResults(set, runs, configs, info, join(EVAL_DIR, 'human_scores.json'));
   const out = writeResults(args.out, results, runs, stamp);

@@ -3,6 +3,7 @@
   "references": [
     { "path": "./packages/shared" },
     { "path": "./packages/rag" },
+    { "path": "./packages/semantic-verify" },
     { "path": "./mcp/policy-mcp" },
     { "path": "./mcp/hr-data-mcp" },
     { "path": "./mcp/host" },
