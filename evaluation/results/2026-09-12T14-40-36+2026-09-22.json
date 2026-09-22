@@ -8,7 +8,8 @@
     "agent_model": "claude-sonnet-5",
     "judge_model": "claude-opus-5",
     "judged": true,
-    "note": "3 run(s) per configuration; means over runs. Claude 5 rejects the temperature parameter, so determinism rests on tool-forced structured output and fixed prompts (see apps/server/src/agent/model.ts). Ablations: k3, k10, chunk-fixed, mode-vector, mode-bm25, chaos-hr. Ablation arms merged from later runs: 2026-09-22T16-03-20 (semantic-verify). Their base rows are this run's base configuration, not a same-day pair; see design-and-evaluation.md §8.4 for the paired comparison."
+    "note": "3 run(s) per configuration; means over runs. Claude 5 rejects the temperature parameter, so determinism rests on tool-forced structured output and fixed prompts (see apps/server/src/agent/model.ts). Ablations: k3, k10, chunk-fixed, mode-vector, mode-bm25, chaos-hr. Ablation arms merged from later runs: 2026-09-22T16-03-20 (semantic-verify). Their base rows are this run's base configuration, not a same-day pair; see design-and-evaluation.md §8.4 for the paired comparison.",
+    "verifier_model": "jev-1.13.0"
   },
   "headline": {
     "groundedness_pct": 0.9231758579584666,
@@ -201,7 +202,7 @@
           "citations_removed_by_verifier": 0
         },
         {
-          "semantic_verify": "on (typesafe)",
+          "semantic_verify": "on (TypeSafe Jev, jev-latest)",
           "n_runs": 29,
           "groundedness_pct": 0.9306878306878308,
           "citation_recall": 0.6477272727272727,

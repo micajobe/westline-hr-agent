@@ -25,7 +25,7 @@ export const ABLATION_CONFIGS: EvalConfig[] = [
   // ADR 0019: semantic citation verification on (Jev) vs the base run's structural-only VERIFY. Every
   // item, because latency and answer match matter on all of them; precision/recall are null where an
   // item has no gold citations. Needs TYPESAFE_API_KEY. Set SEMANTIC_VERIFY_EVAL_PROVIDER=stub to dry-run.
-  { name: 'semantic-verify', ablation: 'semantic verify', label: { semantic_verify: `on (${process.env.SEMANTIC_VERIFY_EVAL_PROVIDER ?? 'typesafe'})` }, env: { SEMANTIC_VERIFY_PROVIDER: process.env.SEMANTIC_VERIFY_EVAL_PROVIDER ?? 'typesafe' }, selects: () => true },
+  { name: 'semantic-verify', ablation: 'semantic verify', label: { semantic_verify: (process.env.SEMANTIC_VERIFY_EVAL_PROVIDER ?? 'typesafe') === 'typesafe' ? `on (TypeSafe Jev, ${process.env.TYPESAFE_MODEL ?? 'jev-latest'})` : `on (${process.env.SEMANTIC_VERIFY_EVAL_PROVIDER})` }, env: { SEMANTIC_VERIFY_PROVIDER: process.env.SEMANTIC_VERIFY_EVAL_PROVIDER ?? 'typesafe' }, selects: () => true },
 ];
 
 /**

@@ -12,6 +12,7 @@ interface EvalResults {
     runs?: number;
     agent_model?: string;
     judge_model?: string;
+    verifier_model?: string | null;
     items?: number;
     note?: string;
   };
@@ -67,6 +68,7 @@ export function EvalPage() {
           {data.run.timestamp ?? '—'} · commit {data.run.commit ?? '—'} · target{' '}
           {data.run.target ?? '—'} · {data.run.runs ?? '—'} run(s) · {data.run.items ?? '—'} items ·
           agent {data.run.agent_model ?? '—'} · judge {data.run.judge_model ?? '—'}
+          {data.run.verifier_model ? <> · citation verifier {data.run.verifier_model} (TypeSafe Jev)</> : null}
         </p>
       )}
       {data?.run?.note && <p className="mt-2 max-w-[720px] text-[var(--muted)]">{data.run.note}</p>}

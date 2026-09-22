@@ -1,6 +1,6 @@
 # Westline HR Agent — evaluation results
 
-Run 2026-09-12T19:02:31.087Z · commit `0d7f8e9` · target local · 3 run(s) × 29 items · agent `claude-sonnet-5` · judge `claude-opus-5`
+Run 2026-09-12T19:02:31.087Z · commit `0d7f8e9` · target local · 3 run(s) × 29 items · agent `claude-sonnet-5` · judge `claude-opus-5` · citation verifier `jev-1.13.0` (TypeSafe Jev, ablation 5)
 
 3 run(s) per configuration; means over runs. Claude 5 rejects the temperature parameter, so determinism rests on tool-forced structured output and fixed prompts (see apps/server/src/agent/model.ts). Ablations: k3, k10, chunk-fixed, mode-vector, mode-bm25, chaos-hr. Ablation arms merged from later runs: 2026-09-22T16-03-20 (semantic-verify). Their base rows are this run's base configuration, not a same-day pair; see design-and-evaluation.md §8.4 for the paired comparison.
 
@@ -63,7 +63,7 @@ Run 2026-09-12T19:02:31.087Z · commit `0d7f8e9` · target local · 3 run(s) × 
 | semantic_verify | n_runs | groundedness_pct | citation_recall | citation_precision | answer_match | warm_p50_ms | warm_p95_ms | verify_p50_ms | citations_removed_by_verifier |
 |---|---|---|---|---|---|---|---|---|---|
 | off | 87 | 92% | 65% | 49% | 88% | 26947 | 50643 | — | 0 |
-| on (typesafe) | 29 | 93% | 65% | 49% | 90% | 28902 | 50382 | 187 | 1 |
+| on (TypeSafe Jev, jev-latest) | 29 | 93% | 65% | 49% | 90% | 28902 | 50382 | 187 | 1 |
 
 ## Latency
 

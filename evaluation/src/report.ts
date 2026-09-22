@@ -4,7 +4,11 @@ import { mean, percentile } from './metrics.js';
 import type { EvalConfig } from './local.js';
 import type { EvalItem, EvalSet, ItemRun } from './types.js';
 
-export interface RunInfo { timestamp: string; commit: string; target: string; runs: number; items: number; agent_model: string; judge_model: string; judged: boolean; note: string }
+export interface RunInfo {
+  timestamp: string; commit: string; target: string; runs: number; items: number; agent_model: string; judge_model: string; judged: boolean; note: string;
+  /** The semantic citation verifier's model as reported in the traces (e.g. `jev-1.13.0`), or null when no arm ran with one. */
+  verifier_model?: string | null;
+}
 
 export interface Results {
   run: RunInfo;
@@ -42,7 +46,19 @@ function summarise(items: EvalItem[], runs: ItemRun[]) {
   };
 }
 
-export function buildResults(set: EvalSet, runs: ItemRun[], configs: EvalConfig[], info: RunInfo, humanScoresPath: string): Results {
+/** The model named in the `semantic` block of any verify event, so the report can credit it (ADR 0019). */
+export function verifierModelOf(runs: ItemRun[]): string | null {
+  for (const r of runs) {
+    for (const e of (r.final ?? r.envelope).trace) {
+      const s = e.type === 'verify' ? (e.detail?.semantic as { provider?: string; model?: string | null } | undefined) : undefined;
+      if (s?.provider === 'typesafe' && s.model && s.model !== 'jev-latest') return s.model;
+    }
+  }
+  return null;
+}
+
+export function buildResults(set: EvalSet, runs: ItemRun[], configs: EvalConfig[], baseInfo: RunInfo, humanScoresPath: string): Results {
+  const info: RunInfo = { ...baseInfo, verifier_model: baseInfo.verifier_model ?? verifierModelOf(runs) };
   const byId = new Map(set.items.map((i) => [i.id, i]));
   const base = runs.filter((r) => r.config === 'base');
   const head = summarise(set.items, base);
@@ -164,7 +180,7 @@ const ms = (v: number | null | undefined) => (v == null ? '—' : `${Math.round(
 
 export function renderMarkdown(r: Results): string {
   const L: string[] = [];
-  L.push(`# Westline HR Agent — evaluation results`, '', `Run ${r.run.timestamp} · commit \`${r.run.commit}\` · target ${r.run.target} · ${r.run.runs} run(s) × ${r.run.items} items · agent \`${r.run.agent_model}\` · judge \`${r.run.judge_model}\`${r.run.judged ? '' : ' (judge skipped)'}`, '', r.run.note, '');
+  L.push(`# Westline HR Agent — evaluation results`, '', `Run ${r.run.timestamp} · commit \`${r.run.commit}\` · target ${r.run.target} · ${r.run.runs} run(s) × ${r.run.items} items · agent \`${r.run.agent_model}\` · judge \`${r.run.judge_model}\`${r.run.judged ? '' : ' (judge skipped)'}${r.run.verifier_model ? ` · citation verifier \`${r.run.verifier_model}\` (TypeSafe Jev, ablation 5)` : ''}`, '', r.run.note, '');
   L.push('## Headline', '', '| Metric | Value |', '|---|---|');
   for (const [k, v] of Object.entries(r.headline)) L.push(`| ${k.replace(/_/g, ' ')} | ${pct(v)} |`);
   L.push('', '## By category', '', '| Category | n | Groundedness | Cit. precision | Cit. recall | Answer match | Tool selection | Workflow completion | Escalation accuracy | Action safety |', '|---|---|---|---|---|---|---|---|---|---|');
