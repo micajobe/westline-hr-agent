@@ -1,4 +1,4 @@
-import type { SemanticVerifier } from '@westline/semantic-verify';
+import { SemanticVerifyError, type SemanticVerifier } from '@westline/semantic-verify';
 import { AnswerSchema, PolicyFactSchema, RecommendationSchema, type Answer, type SemanticVerdictRow, type SemanticVerifyDetail, type TraceRecorder } from '@westline/shared';
 import type { CitationRegistry } from './citations.js';
 import { salvageTaggedAnswer } from './salvage.js';
@@ -140,7 +140,7 @@ export async function verifyAnswerSemantic(raw: unknown, citations: CitationRegi
 
 async function semanticPass(facts: Answer['policy_facts'], citations: CitationRegistry, verifier: SemanticVerifier, threshold: number): Promise<{ kept: Answer['policy_facts']; detail: SemanticVerifyDetail }> {
   const started = Date.now();
-  const detail: SemanticVerifyDetail = { provider: verifier.id, model: verifier.model, threshold, pairs_checked: 0, supported: 0, unsupported: 0, contradicted: 0, degraded_input: 0, unavailable: 0, latency_ms: 0, verdicts: [] };
+  const detail: SemanticVerifyDetail = { provider: verifier.id, model: verifier.model, threshold, pairs_checked: 0, supported: 0, unsupported: 0, contradicted: 0, degraded_input: 0, unavailable: 0, errors: {}, latency_ms: 0, verdicts: [] };
   const kept: Answer['policy_facts'] = [];
 
   // One request per fact; facts in parallel. State holds only that fact's claim and its passages,
@@ -154,14 +154,15 @@ async function semanticPass(facts: Answer['policy_facts'], citations: CitationRe
     });
     try {
       const r = await verifier.relate(fact.statement, passages);
-      return { fact, degraded, verdicts: r.verdicts, model: r.model };
-    } catch {
-      return { fact, degraded, verdicts: null, model: null };
+      return { fact, degraded, verdicts: r.verdicts, model: r.model, error: undefined };
+    } catch (err) {
+      return { fact, degraded, verdicts: null, model: null, error: errorKey(err) };
     }
   }));
 
-  for (const { fact, degraded, verdicts, model } of judged) {
+  for (const { fact, degraded, verdicts, model, error } of judged) {
     detail.degraded_input += degraded;
+    if (error) detail.errors[error] = (detail.errors[error] ?? 0) + 1;
     if (model && detail.model === verifier.model) detail.model = model;
     const survivors: Answer['policy_facts'][number]['citations'] = [];
     for (const c of fact.citations) {
@@ -188,6 +189,15 @@ async function semanticPass(facts: Answer['policy_facts'], citations: CitationRe
 
 const round = (n: number): number => Math.round(n * 1000) / 1000;
 
+/** A status bucket for the trace: the HTTP status when there was one, else a coarse class. Never the message. */
+function errorKey(err: unknown): string {
+  if (err instanceof SemanticVerifyError) {
+    if (err.status) return String(err.status);
+    return /malformed/.test(err.message) ? 'malformed' : 'network';
+  }
+  return 'network';
+}
+
 function verifyEvent(report: VerifyReport, semantic: SemanticVerifyDetail | undefined, structural: VerifyReport | undefined): Parameters<TraceRecorder['emit']>[0] {
   const structuralSummary = (r: VerifyReport) => (r.unsupported_claims_removed === 0 && r.recommendations_removed === 0 && r.citations_removed === 0
     ? `${r.facts_kept} facts verified against retrieved chunks`
@@ -201,7 +211,7 @@ function verifyEvent(report: VerifyReport, semantic: SemanticVerifyDetail | unde
   const parts = [
     structural.unsupported_claims_removed === 0 && structural.citations_removed === 0 ? `${report.facts_kept} facts verified` : structuralSummary(structural),
     removed > 0 ? `${who} removed ${removed} citation${removed === 1 ? '' : 's'} (${semantic.unsupported} unsupported, ${semantic.contradicted} contradicted)${factsDropped > 0 ? ` and ${factsDropped} fact${factsDropped === 1 ? '' : 's'} with ${factsDropped === 1 ? 'it' : 'them'}` : ''}` : semantic.pairs_checked > 0 ? `${who} confirmed ${semantic.supported} citation${semantic.supported === 1 ? '' : 's'}` : `${who}: nothing to check`,
-    ...(semantic.unavailable > 0 ? [`${semantic.unavailable} unchecked (${who} unavailable)`] : []),
+    ...(semantic.unavailable > 0 ? [`${semantic.unavailable} unchecked (${who} unavailable: ${Object.entries(semantic.errors).map(([k, n]) => `${k}×${n}`).join(', ') || 'no verdict'})`] : []),
     ...(report.recommendations_removed > 0 ? [`${report.recommendations_removed} ungrounded recommendation(s) removed`] : []),
   ];
   const result_status = report.unsupported_claims_removed ? 'unsupported_claim_removed' : semantic.unavailable > 0 ? 'semantic_unavailable' : 'ok';

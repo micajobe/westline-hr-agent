@@ -54,8 +54,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     rerank: env.RERANK === 'true',
     semanticVerifyProvider,
     semanticVerifyThreshold,
-    typesafeApiKey: env.TYPESAFE_API_KEY || undefined,
-    typesafeModel: env.TYPESAFE_MODEL || 'jev-latest',
+    // Trimmed: a pasted trailing newline makes the Authorization header invalid and every call fails instantly.
+    typesafeApiKey: env.TYPESAFE_API_KEY?.trim() || undefined,
+    typesafeModel: env.TYPESAFE_MODEL?.trim() || 'jev-latest',
     webDistDir: env.WEB_DIST_DIR ?? 'apps/web/dist',
     evalResultsPath: env.EVAL_RESULTS_PATH ?? 'evaluation/results/latest.json',
     conversationTtlMs: Number(env.CONVERSATION_TTL_MS ?? 30 * 60_000),

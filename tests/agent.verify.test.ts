@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { TraceRecorder } from '@westline/shared';
-import { StubVerifier, type SemanticVerifier } from '@westline/semantic-verify';
+import { SemanticVerifyError, StubVerifier, type SemanticVerifier } from '@westline/semantic-verify';
 import { CitationRegistry, applicabilityPassage, coerceRaw, verifyAnswer, verifyAnswerSemantic } from '@westline/server';
 
 const reg = new CitationRegistry();
@@ -135,7 +135,7 @@ describe('verify: semantic citation verification', () => {
   });
 
   it('a verifier that throws leaves the structural result intact and reports semantic_unavailable', async () => {
-    const broken: SemanticVerifier = { id: 'typesafe', model: 'jev-latest', relate: async () => { throw new Error('529 overloaded'); } };
+    const broken: SemanticVerifier = { id: 'typesafe', model: 'jev-latest', relate: async () => { throw new SemanticVerifyError('typesafe: HTTP 401', { status: 401 }); } };
     const trace = new TraceRecorder('t');
     const raw = rawWith([{ id: 'f1', statement: CLAIM, citations: [cite('SAFETY#§5#0')] }, fact('f2', 'PTO#§99#0')], [{ text: 'r', basis_fact_ids: ['f1'] }]);
     const { answer, report, semantic } = await verifyAnswerSemantic(raw, semanticRegistry(), trace, { verifier: broken });
@@ -143,11 +143,12 @@ describe('verify: semantic citation verification', () => {
     expect(answer.policy_facts.map((f) => f.id)).toEqual(['f1']);
     expect(answer.recommendations).toHaveLength(1);
     expect(report).toMatchObject({ facts_kept: 1, unsupported_claims_removed: 1, citations_removed: 1 });
-    expect(semantic).toMatchObject({ pairs_checked: 1, unavailable: 1, supported: 0, unsupported: 0, contradicted: 0 });
+    expect(semantic).toMatchObject({ pairs_checked: 1, unavailable: 1, supported: 0, unsupported: 0, contradicted: 0, errors: { '401': 1 } });
     expect(semantic!.verdicts).toEqual([{ fact_id: 'f1', chunk_id: 'SAFETY#§5#0', verdict: 'unavailable', p_supports: null, confidence: null }]);
     const ev = trace.all().at(-1)!;
     expect(ev.result_status).toBe('unsupported_claim_removed'); // the structural removal wins the status
-    expect(ev.result_summary).toContain('1 unchecked (Jev unavailable)');
+    expect(ev.result_summary).toContain('1 unchecked (Jev unavailable: 401×1)');
+    expect(JSON.stringify(ev)).not.toContain('HTTP 401'); // status bucket only, never the message
 
     const onlyBroken = await verifyAnswerSemantic(rawWith([{ id: 'f1', statement: CLAIM, citations: [cite('SAFETY#§5#0')] }]), semanticRegistry(), trace, { verifier: broken });
     expect(onlyBroken.answer.policy_facts).toHaveLength(1);

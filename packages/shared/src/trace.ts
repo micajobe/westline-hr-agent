@@ -71,6 +71,8 @@ export interface SemanticVerifyDetail {
   degraded_input: number;
   /** Pairs the verifier could not judge (error, timeout, malformed answer); structural result kept. */
   unavailable: number;
+  /** Why pairs were unavailable, counted by HTTP status or `network` / `malformed`; operational, never prose. */
+  errors: Record<string, number>;
   latency_ms: number;
   verdicts: SemanticVerdictRow[];
 }

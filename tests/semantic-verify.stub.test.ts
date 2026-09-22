@@ -43,4 +43,11 @@ describe('semantic-verify: the stub is a deterministic test double', () => {
     expect(() => createSemanticVerifier({ provider: 'typesafe' })).toThrow(/TYPESAFE_API_KEY/);
     expect(createSemanticVerifier({ provider: 'typesafe', apiKey: 'k' })?.id).toBe('typesafe');
   });
+
+  it('loadConfig trims a pasted key so a trailing newline cannot break the Authorization header', async () => {
+    const { loadConfig } = await import('@westline/server');
+    const c = loadConfig({ MCP_SHARED_SECRET: 's', SEMANTIC_VERIFY_PROVIDER: 'typesafe', TYPESAFE_API_KEY: 'sk-test-key\n', TYPESAFE_MODEL: ' jev-latest ' });
+    expect(c.typesafeApiKey).toBe('sk-test-key');
+    expect(c.typesafeModel).toBe('jev-latest');
+  });
 });
