@@ -935,11 +935,27 @@ per answer: a ten-fact answer would otherwise put twenty passages in front of a 
 4. *`tsconfig.build.json` was reformatted by the script that added a reference.* Caught by the
    diff stat (31 lines for a one-line change); rewritten by hand.
 
-**What is not done.** No `TYPESAFE_API_KEY` is present locally, so the `typesafe` provider has run
-only against a fake API (request shape, answer parsing, 429 retry, 401 no-retry, connection
-failure, malformed answer). The end-to-end acceptance turn and the `semantic-verify` ablation are
-recorded in `BLOCKERS.md` and `STATUS.md` with the exact command; the §8.4 table is in place,
-pending. Render's two variables are a dashboard edit.
+**The run (same day, after Micah added the key).** A single `relate()` against the real API first --
+345 ms, `jev-1.13.0`, three passages judged supports 0.98 / says_nothing / contradicts, so a bad key
+would have failed in seconds rather than an hour in. Then `npm run eval -- --target local --runs 1
+--ablation semantic-verify`: 58 turns, 0 errors, 35 minutes. Citation precision 49 → 62%,
+groundedness 89 → 96%, recall 66 → 69%, answer match 88 → 90%, warm p50 +0.3 s, verify step 183 ms
+median. 112 pairs: 100 supported, 12 unsupported, 0 contradicted, 0 unavailable.
+
+*What the numbers hid, and how it was caught.* The headline was the expected shape, so the check was
+to list the twelve removed pairs rather than trust the total. Ten were the same chunk id:
+`HANDBOOK#§2#s`, the synthetic applicability citation, whose registry entry has no text because
+`get_policy_applicability` returns matrix rows, not a passage. Jev was judging the placeholder
+snippet -- `degraded_input` was 11 of 112, which the trace had been saying all along -- and it said,
+correctly of that snippet, that it says nothing about the claim. The judge resolves text by chunk id
+and finds none for a synthetic id either, so those facts were already scoring 0; that is why
+groundedness rose in step with precision. The gain is real as measured and mostly one pattern.
+Written into §8.4 as the caveat, with the follow-up (render the matrix rows as passage text at
+ingest, re-measure). The two removals that were not `HANDBOOK#§2#s` -- `SAFETY §8.7` at 0.48 and
+`CREATOR §4.1` at 0.79 -- are the intended case.
+
+**What is not done.** Render's two variables are a dashboard edit after merge (`BLOCKERS.md`). The
+applicability-text follow-up above is not started.
 
 **Verification.** 249 tests green, typecheck, lint and build clean, `tests/ingest.test.ts` hash
 snapshot unchanged. Live in the browser with `SEMANTIC_VERIFY_PROVIDER=stub` and Sonnet 5: `/health`

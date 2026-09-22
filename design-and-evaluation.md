@@ -421,17 +421,46 @@ policy-only answers and escalation rather than failing or inventing employee dat
 halves, which is correct: without the data tools it cannot give the specific answer. The failure
 mode is graceful, and `TOOL_UNAVAILABLE` surfaces in the trace rather than as an exception.
 
-**Semantic citation verification** (ADR 0019, 2026-09-22) -- *not yet run*. The `semantic-verify`
-ablation and the `typesafe` provider are built and tested against a fake API; the measurement needs
-`TYPESAFE_API_KEY` and Micah's approval of the spend (one run × 29 items × 2 configurations, about
-an hour and roughly $2–3 of Sonnet at the 2026-09-12 rate). The command is in `STATUS.md`. The table
-below is the shape the run fills in; the expectation is precision up, recall flat or slightly down,
-and well under a second added per turn.
+**Semantic citation verification** (ADR 0019) -- run `2026-09-22T15-21-27` · commit `0241638` · 1 run
+× 29 items × 2 configurations = 58 turns, 0 errors · agent `claude-sonnet-5`, judge `claude-opus-5`,
+verifier `jev-1.13.0` at threshold 0.8. Precision and recall are over the 19 items that carry gold
+citations; latency over the 19 latency items.
 
 | VERIFY | Citation precision | Citation recall | Groundedness | Answer match | Warm p50 | Warm p95 | Verify p50 |
 |---|---|---|---|---|---|---|---|
-| structural only (base) | _pending_ | _pending_ | _pending_ | _pending_ | _pending_ | _pending_ | — |
-| + Jev (`jev-latest`, threshold 0.8) | _pending_ | _pending_ | _pending_ | _pending_ | _pending_ | _pending_ | _pending_ |
+| structural only (base) | 49% | 66% | 89% | 88% | 30.3 s | 61.6 s | — |
+| **+ Jev (`jev-latest`, threshold 0.8)** | **62%** | **69%** | **96%** | **90%** | 30.6 s | 60.5 s | **183 ms** |
+
+Jev judged **112 (fact, citation) pairs: 100 supported, 12 unsupported, 0 contradicted, 0
+unavailable**. The verify step itself cost 183 ms at the median and 1.5 s at worst; warm p50 moved by
+0.3 s, which is inside run-to-run noise.
+
+*What moved.* Citation precision rose 13 points and groundedness 7. Both come from the same twelve
+removals: a citation Jev could not connect to the claim was dropped, and where it was the fact's only
+citation the fact went with it, so the judge no longer scored an unsupported fact.
+
+*What did not.* Recall (66 → 69%) and answer match (88 → 90%) are flat within a single run's noise,
+which is the expected shape: the verifier can only remove citations, so it cannot raise recall, and
+it did not remove anything the gold set wanted. Latency is flat because the request per fact runs in
+parallel with the others and Jev answers in a few hundred milliseconds.
+
+*Why, and the caveat that matters.* Ten of the twelve removals were `HANDBOOK#§2#s` -- the synthetic
+citation for the applicability matrix that `get_policy_applicability` returns. Its registry entry
+carries no chunk text, so Jev judged the one-line placeholder snippet (`degraded_input` = 11 of 112
+pairs) and said, correctly of that snippet, that it says nothing about "as staff, PTO applies to
+you in full". The judge resolves chunk text by id and finds none for a synthetic id either, so those
+facts were already scoring 0 on groundedness; removing them is why groundedness rose. The gain is
+real as measured, but most of it is one citation pattern judged against a placeholder rather than
+against HANDBOOK §2's text. The follow-up is small and specific: render the matrix rows for the
+acting class as passage text when ingesting `get_policy_applicability`, then re-measure. The other
+two removals -- `SAFETY §8.7` at P(supports) 0.48 and `CREATOR §4.1` at 0.79, a hair under the
+threshold -- are the case the verifier was built for.
+
+One run, and the two arms are two separate Sonnet samples, so per-item deltas mix the verifier's
+effect with sampling: `md-02` fell from 0.60 to 0.33 precision with a *different* set of facts,
+which the verifier cannot have caused. The clean signal is the verdict count above, not the per-item
+table. The 2026-09-12 headline figures above remain the 3-run reference; `evaluation/results/
+latest.*` now carries this run, whose 1-run base (89 / 49 / 66 / 88) is within noise of them.
 
 #### Latency
 
@@ -486,7 +515,7 @@ reported when that change is made.
 - **Citation precision is 49% overall.** The agent over-cites: it attaches supporting chunks beyond
   the gold set. Groundedness stays high because what it cites does support the claims, but
   precision against gold citations suffers. ADR 0019 adds semantic verification of every citation
-  in response; its effect is measured by ablation 5 once the run is approved.
+  in response; ablation 5 measures it at 49 → 62% precision with recall flat.
 
 ### 8.5 Known limitations
 

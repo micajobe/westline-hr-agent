@@ -51,7 +51,8 @@ claim? Citations below `SEMANTIC_VERIFY_THRESHOLD` (0.8) or judged contradicting
 `verify` trace event carries a `semantic` block with per-pair probabilities. Jev is a dependency of
 `apps/server` (`packages/semantic-verify`), not an MCP tool; if it is down or slow, VERIFY falls back
 to the structural result for that fact. The default is `off`; `stub` is a key-free lexical test double
-used by CI.
+used by CI. Measured (ablation 5, 2026-09-22): citation precision 49 → 62%, groundedness 89 → 96%,
+recall and latency flat, 183 ms of verify time per turn.
 
 ## Quick start
 
