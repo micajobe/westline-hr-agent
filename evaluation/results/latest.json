@@ -8,7 +8,7 @@
     "agent_model": "claude-sonnet-5",
     "judge_model": "claude-opus-5",
     "judged": true,
-    "note": "3 run(s) per configuration at temperature 0; means over runs. Ablations: k3, k10, chunk-fixed, mode-vector, mode-bm25, chaos-hr."
+    "note": "3 run(s) per configuration; means over runs. Claude 5 rejects the temperature parameter, so determinism rests on tool-forced structured output and fixed prompts (see apps/server/src/agent/model.ts). Ablations: k3, k10, chunk-fixed, mode-vector, mode-bm25, chaos-hr."
   },
   "headline": {
     "groundedness_pct": 0.9231758579584666,

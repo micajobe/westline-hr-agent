@@ -5,7 +5,7 @@ import type { Envelope, EvalItem } from './types.js';
 export interface GroundednessResult { per_fact: number[]; mean: number | null; fully_supported_pct: number | null; rationales: string[] }
 
 /**
- * The LLM judge (PRD §12.2): Opus, temperature 0, tool-forced JSON. Groundedness is scored per
+ * The LLM judge (PRD §12.2): Opus, tool-forced JSON (no temperature — Claude 5 rejects it). Groundedness is scored per
  * policy_fact against the *text of the chunks it cites*, 0/1/2 (unsupported / partial / fully
  * supported); answer match is 0 / 0.5 / 1 against the gold answer. Human calibration uses the same
  * 0–2 scale (evaluation/human_scores.json).

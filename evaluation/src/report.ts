@@ -57,7 +57,7 @@ export function buildResults(set: EvalSet, runs: ItemRun[], configs: EvalConfig[
   const ablationNames = [...new Set(configs.filter((c) => c.ablation).map((c) => c.ablation!))];
   const ablations = ablationNames.map((name) => {
     const arms = configs.filter((c) => c.ablation === name);
-    const metric = name === 'retrieval k' ? 'groundedness, citation recall' : name === 'chunking' ? 'citation precision' : name === 'retrieval mode' ? 'citation recall' : 'workflow completion, escalation accuracy';
+    const metric = name === 'retrieval k' ? 'groundedness, citation recall' : name === 'chunking' ? 'citation precision' : name === 'retrieval mode' ? 'citation recall' : name === 'semantic verify' ? 'citation precision, citation recall, groundedness, latency' : 'workflow completion, escalation accuracy';
     const baseArm = { ...BASE_LABEL_FOR(name), ...summariseFor(set, base.filter((r) => arms[0]!.selects(byId.get(r.item_id)!)), metric) };
     const rows = [baseArm, ...arms.map((c) => ({ ...c.label, ...summariseFor(set, runs.filter((r) => r.config === c.name), metric) }))];
     return { name, metric, rows };
@@ -120,10 +120,29 @@ export function buildResults(set: EvalSet, runs: ItemRun[], configs: EvalConfig[
     if (metric.includes('citation precision')) out.citation_precision = m.citation_precision;
     if (metric.includes('workflow')) { out.workflow_completion = m.workflow_completion; out.escalation_accuracy = m.escalation_accuracy; }
     out.answer_match = m.answer_match;
+    if (metric.includes('latency')) {
+      const warm = rs.filter((r) => byId.get(r.item_id)?.latency_item && !r.error).map((r) => r.latency_ms);
+      out.warm_p50_ms = percentile(warm, 50);
+      out.warm_p95_ms = percentile(warm, 95);
+      // What VERIFY itself cost: the semantic block's latency, summed over a turn's verify events.
+      const sem = rs.filter((r) => !r.error).map((r) => verifyLatency(r)).filter((v): v is number => v !== null);
+      out.verify_p50_ms = percentile(sem, 50);
+      out.citations_removed_by_verifier = rs.reduce((a, r) => a + removedByVerifier(r), 0);
+    }
     return out;
   }
   function BASE_LABEL_FOR(name: string): Record<string, string | number> {
-    return name === 'retrieval k' ? { k: 6 } : name === 'chunking' ? { chunking: 'heading-aware' } : name === 'retrieval mode' ? { mode: 'hybrid' } : { hr_mcp: 'up' };
+    return name === 'retrieval k' ? { k: 6 } : name === 'chunking' ? { chunking: 'heading-aware' } : name === 'retrieval mode' ? { mode: 'hybrid' } : name === 'semantic verify' ? { semantic_verify: 'off' } : { hr_mcp: 'up' };
+  }
+  function semanticBlocks(r: ItemRun): { latency_ms?: number; unsupported?: number; contradicted?: number }[] {
+    return (r.final ?? r.envelope).trace.filter((e) => e.type === 'verify').map((e) => e.detail?.semantic as { latency_ms?: number; unsupported?: number; contradicted?: number } | undefined).filter((s): s is NonNullable<typeof s> => Boolean(s));
+  }
+  function verifyLatency(r: ItemRun): number | null {
+    const blocks = semanticBlocks(r);
+    return blocks.length ? blocks.reduce((a, b) => a + (b.latency_ms ?? 0), 0) : null;
+  }
+  function removedByVerifier(r: ItemRun): number {
+    return semanticBlocks(r).reduce((a, b) => a + (b.unsupported ?? 0) + (b.contradicted ?? 0), 0);
   }
   function readCold(): number[] {
     const p = join(process.cwd(), 'evaluation', 'results', 'cold_start.json');
@@ -159,7 +178,7 @@ export function renderMarkdown(r: Results): string {
   L.push('', '## Judge calibration', '', `${r.calibration.scored}/${r.calibration.n} items human-scored · exact ${pct(r.calibration.exact_agreement)} · within ±1 ${pct(r.calibration.within_one_agreement)}`, '', r.calibration.note);
   L.push('', '## Items', '', '| id | category | expected | observed | behaviour | tools | workflow | safety | cit P | cit R | grounded | match | latency | errors |', '|---|---|---|---|---|---|---|---|---|---|---|---|---|---|');
   for (const i of r.items) L.push(`| ${i.id} | ${i.category} | ${i.expected_behaviour} | ${i.behaviour_observed.join(',')} | ${pct(i.behaviour_match)} | ${pct(i.tool_selection)} | ${pct(i.workflow_complete)} | ${pct(i.action_safety)} | ${pct(i.citation_precision)} | ${pct(i.citation_recall)} | ${num(i.groundedness)} | ${num(i.answer_match, 1)} | ${ms(i.latency_ms)} | ${i.errors} |`);
-  L.push('', '_Nondeterminism: the agent runs at temperature 0 but tool selection and wording still vary between runs; figures are means over the runs stated above._', '');
+  L.push('', '_Nondeterminism: Claude 5 rejects the `temperature` parameter, so runs are held steady by tool-forced structured output and fixed prompts rather than a sampling knob; tool selection and wording still vary between runs, and figures are means over the runs stated above._', '');
   return L.join('\n');
 }
 
