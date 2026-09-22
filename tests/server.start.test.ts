@@ -17,6 +17,8 @@ const ENV: NodeJS.ProcessEnv = {
   // Pinned like every other path above: unset, this falls back to the real evaluation/results and
   // the `/eval/latest` 404 below passes only on a machine that has never run `npm run eval`.
   EVAL_RESULTS_PATH: 'does-not-exist/latest.json',
+  // The key-free semantic verifier (ADR 0019), so the verify event carries a `semantic` block in CI.
+  SEMANTIC_VERIFY_PROVIDER: 'stub',
 };
 
 const J = 'W-1042';
@@ -34,10 +36,13 @@ function task2Model() {
     answer: (params) => {
       const instr = String((params.messages.at(-1) as any).content);
       const ids = [...instr.matchAll(/(PTO#§[\d.]+#\d+)/g)].map((m) => m[1]!);
+      // Cite the section that actually states the rule. Citing the first PTO chunk regardless is
+      // exactly what the semantic verifier exists to catch, and with SEMANTIC_VERIFY_PROVIDER=stub it did.
+      const notice = ids.find((id) => id.startsWith('PTO#§3.2#')) ?? ids[0] ?? 'PTO#§3.2#0';
       return {
         answer_markdown: 'Yes — 3 days fits your 11-day balance and needs two weeks notice. I drafted the note to Priya.',
         policy_facts: [
-          { id: 'f1', statement: 'Requests of 3-5 days need 14 calendar days notice.', citations: [{ chunk_id: ids[0] ?? 'PTO#§3.2#0', doc_id: 'PTO', title: 'x', section_path: '§3.2', snippet: 'made up' }] },
+          { id: 'f1', statement: 'Requests of 3-5 days need 14 calendar days notice.', citations: [{ chunk_id: notice, doc_id: 'PTO', title: 'x', section_path: '§3.2', snippet: 'made up' }] },
           { id: 'f2', statement: 'A fabricated rule.', citations: [{ chunk_id: 'PTO#§99#0', doc_id: 'PTO', title: 'x', section_path: '§99', snippet: 'fake' }] },
         ],
         recommendations: [{ text: 'Submit in the scheduling system now.', basis_fact_ids: ['f1'] }, { text: 'Ungrounded advice.', basis_fact_ids: ['f2'] }],
@@ -73,6 +78,7 @@ describe('app server boots in inprocess mode', () => {
     expect(h.mcp.hr.tools).toBe(5);
     expect(h.index.chunk_count).toBeGreaterThan(300);
     expect(h.models.available).toBe(true);
+    expect(h.mode.semantic_verify).toBe('stub');
   });
 
   it('discovers nine namespaced tools and strips server-owned arguments from the model-facing schema', () => {
@@ -165,6 +171,10 @@ describe('app server boots in inprocess mode', () => {
     const verify = e2.trace.at(-1);
     expect(verify.detail.unsupported_claims_removed).toBe(1);
     expect(verify.detail.recommendations_removed).toBe(1);
+    // Semantic pass ran on the surviving fact against the full PTO §3.2 chunk text and kept it.
+    expect(verify.detail.semantic).toMatchObject({ provider: 'stub', pairs_checked: 1, supported: 1, unsupported: 0, contradicted: 0, unavailable: 0, degraded_input: 0 });
+    expect(verify.detail.semantic.verdicts[0]).toMatchObject({ fact_id: 'f1', verdict: 'supported', p_supports: 0.95 });
+    expect(verify.result_summary).toMatch(/stub verifier confirmed 1 citation/);
 
     // The desk has the draft; a second confirm of the same turn is refused.
     const draftsAfter = ((await (await get('/desk')).json()) as any).drafts.length;

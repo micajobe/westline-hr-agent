@@ -44,6 +44,37 @@ export interface TraceEvent {
   detail?: Record<string, unknown>;
 }
 
+// ---------- VERIFY detail (PRD §7.1, ADR 0019) ----------
+
+export type SemanticVerifyProvider = 'typesafe' | 'stub' | 'off';
+export type SemanticVerdictLabel = 'supported' | 'unsupported' | 'contradicted' | 'unavailable';
+
+/** One (fact, citation) pair as judged by the semantic verifier. Probabilities only; never prose. */
+export interface SemanticVerdictRow {
+  fact_id: string;
+  chunk_id: string;
+  verdict: SemanticVerdictLabel;
+  p_supports: number | null;
+  confidence: number | null;
+}
+
+/** The `semantic` block inside a `verify` event's `detail` when a semantic verifier is configured. */
+export interface SemanticVerifyDetail {
+  provider: SemanticVerifyProvider;
+  model: string | null;
+  threshold: number;
+  pairs_checked: number;
+  supported: number;
+  unsupported: number;
+  contradicted: number;
+  /** Pairs judged on a snippet or truncated text because full chunk text was not available. */
+  degraded_input: number;
+  /** Pairs the verifier could not judge (error, timeout, malformed answer); structural result kept. */
+  unavailable: number;
+  latency_ms: number;
+  verdicts: SemanticVerdictRow[];
+}
+
 export const REDACTED = '•••';
 
 const SECRET_ARG_KEYS = new Set(['confirmation_token']);

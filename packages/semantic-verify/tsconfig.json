@@ -1,7 +1,6 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": { "rootDir": "src", "outDir": "dist", "types": ["node"] },
-  "references": [{ "path": "../../packages/shared" }, { "path": "../../packages/semantic-verify" }, { "path": "../../mcp/host" }],
   "include": ["src/**/*.ts"],
   "exclude": ["src/**/*.test.ts"]
 }

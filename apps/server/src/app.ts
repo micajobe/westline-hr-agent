@@ -128,7 +128,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
       tools: { available_to_agent: agentTools.length, names: agentTools.map((t) => t.namespaced) },
       index,
       models: { agent: config.agentModel, judge: config.judgeModel, available: deps.modelAvailable },
-      mode: { mcp: config.mcpMode, chaos: config.chaosDisableHrMcp, rerank: config.rerank, mcp_base_url: mcp.baseUrl },
+      mode: { mcp: config.mcpMode, chaos: config.chaosDisableHrMcp, rerank: config.rerank, semantic_verify: config.semanticVerifyProvider, mcp_base_url: mcp.baseUrl },
     };
   });
 

@@ -1,4 +1,5 @@
-import type { Citation, TraceEvent } from '@westline/shared';
+import type { TraceEvent } from '@westline/shared';
+import type { StoredCitation } from './citations.js';
 import type { MessageParam } from './model.js';
 import type { Plan } from './schemas.js';
 import type { ActionTakenRecord } from './tools.js';
@@ -24,7 +25,7 @@ export interface SuspendedTurn {
   pending: PendingGate;
   iteration: number;
   trace: TraceEvent[];
-  citations: Citation[];
+  citations: StoredCitation[];
   actions: ActionTakenRecord[];
   started_at: number;
 }

@@ -4,7 +4,22 @@
     {
       "name": "westline-app",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "start:app"],
+      "runtimeArgs": [
+        "run",
+        "start:app"
+      ],
+      "port": 3000,
+      "autoPort": true
+    },
+    {
+      "name": "westline-app-stub-verify",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "SEMANTIC_VERIFY_PROVIDER=stub",
+        "npm",
+        "run",
+        "start:app"
+      ],
       "port": 3000,
       "autoPort": true
     }
