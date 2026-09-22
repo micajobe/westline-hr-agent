@@ -16,7 +16,7 @@ green and 213 tests passing without API keys.
 | M6 Deploy | done — both services live | CI-gated `deploy.yml` green on `main` through the Render REST API; live `/health` `ok`, both MCP servers `connected`, 9 tools |
 | M7 Eval harness | **done — full run complete** | 447 turns (3 runs × 29 items × 7 configs), 0 errors, 4 h 22 m, ~$35.79 measured agent spend |
 | M8 Documentation | done | README, design-and-evaluation.md **incl. §8.4 results**, deployed.md, 16 ADRs, ai-tooling.md |
-| M9 Semantic citation verification (Jev) | **built and measured on `feat/semantic-citation-verification`** | 250 tests green with no keys; ablation 5 run twice 2026-09-22 against `jev-1.13.0`. Final: 102 pairs judged, 101 supported, 1 removed, 0 unavailable, 192 ms per turn. Surviving citations already support their claims; precision against gold is an over-citation problem, not a support problem. ADR 0019; §8.4 |
+| M9 Semantic citation verification (Jev) | **done — merged (#2), measured, live on Render** | 250 tests green with no keys; ablation 5 run twice 2026-09-22 against `jev-1.13.0`. Final: 102 pairs judged, 101 supported, 1 removed, 0 unavailable, 192 ms per turn. Surviving citations already support their claims; precision against gold is an over-citation problem, not a support problem. ADR 0019; §8.4 |
 
 ## Evaluation results (2026-09-12)
 

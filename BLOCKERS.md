@@ -5,16 +5,6 @@ been built. Update/remove entries as they are resolved.
 
 ## Open
 
-### 0. Render: turn on semantic citation verification (2026-09-22)
-
-- Locally resolved: `TYPESAFE_API_KEY` is in `.env`, the `typesafe` provider ran end to end (26
-  verify events from `jev-1.13.0` in run `2026-09-22T15-21-27`), and the ablation is in §8.4.
-- **Render still needs it.** Add `TYPESAFE_API_KEY` (secret) and `SEMANTIC_VERIFY_PROVIDER=typesafe`
-  to the `westline-app` service (`srv-dadi2etg1s2s73bldagg`, hostname `westline-hr-agent.onrender.com`).
-  Set both together: the server refuses to start with the provider on and no key. `render.yaml`
-  declares the variables; the services are not Blueprint-driven, so this is a dashboard edit.
-- Merge `feat/semantic-citation-verification` to `main` first; deploys run from `main`.
-
 ### 1. GitHub: grader access expires around 2026-09-15
 
 - `quantic-grader` was invited 2026-09-08 with **read** permission (invite `332198617`). The
@@ -54,6 +44,20 @@ been built. Update/remove entries as they are resolved.
   `.woff2` files in `apps/web/public/fonts/` are unused and gitignored — delete them at will.
 
 ## Resolved
+
+### Semantic citation verification on Render — resolved 2026-09-22
+
+`TYPESAFE_API_KEY`, `SEMANTIC_VERIFY_PROVIDER=typesafe`, `SEMANTIC_VERIFY_THRESHOLD=0.8` and
+`TYPESAFE_MODEL=jev-latest` are set on `westline-app`. Verified live: `/health` reports
+`mode.semantic_verify: "typesafe"`, and a Jordan Reyes PTO-notice turn returned `4 facts verified ·
+Jev confirmed 4 citations` from `jev-1.13.0` in 159 ms, with zero unavailable.
+
+Diagnostic note worth keeping: the first attempt pasted the whole `.env` line as the value, so the
+server sent `Bearer TYPESAFE_API_KEY=sk-…` and every Jev call failed in under 70 ms. VERIFY fell back
+to the structural result as designed (`semantic_unavailable`), but the trace did not say why. It does
+now: the `semantic` detail counts failures per HTTP status (`fdfc8c0`), and the key is trimmed on load.
+The mismatch was found without reading either secret — by comparing lengths and a prefix test.
+
 
 ### The evaluation — resolved 2026-09-12
 

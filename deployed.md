@@ -1,7 +1,8 @@
 # Deployed
 
 > **Status:** both services are live as of 2026-09-04. `/health` on the app reports `ok` with both
-> MCP servers `connected` and an identical corpus hash on both sides.
+> MCP servers `connected` and an identical corpus hash on both sides. Semantic citation verification
+> (Jev) is on since 2026-09-22: `mode.semantic_verify: "typesafe"`.
 
 ## URLs
 
@@ -50,9 +51,9 @@ SQLite binding — ADR 0003). The blueprint sets 22; set it manually if you crea
 | `MCP_BASE_URL` | ✓ | | | The `westline-mcp` public URL, no trailing slash |
 | `MCP_SHARED_SECRET` | ✓ | ✓ | | `openssl rand -hex 32`; identical on both. Also signs confirmation tokens |
 | `RERANK` | ✓ | | | `false`; ablation only |
-| `SEMANTIC_VERIFY_PROVIDER` | ✓ | | | **Not yet set on Render.** `typesafe` to turn on Jev citation verification (ADR 0019); unset/`off` keeps VERIFY structural only. The server refuses to start with `typesafe` and no key |
+| `SEMANTIC_VERIFY_PROVIDER` | ✓ | | | `typesafe` since 2026-09-22 — Jev citation verification (ADR 0019); `off` keeps VERIFY structural only. The server refuses to start with `typesafe` and no key |
 | `SEMANTIC_VERIFY_THRESHOLD` | ✓ | | | `0.8`; minimum P(supports) for a citation to survive |
-| `TYPESAFE_API_KEY` | ✓ | | | **Not yet set on Render.** Enter in the dashboard together with the provider |
+| `TYPESAFE_API_KEY` | ✓ | | | Set 2026-09-22. The value is the key alone — not the `.env` line; a pasted `TYPESAFE_API_KEY=` prefix makes every Jev call fail instantly and the verify trace reports `unavailable` with the status bucket |
 | `TYPESAFE_MODEL` | ✓ | | | `jev-latest` |
 | `CHAOS_DISABLE_HR_MCP` | ✓ | | | `false`; set `true` to demo graceful degradation (`/health` shows `hr: disabled`) |
 | `PORT` | ✓ | ✓ | | Render-provided |

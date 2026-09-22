@@ -975,7 +975,17 @@ calibrated backstop for the case structural VERIFY cannot see, with every verdic
 so "1 citation removed" printed as "100%". Column names ending `_ms` or containing `removed` are
 now exempt.
 
-**What is not done.** Render's two variables are a dashboard edit after merge (`BLOCKERS.md`).
+**Live on Render (same day).** Micah set the four variables; the first live turn came back with
+every Jev call failed in 69 ms and the answer intact under `semantic_unavailable`. The fallback was
+the design working; the diagnosis was the gap. The trace said "unavailable" and nothing said why, so
+two things were added before anything was touched on Render: `errors` in the `semantic` detail,
+counted per HTTP status and named in the summary, and trimming of the key on load. The cause was found
+value-free -- the Render value was 17 characters longer than the local key and started with
+`TYPESAFE_API_KEY=`; the whole `.env` line had been pasted -- and confirmed the same way after the fix:
+`jev-1.13.0`, 4 pairs, 4 supported, 159 ms, on the deployed app.
+
+**What is not done.** Nothing for this milestone. The demo-script word budget (draft 7) still needs
+Micah's cut decisions.
 
 **Verification.** 249 tests green, typecheck, lint and build clean, `tests/ingest.test.ts` hash
 snapshot unchanged. Live in the browser with `SEMANTIC_VERIFY_PROVIDER=stub` and Sonnet 5: `/health`
