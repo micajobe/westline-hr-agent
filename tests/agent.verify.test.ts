@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { TraceRecorder } from '@westline/shared';
 import { StubVerifier, type SemanticVerifier } from '@westline/semantic-verify';
-import { CitationRegistry, coerceRaw, verifyAnswer, verifyAnswerSemantic } from '@westline/server';
+import { CitationRegistry, applicabilityPassage, coerceRaw, verifyAnswer, verifyAnswerSemantic } from '@westline/server';
 
 const reg = new CitationRegistry();
 reg.add({ chunk_id: 'CREATOR#§7.1#0', doc_id: 'CREATOR', title: 'Creator Partner Program Guide', section_path: '§7.1', snippet: 'real snippet' });
@@ -171,6 +171,39 @@ describe('verify: semantic citation verification', () => {
     const { answer } = await verifyAnswerSemantic(raw, semanticRegistry(), new TraceRecorder('t'), { verifier: spy });
     expect(calls).toEqual([CLAIM]);
     expect(answer.applicability?.citation?.chunk_id).toBe('HANDBOOK#§2#s');
+  });
+
+  it('renders the applicability matrix as passage text so the synthetic HANDBOOK §2 citation is judged on its rows', async () => {
+    const result = {
+      workforce_class: 'staff',
+      applies: [
+        { doc_id: 'PTO', title: 'Paid Time Off & Statutory Holidays', scope: 'full', note: 'Full-time and part-time staff.' },
+        { doc_id: 'EXPENSE', title: 'Expense & Equipment Policy', scope: 'partial', sections: ['§6', '§8'], note: 'Staff: §6 and §8.' },
+        { doc_id: 'CREATOR', title: 'Creator Partner Program Guide', scope: 'none', note: 'Creator partners only.' },
+      ],
+      summary: { full: ['PTO'], partial: ['EXPENSE §6, §8'], none: ['CREATOR'] },
+      source: { doc_id: 'HANDBOOK', section_path: '§2' },
+    };
+    const text = applicabilityPassage(result)!;
+    expect(text).toContain('HANDBOOK §2');
+    expect(text).toContain('- Paid Time Off & Statutory Holidays (PTO): applies in full to staff. Full-time and part-time staff.');
+    expect(text).toContain('- Expense & Equipment Policy (EXPENSE): applies in part: only §6, §8 to staff.');
+    expect(text).toContain('- Creator Partner Program Guide (CREATOR): does not apply to staff.');
+    expect(applicabilityPassage({ status: 'NOT_FOUND' })).toBeUndefined();
+
+    const r = new CitationRegistry();
+    r.ingest('policy__get_policy_applicability', result);
+    expect(r.textOf('HANDBOOK#§2#s')).toBe(text);
+    expect(r.get('HANDBOOK#§2#s')?.snippet).toBe('Policy applicability matrix: which documents bind each workforce class.');
+
+    // With text present the pair is no longer degraded input, and the stub sees the claim's words in the rows.
+    const seen: string[] = [];
+    const spy: SemanticVerifier = { id: 'stub', model: 'stub', relate: async (c, ps) => { seen.push(...ps.map((p) => p.text)); return new StubVerifier().relate(c, ps); } };
+    const raw = rawWith([{ id: 'f1', statement: 'As staff, the PTO policy applies to you in full.', citations: [cite('HANDBOOK#§2#s')] }]);
+    const { answer, semantic } = await verifyAnswerSemantic(raw, r, new TraceRecorder('t'), { verifier: spy });
+    expect(seen).toEqual([text]);
+    expect(semantic).toMatchObject({ degraded_input: 0, supported: 1 });
+    expect(answer.policy_facts).toHaveLength(1);
   });
 
   it('the registry round-trips chunk text through a suspended turn', () => {
