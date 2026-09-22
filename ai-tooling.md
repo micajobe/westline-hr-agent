@@ -954,8 +954,28 @@ Written into §8.4 as the caveat, with the follow-up (render the matrix rows as 
 ingest, re-measure). The two removals that were not `HANDBOOK#§2#s` -- `SAFETY §8.7` at 0.48 and
 `CREATOR §4.1` at 0.79 -- are the intended case.
 
-**What is not done.** Render's two variables are a dashboard edit after merge (`BLOCKERS.md`). The
-applicability-text follow-up above is not started.
+**The follow-up and the second run.** `applicabilityPassage()` in `citations.ts` renders the tool's
+rows for the answered class as one line per document -- scope spelled out, note as written -- and
+the registry stores it as the synthetic citation's text. Checked against real Jev before spending
+the hour: "As staff, the PTO policy applies to you in full" → supports 1.0; an unrelated drone
+claim → says_nothing. Re-run: 102 pairs, **101 supported, 1 unsupported** (`SAFETY §9` at 0.52),
+0 contradicted, 0 unavailable, 0 degraded; all twelve `HANDBOOK#§2#s` pairs at ≥ 0.98; 192 ms
+median. Precision 40 → 49% in that run, but Jev removed one citation, so the gap is the two arms
+being two Sonnet samples -- the same base configuration scored 49% and 40% an hour apart.
+
+*What that says.* The first run's 13 points were our placeholder, not Jev's judgment. With real
+text, Jev agrees with the structural verifier on 99% of pairs, which is the honest finding: on
+this corpus the surviving citations already support their claims, and the 40–49% precision is
+Sonnet citing several *supporting* sections where the gold set names one or two. That is not a
+question a support/contradict check should answer -- removing a supporting citation to match gold
+would be wrong -- so the levers are upstream (§8.4). What Jev is, as built, is a sub-second
+calibrated backstop for the case structural VERIFY cannot see, with every verdict in the trace.
+
+*Small thing caught in the report.* The markdown renderer formats any number ≤ 1 as a percentage,
+so "1 citation removed" printed as "100%". Column names ending `_ms` or containing `removed` are
+now exempt.
+
+**What is not done.** Render's two variables are a dashboard edit after merge (`BLOCKERS.md`).
 
 **Verification.** 249 tests green, typecheck, lint and build clean, `tests/ingest.test.ts` hash
 snapshot unchanged. Live in the browser with `SEMANTIC_VERIFY_PROVIDER=stub` and Sonnet 5: `/health`

@@ -172,7 +172,7 @@ export function renderMarkdown(r: Results): string {
   for (const a of r.ablations) {
     const cols = [...new Set(a.rows.flatMap((row) => Object.keys(row)))];
     L.push('', `## Ablation — ${a.name} (${a.metric})`, '', `| ${cols.join(' | ')} |`, `|${cols.map(() => '---').join('|')}|`);
-    for (const row of a.rows) L.push(`| ${cols.map((c) => { const v = row[c]; return typeof v === 'number' && v <= 1 && !/^n/.test(c) ? pct(v) : v == null ? '—' : String(v); }).join(' | ')} |`);
+    for (const row of a.rows) L.push(`| ${cols.map((c) => { const v = row[c]; return typeof v === 'number' && v <= 1 && !/^n|_ms$|removed/.test(c) ? pct(v) : v == null ? '—' : String(v); }).join(' | ')} |`);
   }
   L.push('', '## Latency', '', `Warm p50 ${ms(r.latency.warm_p50_ms)} · p95 ${ms(r.latency.warm_p95_ms)} (n=${r.latency.warm_n}). Cold: ${r.latency.cold_runs.length ? r.latency.cold_runs.map(ms).join(', ') : 'not measured'}.`, '', r.latency.note);
   L.push('', '## Judge calibration', '', `${r.calibration.scored}/${r.calibration.n} items human-scored · exact ${pct(r.calibration.exact_agreement)} · within ±1 ${pct(r.calibration.within_one_agreement)}`, '', r.calibration.note);

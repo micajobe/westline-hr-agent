@@ -16,7 +16,7 @@ green and 213 tests passing without API keys.
 | M6 Deploy | done — both services live | CI-gated `deploy.yml` green on `main` through the Render REST API; live `/health` `ok`, both MCP servers `connected`, 9 tools |
 | M7 Eval harness | **done — full run complete** | 447 turns (3 runs × 29 items × 7 configs), 0 errors, 4 h 22 m, ~$35.79 measured agent spend |
 | M8 Documentation | done | README, design-and-evaluation.md **incl. §8.4 results**, deployed.md, 16 ADRs, ai-tooling.md |
-| M9 Semantic citation verification (Jev) | **built and measured on `feat/semantic-citation-verification`** | 249 tests green with no keys; ablation 5 run 2026-09-22 against `jev-1.13.0`: citation precision 49 → 62%, groundedness 89 → 96%, recall and latency flat, 0 errors, 0 unavailable. ADR 0019; §8.4 |
+| M9 Semantic citation verification (Jev) | **built and measured on `feat/semantic-citation-verification`** | 250 tests green with no keys; ablation 5 run twice 2026-09-22 against `jev-1.13.0`. Final: 102 pairs judged, 101 supported, 1 removed, 0 unavailable, 192 ms per turn. Surviving citations already support their claims; precision against gold is an over-citation problem, not a support problem. ADR 0019; §8.4 |
 
 ## Evaluation results (2026-09-12)
 
@@ -50,23 +50,25 @@ network: the aborted run was made while travelling. The real lesson is narrower 
 the `/chat` call and judge cost is invisible in the log. That makes throughput hard to diagnose from
 the log alone, which is what sent the first diagnosis off course.
 
-## Semantic citation verification — measured (2026-09-22)
+## Semantic citation verification — measured twice (2026-09-22)
 
-ADR 0019 puts Jev (TypeSafe) inside VERIFY to attack the 49% citation precision. Run
-`2026-09-22T15-21-27`: 1 run × 29 items × 2 configurations, 58 turns, 0 errors, ~35 min.
+ADR 0019 puts Jev (TypeSafe) inside VERIFY. Two runs of `npm run eval -- --target local --runs 1
+--ablation semantic-verify`, each 58 turns, 0 errors, ~35 min.
 
-| VERIFY | Cit. precision | Cit. recall | Groundedness | Answer match | Warm p50 | Verify p50 |
+| Run · VERIFY | Cit. precision | Cit. recall | Groundedness | Verify p50 | Pairs | Removed |
 |---|---|---|---|---|---|---|
-| structural only | 49% | 66% | 89% | 88% | 30.3 s | — |
-| + Jev (0.8) | **62%** | 69% | **96%** | 90% | 30.6 s | 183 ms |
+| 1 · structural only | 49% | 66% | 89% | — | — | — |
+| 1 · + Jev, HANDBOOK §2 as placeholder snippet | 62% | 69% | 96% | 183 ms | 112 | 12 (10 were the placeholder) |
+| 2 · structural only | 40% | 67% | 93% | — | — | — |
+| 2 · + Jev, HANDBOOK §2 rendered as text (`aa6611c`) | 49% | 65% | 93% | 192 ms | 102 | 1 |
 
-112 pairs judged: 100 supported, 12 unsupported, 0 contradicted, 0 unavailable. Reading and the
-caveat in `design-and-evaluation.md` §8.4: ten of the twelve removals were the synthetic
-`HANDBOOK#§2#s` applicability citation, judged against a placeholder snippet because that entry has
-no chunk text. Follow-up: render the matrix rows as passage text at ingest and re-measure.
+Run 1's gain was our bug: the applicability citation had no chunk text, so Jev judged a one-line
+snippet. Fixed, Jev agrees with 101 of 102 surviving citations. The remaining precision gap is
+Sonnet citing several *supporting* sections where gold names one; §8.4 lists the levers (single
+governing citation per fact, a "primary source" Choice, reranking). Same-config precision was 49%
+then 40% an hour apart, so ±9 points is single-run noise at n = 19.
 
-`evaluation/results/latest.*` now carries this run (its 1-run base is 89 / 49 / 66 / 88, within noise
-of the 3-run 2026-09-12 headline). To show the 2026-09-12 headline on `/eval` again:
+`evaluation/results/latest.*` carries run 2. To show the 2026-09-12 3-run headline on `/eval` again:
 `git checkout 0241638 -- evaluation/results/latest.json evaluation/results/latest.md`.
 
 ## Not yet produced
