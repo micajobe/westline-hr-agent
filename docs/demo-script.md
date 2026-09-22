@@ -58,10 +58,10 @@ spoken once and shown on screen; the screen carries the precision so the voice d
       `node scripts/rebuild-report.mjs 2026-09-12T14-40-36 2026-09-22T16-03-20` (first stamp = headline
       and the four original arms, second = the semantic-verify arm). If anyone re-runs the harness
       before recording, rebuild with that command or the G numbers stop matching the screen.
-- [ ] **Jev on Render, or skip the D take.** The optional Jev take in D needs `TYPESAFE_API_KEY` and
-      `SEMANTIC_VERIFY_PROVIDER=typesafe` set together on the `westline-app` Render service
-      (`BLOCKERS.md` item 0), then a redeploy and a dry run showing the mono line under VERIFY. Without
-      them the line never appears; G still introduces Jev either way.
+- [ ] **Jev is on in production** (`/health` → `mode.semantic_verify: "typesafe"`, set 2026-09-22). The
+      VERIFY row in D and E will carry a mono line naming `jev-1.13.0`; it is not read aloud — G
+      introduces Jev with the measured result. If the line ever reads "unavailable", the status bucket
+      after it says why; check the Render `TYPESAFE_API_KEY` value before recording.
 - [ ] `STATUS.md` "Remaining for Micah" item 3 still lists the cold-start run. Drop it.
 - [ ] **Task 1 may not propose a ticket.** In 3 of 3 eval runs of the identical message (`md-04`)
       the agent answered from policy with `escalation.target: none` and proposed nothing, and
@@ -209,11 +209,8 @@ The confirmation gate has to pause a model turn
 and pick it up again in a completely different HTTP request,
 and frameworks want their loop to run to the end.
 Decision record six has the full argument.
-Two models, two jobs. Sonnet plans and writes.
-Verify hands every citation to a second, much smaller model —
-TypeSafe's Jev — which reads the passage and the claim
-and returns a probability that one supports the other. No prose.
-Code owns the threshold. I'll show you what it found.
+Verify also hands every citation to a second model, TypeSafe's Jev,
+which returns a probability that the passage supports the claim.
 You'll see all four steps in the trace in a minute.
 ```
 
@@ -466,24 +463,6 @@ any claim whose source wasn't actually retrieved this turn.
 
 READ
 Off the row: "10 facts in, 10 kept, 0 removed" — or whatever it shows.
-
-
-OPTIONAL — only if the Render service has TYPESAFE_API_KEY set and the VERIFY row shows a
-mono line naming jev. Skip in silence if it does not; G introduces Jev regardless.
-
-DO
-Point at the mono line under the VERIFY summary. Do not expand it.
-
-SCREEN
-A line like "jev-1.13.0 · 14 pairs · 14 supported · 0 unsupported · 0 contradicted · 210 ms".
-
-SAY
-And that's Jev, live. Every citation that survived,
-checked against the passage it points at,
-in a few hundred milliseconds.
-
-READ
-The pair count and the supported count off the line. Nothing else.
 
 
 BRANCH
@@ -861,28 +840,24 @@ Thanks for watching.
 ## 4. Word budget (measured, draft 7)
 
 Counted from `SAY` and `READ` lines only; `DO` and `SCREEN` are never spoken. Where a `BRANCH` has
-alternatives, the longest one is counted, so these are upper bounds on the branching beats. D includes
-the optional Jev take (28 words); skip it and D drops by that much.
+alternatives, the longest one is counted, so these are upper bounds on the branching beats.
 
 | Beat | Spoken | At 160 wpm | At 170 wpm |
 |---|---|---|---|
 | A | 42 | 0:15 | 0:14 |
-| B | 247 | 1:32 | 1:27 |
+| B | 218 | 1:21 | 1:16 |
 | C | 117 | 0:43 | 0:41 |
-| D | 691 | 4:19 | 4:03 |
+| D | 663 | 4:08 | 3:54 |
 | E | 314 | 1:57 | 1:50 |
 | F | 323 | 2:01 | 1:54 |
 | G | 406 | 2:32 | 2:23 |
 | H | 74 | 0:27 | 0:26 |
-| **Total** | **2,214** | **≈ 13:50** | **≈ 13:01** |
+| **Total** | **2,157** | **≈ 13:28** | **≈ 12:40** |
 
-**Draft 7 adds Jev to B (+50 words), rewrites G's precision paragraph around the measurement (+113
-net) and trims the optional D take to 28. Net +191 words, about 1:10 at 160 wpm, on a script that was
-already over budget in draft 6.** If Jev stays in, something else comes out; candidates in order of
-least damage are below, plus two new ones: the optional D take (−28; it needs Render variables that
-are not set, and G carries Jev without it) and B's Jev clause cut to two lines, "Verify also hands
-every citation to a second model, TypeSafe's Jev, which returns a probability it supports the claim"
-(−30; G does the rest). Before cutting, two things make that number
+**Draft 7 introduces Jev in B (two lines, +20 words) and rewrites G's precision paragraph around the
+measurement (+113 net); the optional D take was cut, so Jev is shown in G against the `/eval` row and
+merely visible in the VERIFY rows of D and E. Net +133 words over draft 6, about 50 seconds at 160 wpm,
+on a script that was already over budget.** Before cutting, two things make that number
 less reliable than it looks, in opposite directions:
 
 - **The old count was optimistic.** It scored `hr__lookup_person_profile` as one word. Saying it
@@ -915,4 +890,4 @@ live candidates.
 | No chain-of-thought | `plan` event carries `summary` and `expected_tools` only, beat D |
 | Deploy gated on CI | `deploy.yml` trigger and condition, beat F |
 | Metrics as numbers | `/eval` tables, beat G |
-| Citations checked for support by a second model | `/eval` ablation "semantic verify": 1 removed of 102, 187 ms, beat G; the mono line under VERIFY in beat D when Jev is on |
+| Citations checked for support by a second model | `/eval` ablation "semantic verify": 1 removed of 102, 187 ms, beat G; the `jev-1.13.0` mono line under VERIFY in beats D and E (visible, not read) |
