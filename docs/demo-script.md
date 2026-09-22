@@ -1,5 +1,14 @@
 # Demo video — teleprompter script (draft 7, 2026-09-22)
 
+> **Two-track recording.** This combined script is the source. It is split into
+> [`demo-narration.md`](demo-narration.md) (the spoken track: `SAY`/`READ` only, tagged `[D3]`-style
+> at each screen change) and [`demo-shot-list.md`](demo-shot-list.md) (the screen track: `DO`/`SCREEN`
+> per tag, with a **Values** column for what the narration reads aloud). Order: dry run both tasks and
+> write the values into the shot list; record the narration against them; record the screen while
+> listening to the narration, pausing playback while the model works; re-record only the `READ`
+> passages whose value differed as pickups; composite. Edit here and regenerate both with
+> `node scripts/split-demo-script.mjs`; do not edit the split files by hand.
+
 Target 9:00 of the allowed 7–10. Spoken lines are plain paragraphs. Bracketed lines are not read:
 
 - `DO` something to click or switch, in silence, before the next spoken line
