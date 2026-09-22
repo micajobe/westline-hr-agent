@@ -5,6 +5,21 @@ been built. Update/remove entries as they are resolved.
 
 ## Open
 
+### 0. TypeSafe (Jev) key — semantic citation verification is built but unmeasured (2026-09-22)
+
+- `SEMANTIC_VERIFY_PROVIDER=typesafe` (ADR 0019) needs `TYPESAFE_API_KEY`. No key is present in the
+  local `.env`, so the provider has been run only against a fake API in `tests/semantic-verify.
+  typesafe.test.ts`; the `stub` provider covers every VERIFY branch in CI. Acceptance still needs one
+  real end-to-end turn with the `semantic` block visible in the trace.
+- **Render:** add `TYPESAFE_API_KEY` (secret) and `SEMANTIC_VERIFY_PROVIDER=typesafe` to the
+  `westline-app` service (`srv-dadi2etg1s2s73bldagg`, hostname `westline-hr-agent.onrender.com`).
+  Set both together: the server refuses to start with the provider on and no key. `render.yaml`
+  declares the variables; the services are not Blueprint-driven, so this is a dashboard edit.
+- **Eval spend:** the semantic-verify ablation (1 run × 29 items × 2 configurations, Sonnet 5 agent,
+  Opus 5 judge, real Jev) has not been run. Roughly an hour and $2–3 of Anthropic spend at the
+  2026-09-12 rate; Jev's share is cents. Command in `STATUS.md`. Fills the pending table in
+  `design-and-evaluation.md` §8.4.
+
 ### 1. GitHub: grader access expires around 2026-09-15
 
 - `quantic-grader` was invited 2026-09-08 with **read** permission (invite `332198617`). The

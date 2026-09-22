@@ -120,7 +120,13 @@ no tool implementation in either mode.
   chunk id the model is allowed to cite this turn.
 - **Guardrails.** VERIFY drops any `policy_fact` whose citations are not in that registry and any
   recommendation whose basis facts did not survive, replaces citation metadata with the tool's own,
-  and emits a `verify` trace event with counts. Facts and recommendations are separate fields in the
+  and emits a `verify` trace event with counts. With `SEMANTIC_VERIFY_PROVIDER=typesafe` it then asks
+  Jev one Choice per surviving (fact, citation) pair -- *supports* / *contradicts* / *says nothing* --
+  over the full chunk text, and drops citations judged contradicting or below the 0.8 threshold
+  (ADR 0019). Structural verification catches the chunk the model invented; semantic verification
+  catches the real chunk that does not back the claim, which is what the 49% citation precision in
+  §8.4 was made of. Code owns the threshold and the rules; Jev reports a relation and a probability,
+  and a failure falls back to the structural result for that fact. Facts and recommendations are separate fields in the
   §7.3 schema and separate blocks in the UI ("What the policy says" vs "guidance, not policy").
   Out-of-scope questions get a redirect with no policy claims; the PERF document exists as bait for
   "will I get a raise" and says in §1 that it does not describe outcomes.
@@ -248,6 +254,11 @@ type TraceEvent = {
 A resumed turn continues the same `turn_id` and sequence, so the rail reads as one story:
 `intent → plan → call/result… → gate → gate_resolved → call/result → synthesis → verify`.
 
+When a semantic verifier is configured (ADR 0019) the `verify` event's `detail` carries a `semantic`
+block: `{ provider, model, threshold, pairs_checked, supported, unsupported, contradicted,
+degraded_input, unavailable, latency_ms, verdicts: [{ fact_id, chunk_id, verdict, p_supports,
+confidence }] }`. Probabilities and counts only -- never the model's prose, because Jev produces none.
+
 ## 6. Safety design
 
 1. Nothing is ever sent. `draft_hr_email` returns `sent: false` and writes to a mock desk.
@@ -310,6 +321,9 @@ pre-selected for human calibration.
 2. heading-aware vs fixed 400-token window → citation precision (`CHUNK_STRATEGY=fixed`, separate index)
 3. hybrid vs vector vs BM25 → citation recall (`RETRIEVAL_MODE_OVERRIDE`)
 4. `CHAOS_DISABLE_HR_MCP=true` → workflow completion, escalation accuracy
+5. semantic citation verification off vs on (`SEMANTIC_VERIFY_PROVIDER=typesafe`, ADR 0019) →
+   citation precision, citation recall, groundedness, answer match, warm latency p50/p95, and the
+   verify step's own latency. Run alone with `--ablation semantic-verify`; needs `TYPESAFE_API_KEY`.
 The `RERANK=true` row is not implemented (PRD §16 cut order item 2); the retriever reports `rerank: false`.
 
 ### 8.4 Results
@@ -407,6 +421,18 @@ policy-only answers and escalation rather than failing or inventing employee dat
 halves, which is correct: without the data tools it cannot give the specific answer. The failure
 mode is graceful, and `TOOL_UNAVAILABLE` surfaces in the trace rather than as an exception.
 
+**Semantic citation verification** (ADR 0019, 2026-09-22) -- *not yet run*. The `semantic-verify`
+ablation and the `typesafe` provider are built and tested against a fake API; the measurement needs
+`TYPESAFE_API_KEY` and Micah's approval of the spend (one run × 29 items × 2 configurations, about
+an hour and roughly $2–3 of Sonnet at the 2026-09-12 rate). The command is in `STATUS.md`. The table
+below is the shape the run fills in; the expectation is precision up, recall flat or slightly down,
+and well under a second added per turn.
+
+| VERIFY | Citation precision | Citation recall | Groundedness | Answer match | Warm p50 | Warm p95 | Verify p50 |
+|---|---|---|---|---|---|---|---|
+| structural only (base) | _pending_ | _pending_ | _pending_ | _pending_ | _pending_ | _pending_ | — |
+| + Jev (`jev-latest`, threshold 0.8) | _pending_ | _pending_ | _pending_ | _pending_ | _pending_ | _pending_ | _pending_ |
+
 #### Latency
 
 Warm **p50 26.9 s, p95 50.6 s** over 57 latency-item runs, base configuration, local target. Cold
@@ -459,7 +485,8 @@ reported when that change is made.
   substance.
 - **Citation precision is 49% overall.** The agent over-cites: it attaches supporting chunks beyond
   the gold set. Groundedness stays high because what it cites does support the claims, but
-  precision against gold citations suffers.
+  precision against gold citations suffers. ADR 0019 adds semantic verification of every citation
+  in response; its effect is measured by ablation 5 once the run is approved.
 
 ### 8.5 Known limitations
 

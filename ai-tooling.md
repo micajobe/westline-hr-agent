@@ -885,3 +885,63 @@ been asserting, rather than to soften the script or weaken the trace.
 **Verification.** 230 tests green, typecheck, lint and build clean. Confirmed in the running app as
 Dani with the drone question: the first `tool_call` row expands to an empty model block above a
 server-injected `acting_person_id` of `W-3010`. No console errors.
+
+## 2026-09-22 — M9: a second question for VERIFY, asked of a model that does not write prose
+
+**What was asked.** `docs/jev-integration-brief.md`: put TypeSafe's Jev inside VERIFY so that every
+surviving (fact, citation) pair is judged semantically -- *supports*, *contradicts*, *says nothing* --
+behind a provider flag, with a key-free stub for tests, a `semantic` block in the trace, an eval
+ablation, and an ADR that says why a System One model belongs at this boundary and not in a tool.
+Read the live TypeSafe docs as part of the work. Do not touch authorization, chunking, or any MCP
+contract beyond one additive field.
+
+**What was produced.** `packages/semantic-verify` (provider interface, `@typesafe-ai/sdk` 0.6
+implementation with a 4 s timeout and one retry, the lexical stub, `createSemanticVerifier`);
+`CitationRegistry` now keeps full chunk text beside each citation, fed by search results,
+`get_policy_section`, and a new `text` field on `check_policy_compliance` rules; `verify.ts` split
+into a structural pass (`verifyAnswer`, unchanged behaviour) and `verifyAnswerSemantic`, which
+adds one Jev request per fact and applies the ADR 0019 rules; four config keys; the verifier on
+the orchestrator; `semantic` on `/health` `mode`; a one-line mono row under VERIFY in the trace
+rail; the `semantic-verify` ablation and an `--ablation name` flag in the harness; ADR 0019;
+README, design-and-evaluation §2.3/§5/§8.3/§8.4, deployed.md, BLOCKERS.md, STATUS.md,
+`.env.example`, `render.yaml`, an optional demo take. 19 new tests, 249 total, no keys needed.
+
+**What the docs changed.** The brief's facts held (SDK name, `systemOne`, `choice`, `jev-latest`,
+answer shapes, error codes), and two things came from reading rather than from the brief. The SDK's
+own retry policy already covers 429 and 5xx with backoff, so "one retry" is `retry: { maxRetries:
+1 }` on the client rather than a hand-rolled loop -- one place to get wrong instead of two. And the
+jaggedness page's warning about irrelevant state is the reason the request is per fact rather than
+per answer: a ten-fact answer would otherwise put twenty passages in front of a question about one.
+
+**What went wrong, and how it was caught.**
+
+1. *The stub caught the scripted model citing the wrong section.* `server.start.test.ts` failed as
+   soon as `SEMANTIC_VERIFY_PROVIDER=stub` was added to its env: the fake model cited the *first*
+   PTO chunk id in the citable list for the 14-day notice rule, and the first id was PTO §8.2. The
+   stub said `says_nothing`, VERIFY removed the fact, and the assertion that one fact survives
+   failed. That is the feature working on the test's own fixture. The fix was in the test -- the
+   scripted model now cites the §3.2 chunk when it is in the list -- and the comment says why.
+2. *The verify summary hid what the verifier had done to facts.* In the browser, with the stub on
+   and Jordan asking about notice, the row read "2 facts verified · stub verifier removed 2
+   citations (0 unsupported, 2 contradicted) · 2 ungrounded recommendation(s) removed". Two facts had
+   gone with those citations and nothing said so; a reader would take "2 facts verified" as the
+   whole story. The summary now names the facts dropped alongside the citations.
+3. *The stub is lexical, and the browser run showed it.* Both "contradictions" above were real PTO
+   §3.2 text -- "is **not** automatically declined", "do **not** book non-refundable travel" --
+   judged against claims that quoted those same phrases. A negation next to a claim word is the
+   stub's whole definition of *contradicts*, so it fired on a passage that plainly supports the
+   claim. This is why the stub is a test double and the eval ablation runs against Jev, not the
+   stub; `.env.example` and ADR 0019 say so in as many words.
+4. *`tsconfig.build.json` was reformatted by the script that added a reference.* Caught by the
+   diff stat (31 lines for a one-line change); rewritten by hand.
+
+**What is not done.** No `TYPESAFE_API_KEY` is present locally, so the `typesafe` provider has run
+only against a fake API (request shape, answer parsing, 429 retry, 401 no-retry, connection
+failure, malformed answer). The end-to-end acceptance turn and the `semantic-verify` ablation are
+recorded in `BLOCKERS.md` and `STATUS.md` with the exact command; the §8.4 table is in place,
+pending. Render's two variables are a dashboard edit.
+
+**Verification.** 249 tests green, typecheck, lint and build clean, `tests/ingest.test.ts` hash
+snapshot unchanged. Live in the browser with `SEMANTIC_VERIFY_PROVIDER=stub` and Sonnet 5: `/health`
+reports `semantic_verify: stub`, and the VERIFY row shows the mono line
+`stub · 5 pairs · 3 supported · 0 unsupported · 2 contradicted · 1 ms`.

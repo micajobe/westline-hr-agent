@@ -455,6 +455,29 @@ READ
 Off the row: "10 facts in, 10 kept, 0 removed" — or whatever it shows.
 
 
+OPTIONAL — only if SEMANTIC_VERIFY_PROVIDER=typesafe is on and the row shows a Jev line.
+Skip in silence if it does not; the take above already covers verify.
+
+DO
+Expand the VERIFY row. Point at the mono line under the summary.
+
+SCREEN
+The summary, e.g. "9 facts verified · Jev removed 1 citation (1 unsupported, 0 contradicted)",
+and beneath it the line "jev-1.13.0 · 14 pairs · 13 supported · 1 unsupported · 0 contradicted · 380 ms".
+
+SAY
+There's a second check in here now.
+Every citation that survived goes to Jev — a small model that reads the passage
+and the claim and returns a probability, not a paragraph.
+Fourteen pairs, a few hundred milliseconds.
+It dropped one: a real section, correctly retrieved,
+that didn't actually say what the fact claimed.
+The structural check can't see that. This one can.
+
+READ
+The counts off the line. Never a reason — there isn't one to read; it's a probability.
+
+
 BRANCH
 Confirmation card: did not appear in 3 of 3 eval runs. Bonus if it does.
 Check before you speak.

@@ -16,6 +16,7 @@ green and 213 tests passing without API keys.
 | M6 Deploy | done — both services live | CI-gated `deploy.yml` green on `main` through the Render REST API; live `/health` `ok`, both MCP servers `connected`, 9 tools |
 | M7 Eval harness | **done — full run complete** | 447 turns (3 runs × 29 items × 7 configs), 0 errors, 4 h 22 m, ~$35.79 measured agent spend |
 | M8 Documentation | done | README, design-and-evaluation.md **incl. §8.4 results**, deployed.md, 16 ADRs, ai-tooling.md |
+| M9 Semantic citation verification (Jev) | **built on `feat/semantic-citation-verification`, unmeasured** | 249 tests green with no keys (`stub` provider exercises every VERIFY branch; the `typesafe` provider is tested against a fake API). Needs `TYPESAFE_API_KEY` for the real end-to-end check and the ablation below. ADR 0019 |
 
 ## Evaluation results (2026-09-12)
 
@@ -49,11 +50,30 @@ network: the aborted run was made while travelling. The real lesson is narrower 
 the `/chat` call and judge cost is invisible in the log. That makes throughput hard to diagnose from
 the log alone, which is what sent the first diagnosis off course.
 
+## Semantic citation verification — the run that has not happened (2026-09-22)
+
+ADR 0019 puts Jev (TypeSafe) inside VERIFY to attack the 49% citation precision. Code, tests, trace,
+docs and the `semantic-verify` eval ablation are done. The measurement is not, because it needs a
+TypeSafe key locally and costs Anthropic spend. When both are okayed:
+
+```bash
+# .env needs ANTHROPIC_API_KEY and TYPESAFE_API_KEY; the base arm runs with the verifier off, the
+# ablation arm with SEMANTIC_VERIFY_PROVIDER=typesafe. ~1 h, ~$2–3 of Sonnet/Opus, cents of Jev.
+npm run build && npm run eval -- --target local --runs 1 --ablation semantic-verify
+```
+
+Then paste the `## Ablation — semantic verify` table from `evaluation/results/latest.md` into
+`design-and-evaluation.md` §8.4 (the pending table is already there) with a short reading: what moved
+(precision should rise), what did not (recall flat or slightly down; groundedness roughly flat), and
+one sentence on why. `SEMANTIC_VERIFY_EVAL_PROVIDER=stub` dry-runs the same command without a key, to
+check the plumbing, not the numbers.
+
 ## Not yet produced
 
 - **Cold-start latency** against the deployed URL (`evaluation/src/cold_start.ts`). Warm latency is
   measured; cold is not.
 - **The recorded demo video** (PRD §14.1).
+- **The semantic-verify ablation** (above) and one real `typesafe` turn against the local app.
 
 ## Remaining for Micah
 
