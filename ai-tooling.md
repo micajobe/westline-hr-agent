@@ -1065,3 +1065,31 @@ twice, then gated).
 
 **Verification.** 255 tests green, typecheck and lint clean. Deployed via the CI hook and replayed
 on Render.
+
+## 2026-09-24 — Answer before the gate (ADR 0020)
+
+**Asked.** Third rehearsal of task 2, with a screenshot: the transcript showed only "Before I do
+that, please confirm: Draft an email to your manager Priya Nair" above the card. "It is asking to
+draft an email before it has given a response on whether or not the person has a successful
+potential paid time off request. We need to display the answer before asking to draft the email."
+
+**Found.** The tool order was now right; what was wrong was what the user sees when deciding. By
+design (PRD §7.1) SYNTHESIZE ran only after the gate resolved, so at the moment of decision the
+answer did not exist yet.
+
+**Produced.** ADR 0020. When ACT ends at a gate, the orchestrator synthesizes and verifies the answer
+at once, tells the model the action is pending and has not run (synthesis rule 8a), and returns the
+answer and `confirmation_required` together; the gate trace event now follows `verify`. `/confirm`
+no longer resumes the model loop: it executes the one pending action with the minted token and
+overlays its result as `actions_taken` on the stored answer. Cancel adds a sentence and runs nothing.
+
+**Caught in the test.** The gate-order test's "every tool_use has a tool_result" walk crashed on
+the first run -- the synthesis call at gate time received the assistant turn with the pending draft
+`tool_use` followed directly by the string instruction, which the Anthropic API rejects. The pending
+call now gets an `AWAITING_CONFIRMATION` result before the synthesis call. Separately, the first
+vitest run timed out in the `beforeAll` hook (server boot >30 s under machine load); the rerun booted
+in under a second and nothing was changed for it.
+
+**Verification.** 255 tests green, typecheck and lint clean. `server.start.test.ts` now asserts
+synthesis and verify precede the gate, one synthesis per turn, and that the answer after Confirm is
+the answer shown before it.

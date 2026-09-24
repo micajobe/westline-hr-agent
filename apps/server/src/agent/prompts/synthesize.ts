@@ -1,4 +1,4 @@
-export function synthesizeInstructions(citable: string[], actionsTaken: string[], planIntent: string): string {
+export function synthesizeInstructions(citable: string[], actionsTaken: string[], planIntent: string, pendingAction?: string): string {
   const ids = citable.length ? citable.map((c) => `  - ${c}`).join('\n') : '  (none retrieved)';
   return `Produce the final structured answer now by calling emit_answer. Hard rules:
 1. policy_facts is REQUIRED and must not be empty whenever your answer states anything a policy says (a rule, a figure, a threshold, a deadline, who approves, what is or is not covered). Put each such statement in policy_facts as its own fact, one rule per fact, with the figure in it. An answer_markdown that states rules while policy_facts is empty is a failed answer.
@@ -10,7 +10,8 @@ ${ids}
 5. applicability: the acting person's workforce_class and a one-line note on which documents bind them; cite the HANDBOOK §2 chunk if it is in the list.
 6. withheld_by_audience: fill it if any search reported withheld documents, and say plainly that those policies are not available to this role.
 7. escalation.target: none unless a person is needed (hr_partner, manager, creator_partnerships, security, editorial_standards) or the question is out_of_scope.
-8. actions_taken must reflect exactly these tool results and nothing else: ${actionsTaken.length ? actionsTaken.join('; ') : 'none'}. Never say something was sent.
+8. actions_taken must reflect exactly these tool results and nothing else: ${actionsTaken.length ? actionsTaken.join('; ') : 'none'}. Never say something was sent.${pendingAction ? `
+8a. An action is waiting for the user's confirmation and has NOT run: ${pendingAction}. Answer the question in full from the evidence first (the verdict, the figures, the rule), then end answer_markdown with one sentence saying the action is ready for their confirmation. Do not say it was created, drafted or sent, and do not list it in actions_taken.` : ''}
 9. Plan intent was "${planIntent}". For out_of_scope: no policy_facts except the redirect topic; say what you cannot answer and where the nearest policy is.`;
 }
 

@@ -9,11 +9,11 @@ import { ANSWER_JSON_SCHEMA } from './schemas.js';
 import type { ActionTakenRecord } from './tools.js';
 
 /** PRD §7.1 SYNTHESIZE: tool-forced structured output against the §7.3 schema. Returns the raw object; `verify` cleans it. */
-export async function synthesize(model: ModelClient, system: string, messages: MessageParam[], citations: CitationRegistry, actions: ActionTakenRecord[], planIntent: string, trace: TraceRecorder): Promise<unknown> {
+export async function synthesize(model: ModelClient, system: string, messages: MessageParam[], citations: CitationRegistry, actions: ActionTakenRecord[], planIntent: string, trace: TraceRecorder, pendingAction?: string): Promise<unknown> {
   const started = Date.now();
   const res = await model.create({
     system,
-    messages: [...messages, { role: 'user', content: synthesizeInstructions(citations.ids(), actions.map((a) => `${a.tool} → ${a.result_summary}`), planIntent) }],
+    messages: [...messages, { role: 'user', content: synthesizeInstructions(citations.ids(), actions.map((a) => `${a.tool} → ${a.result_summary}`), planIntent, pendingAction) }],
     tools: [{ name: 'emit_answer', description: 'Emit the final structured answer.', input_schema: ANSWER_JSON_SCHEMA as any }],
     tool_choice: { type: 'tool', name: 'emit_answer' },
     max_tokens: 8192,

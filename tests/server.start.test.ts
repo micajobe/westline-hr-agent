@@ -139,6 +139,9 @@ describe('app server boots in inprocess mode', () => {
     expect(e1.confirmation_required.args_hash).toBe(argsHash({ ...e1.confirmation_required.args, acting_person_id: J }));
     expect(e1.answer.actions_proposed).toHaveLength(1);
     expect(e1.answer.actions_taken).toEqual([]);
+    // The answer arrives with the card: facts already verified, the model's bogus actions_taken overwritten.
+    expect(e1.answer.answer_markdown).toMatch(/fits your 11-day balance/);
+    expect(e1.answer.policy_facts).toHaveLength(1);
     const draftsBefore = ((await (await get('/desk')).json()) as any).drafts.length;
 
     // Wrong hash is refused; nothing happens.
@@ -154,8 +157,13 @@ describe('app server boots in inprocess mode', () => {
     expect(types.slice(0, 2)).toEqual(['intent', 'plan']);
     expect(types).toContain('gate');
     expect(types).toContain('gate_resolved');
-    expect(types.at(-2)).toBe('synthesis');
-    expect(types.at(-1)).toBe('verify');
+    // ADR 0020: the answer is synthesized and verified BEFORE the gate, so the user reads it first;
+    // resolving the gate only executes the action. No second model pass after confirm.
+    expect(types.indexOf('synthesis')).toBeLessThan(types.indexOf('gate'));
+    expect(types.indexOf('verify')).toBeLessThan(types.indexOf('gate'));
+    expect(types.filter((t: string) => t === 'synthesis')).toHaveLength(1);
+    expect(types.at(-1)).toBe('tool_result');
+    expect(e2.answer.answer_markdown).toBe(e1.answer.answer_markdown);
     const draftCall = e2.trace.find((x: any) => x.type === 'tool_call' && x.tool === 'hr__draft_hr_email');
     expect(draftCall.args.confirmation_token).toBe('•••');
     expect(e2.answer.actions_taken).toHaveLength(1);
@@ -168,7 +176,7 @@ describe('app server boots in inprocess mode', () => {
     expect(e2.answer.policy_facts[0].citations[0].title).toBe('Paid Time Off & Statutory Holidays');
     expect(e2.answer.policy_facts[0].citations[0].snippet).not.toBe('made up');
     expect(e2.answer.recommendations).toHaveLength(1);
-    const verify = e2.trace.at(-1);
+    const verify = e2.trace.find((x: any) => x.type === 'verify');
     expect(verify.detail.unsupported_claims_removed).toBe(1);
     expect(verify.detail.recommendations_removed).toBe(1);
     // Semantic pass ran on the surviving fact against the full PTO §3.2 chunk text and kept it.

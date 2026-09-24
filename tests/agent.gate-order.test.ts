@@ -72,20 +72,22 @@ describe('a gated action proposed alongside reads is deferred until it stands al
     expect(e2.answer.actions_taken).toHaveLength(1);
     expect(e2.answer.actions_taken[0].ref_id).toMatch(/^DFT-/);
     expect(e2.trace.filter((x: any) => x.type === 'tool_call' && x.tool === 'hr__draft_hr_email')).toHaveLength(1);
-    // The fake model records the orchestrator's live message array, so the last call holds the whole
-    // conversation. The draft's first tool_use got a DEFERRED tool_result, and every tool_use in every
-    // assistant message is answered by the following user message -- no dangling blocks on resume.
+    // The last model call is the answer written before the gate (ADR 0020); no model call follows
+    // confirm. Its messages hold the whole conversation: the draft's first tool_use got DEFERRED, the
+    // pending one AWAITING_CONFIRMATION, and every tool_use is answered by the next user message.
     const msgs = model.calls.at(-1)!.messages;
     const allResults = msgs.flatMap((m) => (m.role === 'user' && Array.isArray(m.content) ? (m.content as any[]).filter((b) => b.type === 'tool_result') : []));
     const statuses = allResults.map((b) => { try { return JSON.parse(b.content).status; } catch { return undefined; } });
     expect(statuses).toContain('DEFERRED');
+    expect(statuses).toContain('AWAITING_CONFIRMATION');
     let checked = 0;
     for (let i = 0; i < msgs.length - 1; i++) {
       const m = msgs[i]!;
       if (m.role !== 'assistant' || typeof m.content === 'string') continue;
       const ids = (m.content as any[]).filter((b) => b.type === 'tool_use').map((b) => b.id);
       if (!ids.length) continue;
-      const answered = ((msgs[i + 1]!.content as any[]) ?? []).filter((b) => b.type === 'tool_result').map((b) => b.tool_use_id);
+      const next = msgs[i + 1]!.content;
+      const answered = (Array.isArray(next) ? (next as any[]) : []).filter((b) => b.type === 'tool_result').map((b) => b.tool_use_id);
       expect(answered.sort()).toEqual(ids.sort());
       checked++;
     }

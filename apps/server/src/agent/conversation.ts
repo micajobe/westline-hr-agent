@@ -1,4 +1,4 @@
-import type { TraceEvent } from '@westline/shared';
+import type { Answer, TraceEvent } from '@westline/shared';
 import type { StoredCitation } from './citations.js';
 import type { MessageParam } from './model.js';
 import type { Plan } from './schemas.js';
@@ -27,6 +27,8 @@ export interface SuspendedTurn {
   trace: TraceEvent[];
   citations: StoredCitation[];
   actions: ActionTakenRecord[];
+  /** The answer written and verified before the gate was raised (ADR 0020); reused on resolution. */
+  answer: Answer;
   started_at: number;
 }
 

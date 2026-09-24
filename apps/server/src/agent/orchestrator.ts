@@ -51,10 +51,6 @@ interface LoopState {
   actions: ActionTakenRecord[];
   trace: TraceRecorder;
   acting_person_id: string | null;
-  /** A minted token for exactly one pending args hash, present only on resume-after-confirm. */
-  grant?: { args_hash: string; token: string; tool_use_id: string };
-  /** On resume-after-cancel: the pending tool_use gets this structured result instead of running. */
-  cancelled?: { tool_use_id: string };
   completed_results: { tool_use_id: string; content: string }[];
   /** How many times each gated tool has been sent back DEFERRED this turn; bounded by MAX_GATE_DEFERRALS. */
   deferrals?: Record<string, number>;
@@ -142,45 +138,63 @@ export class Orchestrator {
     trace.resumeFrom(s.trace);
     trace.emit({ type: 'gate_resolved', tool: s.pending.tool, result_status: req.decision === 'confirm' ? 'confirmed' : 'cancelled', result_summary: req.decision === 'confirm' ? `user confirmed · token minted for ${s.pending.args_hash.slice(0, 12)}…` : 'user cancelled · nothing executed', detail: { args_hash: s.pending.args_hash, decision: req.decision } });
 
-    const state: LoopState = {
-      plan: s.plan,
-      system: s.system,
-      messages: s.messages,
-      iteration: s.iteration,
-      citations: CitationRegistry.fromJSON(s.citations),
-      actions: s.actions,
-      trace,
-      acting_person_id: conv.acting_person_id,
-      completed_results: s.completed_results,
-      ...(req.decision === 'confirm'
-        ? { grant: { args_hash: s.pending.args_hash, token: mintConfirmationToken(s.pending.args_hash, this.d.secret), tool_use_id: s.pending.tool_use_id } }
-        : { cancelled: { tool_use_id: s.pending.tool_use_id } }),
+    // ADR 0020: the answer was written and verified before the gate. Resolving the gate executes
+    // (or skips) the one pending action and overlays its result; the model is not called again, so
+    // the answer the user read does not change under them.
+    const actions: ActionTakenRecord[] = [...s.actions];
+    const citations = CitationRegistry.fromJSON(s.citations);
+    if (req.decision === 'confirm') {
+      const token = mintConfirmationToken(s.pending.args_hash, this.d.secret);
+      await executeTool(this.d.mcp, citations, trace, actions, { tool_use_id: s.pending.tool_use_id, tool: s.pending.tool, args: s.pending.args }, { acting_person_id: conv.acting_person_id, confirmation_token: token });
+    }
+    const answer: Answer = {
+      ...s.answer,
+      answer_markdown: req.decision === 'cancel' ? `${s.answer.answer_markdown}\n\nYou cancelled that action; nothing was created.` : s.answer.answer_markdown,
+      actions_proposed: [],
+      actions_taken: actions.map((a) => ({ tool: a.tool, result_summary: a.result_summary, ref_id: a.ref_id })),
     };
-    const userMessage = lastUserText(s.messages);
-    return this.drive(conv, s.turn_id, userMessage, state, { resumed: true, pendingArgs: s.pending.args, pendingTool: s.pending.tool });
+    this.commitHistory(conv, lastUserText(s.messages), answer);
+    return { turn_id: s.turn_id, conversation_id: conv.conversation_id, answer, trace: trace.all() };
   }
 
   // ---------- internals ----------
 
-  private async drive(conv: Conversation, turn_id: string, userMessage: string, state: LoopState, resume?: { resumed: true; pendingArgs: Record<string, unknown>; pendingTool: string }): Promise<ChatEnvelope> {
+  private async drive(conv: Conversation, turn_id: string, userMessage: string, state: LoopState): Promise<ChatEnvelope> {
     let outcome: LoopOutcome;
     try {
-      outcome = await this.act(state, resume);
+      outcome = await this.act(state);
     } catch (err) {
       return this.modelFailure(conv, turn_id, state.trace, userMessage, err, state);
     }
 
     if (outcome.kind === 'gate') {
+      // ADR 0020: answer first, then the card. The verdict the action rests on (the balance fits,
+      // the notice rule) is synthesized and verified from what ACT gathered, so the user reads the
+      // answer and only then decides on the action. A model failure here keeps the gate and falls
+      // back to the one-line prompt rather than losing the turn.
+      const pending = outcome.pending;
+      let answer: Answer;
+      try {
+        // The assistant turn that proposed the action must be answered before anything else is sent:
+        // the pending tool_use gets an AWAITING_CONFIRMATION result alongside any others from that turn.
+        const awaiting = { tool_use_id: pending.tool_use_id, content: JSON.stringify({ status: 'AWAITING_CONFIRMATION', message: 'this action has not run; it is waiting for the user to confirm it', summary: pending.summary }) };
+        const synthMessages = [...state.messages, toolResultsMessage([...outcome.completed_results, awaiting])];
+        const raw = await synthesize(this.d.model, state.system, synthMessages, state.citations, state.actions, state.plan.intent, state.trace, pending.summary);
+        answer = (await verifyAnswerSemantic(raw, state.citations, state.trace, { verifier: this.d.semantic, threshold: this.d.semanticThreshold })).answer;
+        this.overlay(answer, state);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        state.trace.emit({ type: 'error', result_status: 'model_error', result_summary: `answer before the gate failed: ${message.slice(0, 200)}; showing the confirmation alone` });
+        answer = emptyAnswer({ answer_markdown: `Before I do that, please confirm: ${pending.summary}. Nothing happens until you confirm.` });
+      }
+      answer.actions_proposed = [{ tool: pending.tool, args: pending.args, args_hash: pending.args_hash }];
+      state.trace.emit({ type: 'gate', server: 'hr', tool: pending.tool, args: { ...pending.args, acting_person_id: state.acting_person_id }, result_status: 'CONFIRMATION_REQUIRED', result_summary: pending.summary, detail: { args_hash: pending.args_hash, proposed_args: pending.args } });
       conv.suspended = {
         turn_id, plan: state.plan, system: state.system, messages: state.messages, completed_results: outcome.completed_results,
-        pending: outcome.pending, iteration: state.iteration, trace: state.trace.all(), citations: state.citations.toJSON(), actions: state.actions, started_at: Date.now(),
+        pending, iteration: state.iteration, trace: state.trace.all(), citations: state.citations.toJSON(), actions: state.actions, answer, started_at: Date.now(),
       } satisfies SuspendedTurn;
       this.d.store.touch(conv);
-      const confirmation_required: ConfirmationRequest = { tool: outcome.pending.tool, args: outcome.pending.args, args_hash: outcome.pending.args_hash, summary: outcome.pending.summary };
-      const answer = emptyAnswer({
-        answer_markdown: `Before I do that, please confirm: ${outcome.pending.summary}. Nothing happens until you confirm.`,
-        actions_proposed: [{ tool: outcome.pending.tool, args: outcome.pending.args, args_hash: outcome.pending.args_hash }],
-      });
+      const confirmation_required: ConfirmationRequest = { tool: pending.tool, args: pending.args, args_hash: pending.args_hash, summary: pending.summary };
       return { turn_id, conversation_id: conv.conversation_id, answer, trace: state.trace.all(), confirmation_required };
     }
 
@@ -191,40 +205,18 @@ export class Orchestrator {
       return this.modelFailure(conv, turn_id, state.trace, userMessage, err, state);
     }
     const { answer } = await verifyAnswerSemantic(raw, state.citations, state.trace, { verifier: this.d.semantic, threshold: this.d.semanticThreshold });
-    // Server-authoritative overlays: what actually executed, and what retrieval actually withheld.
-    answer.actions_taken = state.actions.map((a) => ({ tool: a.tool, result_summary: a.result_summary, ref_id: a.ref_id }));
-    answer.actions_proposed = [];
-    const withheld = collectWithheld(state.trace.all());
-    if (withheld.length && !answer.withheld_by_audience) {
-      answer.withheld_by_audience = { doc_ids: withheld, explanation: `The following documents are not available to this role and were withheld from retrieval: ${withheld.join(', ')}.` };
-    }
+    this.overlay(answer, state);
     this.commitHistory(conv, userMessage, answer);
     return { turn_id, conversation_id: conv.conversation_id, answer, trace: state.trace.all() };
   }
 
   /** The ACT loop. Returns `done` when the model stops calling tools, or `gate` when a gated call needs confirmation. */
-  private async act(state: LoopState, resume?: { pendingArgs: Record<string, unknown>; pendingTool: string }): Promise<LoopOutcome> {
+  private async act(state: LoopState): Promise<LoopOutcome> {
     // Startup discovery may have found nothing (MCP service asleep or restarting). Retry here
     // rather than handing the model an empty tool list and answering with no data.
     await this.d.mcp.ensureDiscovered();
     const tools = this.d.mcp.anthropicTools();
     const maxIterations = state.plan.intent === 'out_of_scope' ? Math.min(2, this.d.maxIterations) : this.d.maxIterations;
-
-    // Resuming: finish the assistant turn whose tool_use blocks were interrupted by the gate.
-    if (resume) {
-      const results = [...state.completed_results];
-      const grantOrCancel = state.grant ?? state.cancelled!;
-      if (state.grant) {
-        const executed = await executeTool(this.d.mcp, state.citations, state.trace, state.actions, { tool_use_id: state.grant.tool_use_id, tool: resume.pendingTool, args: resume.pendingArgs }, { acting_person_id: state.acting_person_id, confirmation_token: state.grant.token });
-        results.push({ tool_use_id: executed.tool_use_id, content: JSON.stringify(executed.result) });
-      } else {
-        results.push({ tool_use_id: grantOrCancel.tool_use_id, content: JSON.stringify({ status: 'CANCELLED_BY_USER', reason: 'the user declined to confirm this action; do not retry it, finish the answer without it' }) });
-      }
-      state.messages.push(toolResultsMessage(results));
-      state.completed_results = [];
-      state.grant = undefined;
-      state.cancelled = undefined;
-    }
 
     while (state.iteration < maxIterations) {
       state.iteration++;
@@ -286,8 +278,8 @@ export class Orchestrator {
         const notReady = (awaiting.length > 0 || nothingRead) && count < MAX_GATE_DEFERRALS;
         if (runnable.length === 0 && k === 0 && !notReady) {
           const args_hash = proposedArgsHash(g.args, state.acting_person_id);
+          // The gate trace event is emitted by drive(), after the answer is written (ADR 0020).
           gate = { tool_use_id: g.id, tool: g.tool, args: g.args, args_hash, summary: this.describeAction(g.tool, g.args, state.acting_person_id) };
-          state.trace.emit({ type: 'gate', server: 'hr', tool: g.tool, args: { ...g.args, acting_person_id: state.acting_person_id }, result_status: 'CONFIRMATION_REQUIRED', result_summary: gate.summary, detail: { args_hash, proposed_args: g.args } });
           return;
         }
         let reason: string;
@@ -344,6 +336,16 @@ export class Orchestrator {
       out.push(alts.join('|'));
     }
     return out;
+  }
+
+  /** Server-authoritative overlays: what actually executed, and what retrieval actually withheld. */
+  private overlay(answer: Answer, state: LoopState): void {
+    answer.actions_taken = state.actions.map((a) => ({ tool: a.tool, result_summary: a.result_summary, ref_id: a.ref_id }));
+    answer.actions_proposed = [];
+    const withheld = collectWithheld(state.trace.all());
+    if (withheld.length && !answer.withheld_by_audience) {
+      answer.withheld_by_audience = { doc_ids: withheld, explanation: `The following documents are not available to this role and were withheld from retrieval: ${withheld.join(', ')}.` };
+    }
   }
 
   private describeAction(tool: string, args: Record<string, unknown>, acting_person_id: string | null): string {
