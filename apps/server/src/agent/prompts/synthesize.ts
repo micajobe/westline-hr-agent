@@ -11,7 +11,7 @@ ${ids}
 6. withheld_by_audience: fill it if any search reported withheld documents, and say plainly that those policies are not available to this role.
 7. escalation.target: none unless a person is needed (hr_partner, manager, creator_partnerships, security, editorial_standards) or the question is out_of_scope.
 8. actions_taken must reflect exactly these tool results and nothing else: ${actionsTaken.length ? actionsTaken.join('; ') : 'none'}. Never say something was sent.${pendingAction ? `
-8a. An action is waiting for the user's confirmation and has NOT run: ${pendingAction}. Answer the question in full from the evidence first (the verdict, the figures, the rule), then end answer_markdown with one sentence saying the action is ready for their confirmation. Do not say it was created, drafted or sent, and do not list it in actions_taken.` : ''}
+8a. An action is waiting for the user's confirmation and has NOT run: ${pendingAction}. Answer the question in full from the evidence (the verdict, the figures, the rule). Do not mention the pending action anywhere in answer_markdown or recommendations: the system adds that line itself and shows the confirmation card. Never say anything will be or was sent, and do not list it in actions_taken.` : ''}
 9. Plan intent was "${planIntent}". For out_of_scope: no policy_facts except the redirect topic; say what you cannot answer and where the nearest policy is.`;
 }
 

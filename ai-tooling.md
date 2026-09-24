@@ -1093,3 +1093,14 @@ in under a second and nothing was changed for it.
 **Verification.** 255 tests green, typecheck and lint clean. `server.start.test.ts` now asserts
 synthesis and verify precede the gate, one synthesis per turn, and that the answer after Confirm is
 the answer shown before it.
+
+*Same day, after the first live check.* The deployed answer rendered above the card as intended,
+but the model wrote its own closing line about the draft, and in two of three replays it said the
+draft would be sent on confirmation ("just confirm and it'll be sent for approval"). Nothing is ever
+sent. The line is now the server's: the model is told not to mention the pending action at all, and
+the orchestrator appends "Ready for your confirmation below: <the card's summary>", which already
+carries "(a draft only; nothing is sent)". The stored answer omits that line, so after Confirm the
+answer reads as before minus a sentence that is no longer true, with the Done row added. One run in
+the browser also showed an `answer_tagged_text` error row; three replays did not reproduce it and
+the 2026-09-22 eval runs already contain it, so it predates this change and the salvage path
+recovered every field.

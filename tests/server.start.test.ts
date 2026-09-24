@@ -141,6 +141,7 @@ describe('app server boots in inprocess mode', () => {
     expect(e1.answer.actions_taken).toEqual([]);
     // The answer arrives with the card: facts already verified, the model's bogus actions_taken overwritten.
     expect(e1.answer.answer_markdown).toMatch(/fits your 11-day balance/);
+    expect(e1.answer.answer_markdown).toMatch(/Ready for your confirmation below: Draft an email to your manager Priya Nair .*nothing is sent/);
     expect(e1.answer.policy_facts).toHaveLength(1);
     const draftsBefore = ((await (await get('/desk')).json()) as any).drafts.length;
 
@@ -163,7 +164,9 @@ describe('app server boots in inprocess mode', () => {
     expect(types.indexOf('verify')).toBeLessThan(types.indexOf('gate'));
     expect(types.filter((t: string) => t === 'synthesis')).toHaveLength(1);
     expect(types.at(-1)).toBe('tool_result');
-    expect(e2.answer.answer_markdown).toBe(e1.answer.answer_markdown);
+    // The stored answer is what the user read, minus the server's line about the pending action.
+    expect(e1.answer.answer_markdown.startsWith(e2.answer.answer_markdown)).toBe(true);
+    expect(e2.answer.answer_markdown).not.toMatch(/Ready for your confirmation/);
     const draftCall = e2.trace.find((x: any) => x.type === 'tool_call' && x.tool === 'hr__draft_hr_email');
     expect(draftCall.args.confirmation_token).toBe('•••');
     expect(e2.answer.actions_taken).toHaveLength(1);

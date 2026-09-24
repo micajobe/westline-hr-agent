@@ -185,13 +185,21 @@ export class Orchestrator {
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         state.trace.emit({ type: 'error', result_status: 'model_error', result_summary: `answer before the gate failed: ${message.slice(0, 200)}; showing the confirmation alone` });
-        answer = emptyAnswer({ answer_markdown: `Before I do that, please confirm: ${pending.summary}. Nothing happens until you confirm.` });
+        answer = emptyAnswer({ answer_markdown: '' });
       }
-      answer.actions_proposed = [{ tool: pending.tool, args: pending.args, args_hash: pending.args_hash }];
+      // The line about the pending action is the server's, not the model's: the model kept writing
+      // "confirm and it'll be sent". The stored answer omits it, so after the gate resolves the
+      // answer reads as it did minus a sentence that is no longer true.
+      const stored: Answer = { ...answer, actions_proposed: [] };
+      answer = {
+        ...answer,
+        answer_markdown: `${answer.answer_markdown.trim()}\n\nReady for your confirmation below: ${pending.summary}.`.trim(),
+        actions_proposed: [{ tool: pending.tool, args: pending.args, args_hash: pending.args_hash }],
+      };
       state.trace.emit({ type: 'gate', server: 'hr', tool: pending.tool, args: { ...pending.args, acting_person_id: state.acting_person_id }, result_status: 'CONFIRMATION_REQUIRED', result_summary: pending.summary, detail: { args_hash: pending.args_hash, proposed_args: pending.args } });
       conv.suspended = {
         turn_id, plan: state.plan, system: state.system, messages: state.messages, completed_results: outcome.completed_results,
-        pending, iteration: state.iteration, trace: state.trace.all(), citations: state.citations.toJSON(), actions: state.actions, answer, started_at: Date.now(),
+        pending, iteration: state.iteration, trace: state.trace.all(), citations: state.citations.toJSON(), actions: state.actions, answer: stored, started_at: Date.now(),
       } satisfies SuspendedTurn;
       this.d.store.touch(conv);
       const confirmation_required: ConfirmationRequest = { tool: pending.tool, args: pending.args, args_hash: pending.args_hash, summary: pending.summary };
