@@ -7,7 +7,9 @@
 > write the values into the shot list; record the narration against them; record the screen while
 > listening to the narration, pausing playback while the model works; re-record only the `READ`
 > passages whose value differed as pickups; composite. Edit here and regenerate both with
-> `node scripts/split-demo-script.mjs`; do not edit the split files by hand.
+> `node scripts/split-demo-script.mjs`; do not edit the split files by hand. A third option,
+> [`demo-run-sheet.md`](demo-run-sheet.md), is a to-do list for talking in your own words: where to
+> be, what to click, and the few things each beat has to get said.
 
 Target 9:00 of the allowed 7–10. Spoken lines are plain paragraphs. Bracketed lines are not read:
 
