@@ -56,7 +56,16 @@ interface LoopState {
   /** On resume-after-cancel: the pending tool_use gets this structured result instead of running. */
   cancelled?: { tool_use_id: string };
   completed_results: { tool_use_id: string; content: string }[];
+  /** How many times each gated tool has been sent back DEFERRED this turn; bounded by MAX_GATE_DEFERRALS. */
+  deferrals?: Record<string, number>;
 }
+
+/**
+ * A gated action is held back while the reads the plan named have not run (or nothing has run at
+ * all), at most this many times, so a plan that names a tool the model never calls cannot starve
+ * the turn of its gate.
+ */
+export const MAX_GATE_DEFERRALS = 2;
 
 type LoopOutcome = { kind: 'done' } | { kind: 'gate'; pending: PendingGate; completed_results: { tool_use_id: string; content: string }[] };
 
@@ -263,22 +272,42 @@ export class Orchestrator {
         runnable.push({ index: i, id: tu.id, tool: tu.name, args });
       }
 
+      // A gate also waits for the reads the plan itself named (the balance check, the section the
+      // draft will cite). "You would not draft the email before checking whether the time off even
+      // fits": the model is told which reads are outstanding and proposes the action once they ran.
+      const executedTools = new Set(state.trace.all().filter((e) => e.type === 'tool_call' && e.tool).map((e) => e.tool as string));
+      for (const r of runnable) executedTools.add(r.tool);
+      const awaiting = this.outstandingReads(state.plan.expected_tools, executedTools);
+      const nothingRead = executedTools.size === 0;
+
       let gate: PendingGate | undefined;
       gatedProposals.forEach((g, k) => {
-        if (runnable.length === 0 && k === 0) {
+        const count = state.deferrals?.[g.tool] ?? 0;
+        const notReady = (awaiting.length > 0 || nothingRead) && count < MAX_GATE_DEFERRALS;
+        if (runnable.length === 0 && k === 0 && !notReady) {
           const args_hash = proposedArgsHash(g.args, state.acting_person_id);
           gate = { tool_use_id: g.id, tool: g.tool, args: g.args, args_hash, summary: this.describeAction(g.tool, g.args, state.acting_person_id) };
           state.trace.emit({ type: 'gate', server: 'hr', tool: g.tool, args: { ...g.args, acting_person_id: state.acting_person_id }, result_status: 'CONFIRMATION_REQUIRED', result_summary: gate.summary, detail: { args_hash, proposed_args: g.args } });
           return;
         }
-        const reason = runnable.length > 0
-          ? 'the reads proposed alongside this action ran first; the action was not put to the user'
-          : 'another action in this turn is already waiting for confirmation; one action at a time';
-        const hint = runnable.length > 0
-          ? 'read their results, fetch any policy section the action will cite, then propose this action again as the only tool call in your turn'
-          : 'propose this action again after the pending one resolves';
-        slots[g.index] = { tool_use_id: g.id, content: JSON.stringify({ status: 'DEFERRED', message: reason, hint }) };
-        state.trace.emit({ type: 'tool_result', server: 'hr', tool: g.tool, result_status: 'DEFERRED', result_summary: `gated action deferred: ${reason}`, detail: { proposed_args: g.args, runnable_first: runnable.map((r) => r.tool) } });
+        let reason: string;
+        let hint: string;
+        if (runnable.length > 0) {
+          reason = 'the reads proposed alongside this action ran first; the action was not put to the user';
+          hint = 'read their results, fetch any policy section the action will cite, then propose this action again as the only tool call in your turn';
+        } else if (k > 0) {
+          reason = 'another action in this turn is already waiting for confirmation; one action at a time';
+          hint = 'propose this action again after the pending one resolves';
+        } else if (awaiting.length > 0) {
+          reason = `your plan named reads that have not run yet: ${awaiting.join(', ')}; the action was not put to the user`;
+          hint = 'run those reads first (the action depends on what they return), then propose this action again as the only tool call in your turn';
+        } else {
+          reason = 'nothing has been looked up yet this turn; the action was not put to the user';
+          hint = 'look up the person, check the data the action depends on and fetch the policy section it relies on, then propose this action again on its own';
+        }
+        state.deferrals = { ...state.deferrals, [g.tool]: count + 1 };
+        slots[g.index] = { tool_use_id: g.id, content: JSON.stringify({ status: 'DEFERRED', message: reason, hint, ...(awaiting.length ? { awaiting } : {}) }) };
+        state.trace.emit({ type: 'tool_result', server: 'hr', tool: g.tool, result_status: 'DEFERRED', result_summary: `gated action deferred: ${reason}`, detail: { proposed_args: g.args, runnable_first: runnable.map((r) => r.tool), awaiting, deferral: count + 1, max_deferrals: MAX_GATE_DEFERRALS } });
       });
 
       const executed = await Promise.all(
@@ -297,6 +326,24 @@ export class Orchestrator {
     // Give the model a closing turn so its last tool_results are not left dangling.
     state.messages.push({ role: 'user', content: 'Tool iteration limit reached. Do not call more tools.' });
     return { kind: 'done' };
+  }
+
+  /**
+   * The ungated tools the plan said it would call that have not been called yet. Only names that
+   * resolve to a discovered, ungated tool count; `a|b` in a plan entry is satisfied by either.
+   */
+  private outstandingReads(expected: string[], executed: Set<string>): string[] {
+    const out: string[] = [];
+    for (const entry of expected) {
+      const alts = entry.split('|').map((t) => t.trim()).filter((t) => {
+        const d = this.d.mcp.resolve(t);
+        return d !== undefined && !d.gated;
+      });
+      if (alts.length === 0) continue;
+      if (alts.some((t) => executed.has(t))) continue;
+      out.push(alts.join('|'));
+    }
+    return out;
   }
 
   private describeAction(tool: string, args: Record<string, unknown>, acting_person_id: string | null): string {

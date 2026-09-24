@@ -1033,3 +1033,35 @@ array once, after Confirm, which is also the stronger claim.
 **Verification.** 253 tests green (was 251), typecheck and lint clean. Deployed via the CI deploy
 hook; the demo-script edits for D6 (which search row to expand) are in the tree uncommitted at
 Micah's call.
+
+## 2026-09-24 — The gate that arrived before the question
+
+**Asked.** Second rehearsal of task 2 after the previous fix: "it is still pulling up the email
+confirmation before the question runs. You wouldn't draft an email before you've tested whether or
+not you can even take the time off."
+
+**Found.** The previous change only covered a gated call sharing an iteration with reads. Sonnet
+had proposed `hr__draft_hr_email` on its own, after the profile lookup and before
+`hr__check_pto_balance`. Standing alone, it gated. Rule 9a in the prompt asked for reads first; the
+model did not always comply, and nothing deterministic held the line.
+
+**Produced.** The gate now also waits on the plan. The PLAN step already writes `expected_tools`,
+so before raising a gate the orchestrator computes which of those ungated tools have not been
+called this turn (from the trace's `tool_call` events plus the reads running in the same iteration).
+If any are outstanding, or nothing at all has been looked up, the action is `DEFERRED` with
+`awaiting: [...]` naming them, and the model proposes it again once they ran. Bounded at
+`MAX_GATE_DEFERRALS = 2` per gated tool per turn, so a plan that names a tool the model never calls
+still reaches its gate on the third proposal rather than starving the turn. The deferral count and
+cap are in the trace detail. Rule 9a says what the `DEFERRED` result carries.
+
+Grounding the guard in the model's own plan rather than a hard-coded "balance before draft" keeps
+it general: task 1's ticket, a benefits question with a draft, anything the plan sequences.
+
+**Caught in the test.** The two-gated-actions case from yesterday proposed both actions before any
+read and now deferred both -- correct under the new rule, so the script gained a profile lookup
+first. Two new cases: the draft alone before the balance (deferred once, `awaiting` names the
+balance and the section, gate follows the reads), and a plan naming a read never called (deferred
+twice, then gated).
+
+**Verification.** 255 tests green, typecheck and lint clean. Deployed via the CI hook and replayed
+on Render.

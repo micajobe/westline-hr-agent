@@ -97,8 +97,9 @@ describe('two gated actions in one iteration: the first gates, the second is def
   let server: WestlineServer;
   beforeAll(async () => {
     const model = new FakeModel({
-      plan: PLAN,
+      plan: { ...PLAN, expected_tools: ['hr__lookup_person_profile', 'hr__draft_hr_email', 'hr__create_mock_hr_ticket'] },
       act: [
+        { tools: [{ name: 'hr__lookup_person_profile', input: {} }] },
         { tools: [{ name: 'hr__draft_hr_email', input: DRAFT }, { name: 'hr__create_mock_hr_ticket', input: TICKET }] },
         { text: 'Done.' },
       ],
@@ -118,5 +119,70 @@ describe('two gated actions in one iteration: the first gates, the second is def
     const e2 = (await (await post(server, '/confirm', { conversation_id: e1.conversation_id, turn_id: e1.turn_id, args_hash: e1.confirmation_required.args_hash, decision: 'confirm' })).json()) as any;
     expect(e2.answer.actions_taken.map((a: any) => a.tool)).toEqual(['hr__draft_hr_email']);
     expect(e2.trace.filter((x: any) => x.type === 'tool_call' && x.tool === 'hr__create_mock_hr_ticket')).toHaveLength(0);
+  });
+});
+
+describe('a gated action proposed on its own before the reads the plan named is deferred', () => {
+  let server: WestlineServer;
+  beforeAll(async () => {
+    // What Micah saw on the second rehearsal: profile, then the draft alone, before the balance was
+    // ever checked. Told what is outstanding, the model runs the reads, then proposes the draft.
+    const model = new FakeModel({
+      plan: PLAN,
+      act: [
+        { tools: [{ name: 'hr__lookup_person_profile', input: {} }] },
+        { tools: [{ name: 'hr__draft_hr_email', input: DRAFT }] },
+        { tools: [{ name: 'hr__check_pto_balance', input: { person_id: J, start_date: '2026-10-14', end_date: '2026-10-16' } }, { name: 'policy__get_policy_section', input: { doc_id: 'PTO', section_path: '§3.2' } }] },
+        { tools: [{ name: 'hr__draft_hr_email', input: DRAFT }] },
+        { text: 'Drafted.' },
+      ],
+      answer: () => ANSWER,
+    });
+    server = await startServer({ env: ENV, model, port: 0, host: '127.0.0.1', log: () => {} });
+  });
+  afterAll(() => server.close());
+
+  it('names the outstanding reads, and gates only once the balance and the section have run', async () => {
+    const e1 = (await (await post(server, '/chat', { message: 'Can I take Oct 14–16 off? If it works, draft the note to Priya.', acting_person_id: J })).json()) as any;
+    const seq = e1.trace.filter((x: any) => x.type === 'tool_call' || x.type === 'gate').map((x: any) => `${x.type}:${x.tool}`);
+    expect(seq).toEqual([
+      'tool_call:hr__lookup_person_profile',
+      'tool_call:hr__check_pto_balance', 'tool_call:policy__get_policy_section',
+      'gate:hr__draft_hr_email',
+    ]);
+    const deferred = e1.trace.filter((x: any) => x.type === 'tool_result' && x.result_status === 'DEFERRED');
+    expect(deferred).toHaveLength(1);
+    expect(deferred[0].detail.awaiting).toEqual(['hr__check_pto_balance', 'policy__get_policy_section']);
+    expect(deferred[0].result_summary).toMatch(/plan named reads that have not run yet/);
+    expect(e1.confirmation_required.tool).toBe('hr__draft_hr_email');
+  });
+});
+
+describe('the deferral is bounded: a plan naming a read the model never calls still reaches its gate', () => {
+  let server: WestlineServer;
+  beforeAll(async () => {
+    const model = new FakeModel({
+      plan: { ...PLAN, expected_tools: ['hr__lookup_person_profile', 'hr__lookup_benefits_status', 'hr__draft_hr_email'] },
+      act: [
+        { tools: [{ name: 'hr__lookup_person_profile', input: {} }] },
+        { tools: [{ name: 'hr__draft_hr_email', input: DRAFT }] },
+        { tools: [{ name: 'hr__draft_hr_email', input: DRAFT }] },
+        { tools: [{ name: 'hr__draft_hr_email', input: DRAFT }] },
+        { text: 'Drafted.' },
+      ],
+      answer: () => ANSWER,
+    });
+    server = await startServer({ env: ENV, model, port: 0, host: '127.0.0.1', log: () => {} });
+  });
+  afterAll(() => server.close());
+
+  it('defers twice, then gates', async () => {
+    const e1 = (await (await post(server, '/chat', { message: 'Draft the note to Priya.', acting_person_id: J })).json()) as any;
+    const deferred = e1.trace.filter((x: any) => x.type === 'tool_result' && x.result_status === 'DEFERRED');
+    expect(deferred).toHaveLength(2);
+    expect(deferred.map((d: any) => d.detail.deferral)).toEqual([1, 2]);
+    expect(deferred[1].detail.awaiting).toEqual(['hr__lookup_benefits_status']);
+    expect(e1.trace.filter((x: any) => x.type === 'gate')).toHaveLength(1);
+    expect(e1.confirmation_required.tool).toBe('hr__draft_hr_email');
   });
 });
