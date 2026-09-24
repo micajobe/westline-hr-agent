@@ -41,7 +41,8 @@ Both prior feedback notes had the same shape: the reviewer had to infer. Rules f
    `NOT_APPLICABLE` route live after Task 2 if time allows; the HR-server-down ablation on `/eval`.
 5. **Say the weak numbers first, with the cause.** Citation precision, tool selection, `au-02`.
 
-On voice: the previous videos read as less technical than the work. The fix is not more numbers per
+On voice (Micah's own take, not a grader note): the previous videos read as less technical than the
+work. The fix is not more numbers per
 minute, it's saying *why* after each *what*. Every technical claim below is followed by the reason it
 matters or the thing it prevents. Contractions, first person, one idea per sentence. Numbers are
 spoken once and shown on screen; the screen carries the precision so the voice doesn't have to.
