@@ -991,3 +991,45 @@ Micah's cut decisions.
 snapshot unchanged. Live in the browser with `SEMANTIC_VERIFY_PROVIDER=stub` and Sonnet 5: `/health`
 reports `semantic_verify: stub`, and the VERIFY row shows the mono line
 `stub · 5 pairs · 3 supported · 0 unsupported · 2 contradicted · 1 ms`.
+
+## 2026-09-23 — The gate that arrived before the rule
+
+**Asked.** Micah, rehearsing demo task 2 (Jordan Reyes, PTO plus a gated draft to Priya): "It is
+pulling up the email confirmation before the rule confirmation has shown up. It's somehow flipped
+the two." The shot list sequences E4 (the PTO §3.2 fetch) before E6 (the gate card).
+
+**Found.** Nothing fixed the order. The ACT loop in `orchestrator.ts` walked the model's proposed
+calls in the order it wrote them and raised the gate at the first gated one. Reads listed before it
+ran; anything listed after it was dropped. So when Sonnet put `hr__draft_hr_email` ahead of
+`policy__get_policy_section` in the same iteration -- which it does some runs and not others; a
+replay against Render came out in the scripted order -- the card appeared with no rule on screen.
+The system prompt's rule 9 said when to propose an action, never what to have in hand first.
+
+*The bug under the bug.* The dropped calls left `tool_use` blocks in the assistant message with no
+`tool_result`. On resume-after-confirm that conversation went back to the API, which rejects
+dangling tool uses, so the flipped-order case would have failed after Confirm with a model error.
+Not observed live, because the runs Micah watched happened to be clean or he did not reach Confirm.
+
+**Produced.** Two changes, both small.
+
+- `orchestrator.ts`: every proposed call is classified before anything runs, and a gate is raised
+  only when the gated call stands alone. A gated call proposed alongside ungated reads gets a
+  structured `DEFERRED` result (with the reads named) and the reads run; the model proposes the
+  action again next iteration with the results in hand. A second gated call in the same iteration
+  as a gate is likewise `DEFERRED` ("one action at a time"). Every `tool_use` now has a
+  `tool_result`, so the resumed conversation is always well-formed. Cost: one extra model round trip,
+  only when the model mixes.
+- `prompts/system.ts` rule 9a: reads first, then the action, alone, with the section it relies on
+  fetched and named in its key points; and what `DEFERRED` means.
+- `tests/agent.gate-order.test.ts`: the flipped iteration (draft listed before the section fetch)
+  now runs the fetch, defers the draft, gates it alone next iteration, and resumes cleanly with every
+  tool_use paired; and two gated calls in one iteration gate the first and defer the second.
+
+**Caught in the test.** `FakeModel` records the orchestrator's live `messages` array by reference,
+so every recorded call shows the final conversation. An assertion written against "the third call's
+last message" saw the pending gate's assistant turn instead. The pairing check now walks the final
+array once, after Confirm, which is also the stronger claim.
+
+**Verification.** 253 tests green (was 251), typecheck and lint clean. Deployed via the CI deploy
+hook; the demo-script edits for D6 (which search row to expand) are in the tree uncommitted at
+Micah's call.

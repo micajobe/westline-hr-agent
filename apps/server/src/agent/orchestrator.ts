@@ -226,14 +226,17 @@ export class Orchestrator {
       state.trace.emit({ type: 'act', duration_ms: Date.now() - modelStarted, result_summary: `iteration ${state.iteration} · ${toolUses.length} tool call${toolUses.length === 1 ? '' : 's'} proposed`, detail: { stop_reason: res.stop_reason, tools_available: tools.length, usage: res.usage ? { input_tokens: res.usage.input_tokens, output_tokens: res.usage.output_tokens } : undefined } });
       if (res.stop_reason !== 'tool_use' || toolUses.length === 0) return { kind: 'done' };
 
-      // Classify in order first. A gate suspends the turn, so nothing after it may run -- but the
-      // ungated reads before it are independent, and executing them one await at a time made a
-      // four-tool turn four sequential round trips.
+      // Classify every proposed call first. A gate suspends the turn, so it must stand alone: when
+      // the model mixes a gated action into an iteration with ungated reads, the reads run and the
+      // action comes back DEFERRED so the model proposes it again once it holds the facts (the PTO
+      // section the draft will cite, say). This also guarantees every tool_use gets a tool_result --
+      // before this, calls listed after a gated one were dropped and the resumed conversation carried
+      // dangling tool_use blocks. Reads are independent of each other and run in parallel.
       const slots: ({ tool_use_id: string; content: string } | undefined)[] = new Array(toolUses.length);
       const runnable: { index: number; id: string; tool: string; args: Record<string, unknown> }[] = [];
-      let gate: PendingGate | undefined;
+      const gatedProposals: { index: number; id: string; tool: string; args: Record<string, unknown> }[] = [];
 
-      for (let i = 0; i < toolUses.length && !gate; i++) {
+      for (let i = 0; i < toolUses.length; i++) {
         const tu = toolUses[i];
         if (!tu) continue;
         const discovered = this.d.mcp.resolve(tu.name);
@@ -254,13 +257,29 @@ export class Orchestrator {
           continue;
         }
         if (discovered?.gated) {
-          const args_hash = proposedArgsHash(args, state.acting_person_id);
-          gate = { tool_use_id: tu.id, tool: tu.name, args, args_hash, summary: this.describeAction(tu.name, args, state.acting_person_id) };
-          state.trace.emit({ type: 'gate', server: 'hr', tool: tu.name, args: { ...args, acting_person_id: state.acting_person_id }, result_status: 'CONFIRMATION_REQUIRED', result_summary: gate.summary, detail: { args_hash, proposed_args: args } });
+          gatedProposals.push({ index: i, id: tu.id, tool: tu.name, args });
           continue;
         }
         runnable.push({ index: i, id: tu.id, tool: tu.name, args });
       }
+
+      let gate: PendingGate | undefined;
+      gatedProposals.forEach((g, k) => {
+        if (runnable.length === 0 && k === 0) {
+          const args_hash = proposedArgsHash(g.args, state.acting_person_id);
+          gate = { tool_use_id: g.id, tool: g.tool, args: g.args, args_hash, summary: this.describeAction(g.tool, g.args, state.acting_person_id) };
+          state.trace.emit({ type: 'gate', server: 'hr', tool: g.tool, args: { ...g.args, acting_person_id: state.acting_person_id }, result_status: 'CONFIRMATION_REQUIRED', result_summary: gate.summary, detail: { args_hash, proposed_args: g.args } });
+          return;
+        }
+        const reason = runnable.length > 0
+          ? 'the reads proposed alongside this action ran first; the action was not put to the user'
+          : 'another action in this turn is already waiting for confirmation; one action at a time';
+        const hint = runnable.length > 0
+          ? 'read their results, fetch any policy section the action will cite, then propose this action again as the only tool call in your turn'
+          : 'propose this action again after the pending one resolves';
+        slots[g.index] = { tool_use_id: g.id, content: JSON.stringify({ status: 'DEFERRED', message: reason, hint }) };
+        state.trace.emit({ type: 'tool_result', server: 'hr', tool: g.tool, result_status: 'DEFERRED', result_summary: `gated action deferred: ${reason}`, detail: { proposed_args: g.args, runnable_first: runnable.map((r) => r.tool) } });
+      });
 
       const executed = await Promise.all(
         runnable.map((r) => executeTool(this.d.mcp, state.citations, state.trace, state.actions, { tool_use_id: r.id, tool: r.tool, args: r.args }, { acting_person_id: state.acting_person_id })),
